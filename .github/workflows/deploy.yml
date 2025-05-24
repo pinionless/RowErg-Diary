@@ -39,5 +39,5 @@ jobs:
           platforms: linux/amd64   # Defines the target platform for the image
           push: true               # Tells the action to push the image to the registry
           tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name | lower }}:latest
-            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name | lower }}:${{ github.sha }}
+            ghcr.io/pinionless/rowerg-diary:latest
+            ghcr.io/pinionless/rowerg-diary:${{ github.sha }}
