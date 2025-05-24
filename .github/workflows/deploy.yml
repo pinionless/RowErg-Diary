@@ -1,0 +1,43 @@
+name: Deploy to GHCR # Name of your workflow
+
+on:
+  workflow_dispatch: # Allows manual triggering from the GitHub Actions UI
+  push:
+    branches:
+      - main # Triggers the workflow on every push to the 'main' branch
+
+concurrency: # Ensures only one deployment job runs at a time for a given ref
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true # Cancels any in-progress runs for the same group when a new one starts
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # Specifies the virtual machine environment
+
+    permissions: # Recommended: Explicitly grant permissions needed by this workflow
+      contents: read   # To checkout the repository code
+      packages: write  # To push images to GitHub Container Registry (GHCR)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4 # Action to fetch your repository code
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3 # Sets up Docker Buildx for advanced build features
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }} # Automatically gets the GitHub username or organization name
+          password: ${{ secrets.GHCR_TOKEN }}     # Uses the PAT stored as a GitHub Secret
+
+      - name: Build and push Docker image to GHCR
+        uses: docker/build-push-action@v6
+        with:
+          context: ./flask_app_dev # <--- CRITICAL FIX: Specify the correct path to your Dockerfile and app code
+          platforms: linux/amd64   # Defines the target platform for the image
+          push: true               # Tells the action to push the image to the registry
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:latest # Tag with 'latest'
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ github.sha }} # Tag with commit SHA for unique versioning
