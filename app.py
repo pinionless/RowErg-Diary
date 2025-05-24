@@ -5,6 +5,8 @@ from models import db
 from views import home, submit_json_workout, workouts, details, database_management, dailysummary
 from utils import sidebar_stats_processor
 
+__version__ = "0.1beta"
+
 def create_app(config_object=None):
     app = Flask(__name__)
 
