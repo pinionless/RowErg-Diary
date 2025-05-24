@@ -3,6 +3,10 @@
 This project is currently in its early development stages. Functionality may be incomplete, unstable, or subject to significant changes.
 ### This readme, just like most of the code was written by AI.
 
+## Works:
+- JSON import from mywellness (SKILLROW DATA)
+
+
 ---
 # RowErg Diary
 
