@@ -39,5 +39,5 @@ jobs:
           platforms: linux/amd64   # Defines the target platform for the image
           push: true               # Tells the action to push the image to the registry
           tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name.toLowerCase() }}:latest
-            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name.toLowerCase() }}:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name | lower }}:latest
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name | lower }}:${{ github.sha }}
