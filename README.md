@@ -6,6 +6,11 @@ This project is currently in its early development stages. Functionality may be 
 ## Works:
 - JSON import from mywellness (SKILLROW DATA)
 
+## How to get JSON:
+You can easly get json file link from mywellness useing this greesemonkey script.
+https://github.com/pinionless/rowerg-json-helper/blob/main/rowerg-json-helper.user.js
+Copy JSON and paste into RowErg-Diary textarea.
+
 
 ---
 # RowErg Diary
