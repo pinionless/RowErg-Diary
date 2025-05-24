@@ -13,6 +13,7 @@ pip-delete-this-directory/
 .nox/
 .idea/
 .vscode/
+.git
 
 # Flask
 instance/ # For Flask instance folder, might contain sqlite DB or configs
