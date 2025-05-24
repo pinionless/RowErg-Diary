@@ -1,0 +1,152 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Daily Workout Totals</title> <!-- Changed Title -->
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/mystyles.css') }}" />
+	</head>
+	<body class="is-preload">
+
+		<!-- Content -->
+			<div id="content" class="custom-fullwidth">
+				<div class="inner">
+                    <h1 class="extra_h1">Daily Summary</h1>
+                    <hr class="extra_title_line">
+					<!-- flash messages -->
+						{% with messages = get_flashed_messages(with_categories=true) %}
+							{% if messages %}
+								<article class="box post post-excerpt">
+								{% for category, message in messages %}
+									<div class="box alert-{{ category }}" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
+										{{ message }}
+									</div>
+								{% endfor %}
+								</article>
+							{% endif %}
+						{% endwith %}
+					
+					<!-- Daily Totals Table -->
+
+						{% if dailysummary_display_data %} {# Changed variable name #}
+							<article class="box post post-excerpt">
+								<table>
+									<thead>
+										<tr>
+											<th>Date</th>
+											<th>Distance</th>
+											<th>Duration</th>
+											<th>Split</th>
+											<th>Actions</th>
+										</tr>
+									</thead>
+									<tbody>
+										{% for item_data in dailysummary_display_data %} {# Changed loop variable #}
+										<tr>
+											<td>{{ item_data.day_date.strftime('%Y-%m-%d') if item_data.day_date else 'N/A' }}</td>
+											<td>{{ '{:,.0f}'.format(item_data.meters) }} m</td> {# Apply formatting #}
+											<td>
+                                                {# Jinja2 logic for "days, hours:minutes" rounded up #}
+                                                {% set total_seconds_duration = item_data.seconds | float %}
+                                                {% if total_seconds_duration > 0 %}
+                                                    {% set total_minutes_rounded = (total_seconds_duration / 60) | round(0, 'ceil') | int %}
+                                                    
+                                                    {% set days = (total_minutes_rounded // (24 * 60)) | int %}
+                                                    {% set remaining_minutes_after_days = total_minutes_rounded % (24 * 60) %}
+                                                    {% set hours = (remaining_minutes_after_days // 60) | int %}
+                                                    {% set final_minutes = (remaining_minutes_after_days % 60) | int %}
+
+                                                    {% if days > 0 %}
+                                                        {{ '%d days %02d:%02d' | format(days, hours, final_minutes) }}
+                                                    {% else %}
+                                                        {{ '%02d:%02d' | format(hours, final_minutes) }}
+                                                    {% endif %}
+                                                {% else %}
+                                                    N/A
+                                                {% endif %}
+                                            </td>
+											<td>
+                                                {# Jinja2 logic for mm:ss.ms format: Truncate seconds, then get first decimal #}
+                                                {% set total_split_seconds_raw = item_data.split | float %}
+                                                {% if total_split_seconds_raw > 0 %}
+                                                    {% set minutes = (total_split_seconds_raw // 60) | int %}
+                                                    {% set remaining_seconds_float = total_split_seconds_raw % 60 %}
+                                                    
+                                                    {% set seconds_and_ms_combined_truncated = (remaining_seconds_float * 10) | int %}
+                                                    
+                                                    {% set seconds_part = (seconds_and_ms_combined_truncated // 10) | int %}
+                                                    {% set milliseconds_decimal_part = (seconds_and_ms_combined_truncated % 10) | int %}
+
+                                                    {{ '%d:%02d.%01d' | format(minutes, seconds_part, milliseconds_decimal_part) }}
+                                                {% else %}
+                                                    N/A
+                                                {% endif %}
+                                            </td>
+											<td>
+												<a href="#codethislater">
+													<i class="fas fa-eye"></i> Details
+												</a>
+											</td>
+										</tr>
+										{% endfor %}
+									</tbody>
+								</table>
+							</article>
+							
+						{% else %}								
+								<article class="box post post-excerpt">
+									<div class="box alert-info" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
+										No daily totals found.
+									</div>
+								</article>
+							<p></p>
+						{% endif %}
+
+					<!-- Pagination -->
+					{% if dailysummary_pagination.pages > 1 %} {# Changed variable name #}
+						<div class="pagination">
+							{# Previous Page Button #}
+							{% if dailysummary_pagination.has_prev %} {# Changed variable name #}
+								<a href="{{ url_for('dailysummary_paginated', page_num=dailysummary_pagination.prev_num) }}" {# Changed endpoint #}
+								   class="button previous">Previous Page</a>
+							{% else %}
+								<span class="button previous disabled" aria-disabled="true">Previous Page</span>
+							{% endif %}
+							
+							<div class="pages">
+								{# Page Numbers #}
+								{% for page in dailysummary_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %} {# Changed variable name #}
+									{% if page %}
+										<a href="{{ url_for('dailysummary_paginated', page_num=page) }}" {# Changed endpoint #}
+										   class="{% if page == dailysummary_pagination.page %}active{% endif %}">{{ page }}</a> {# Changed variable name #}
+									{% else %}
+										<span>…</span>
+									{% endif %}
+								{% endfor %}
+							</div>
+							
+							{# Next Page Button #}
+							{% if dailysummary_pagination.has_next %} {# Changed variable name #}
+								<a href="{{ url_for('dailysummary_paginated', page_num=dailysummary_pagination.next_num) }}" {# Changed endpoint #}
+								   class="button next">Next Page</a>
+							{% else %}
+								<span class="button next disabled" aria-disabled="true">Next Page</span>
+							{% endif %}
+						</div>
+					{% endif %}
+
+				</div>
+			</div>
+		<!-- Sidebar -->
+			{% include '_sidebar.html' %}
+
+		<!-- Scripts -->
+			<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+			<script src="{{ url_for('static', filename='js/browser.min.js') }}"></script>
+			<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
+			<script src="{{ url_for('static', filename='js/util.js') }}"></script>
+			<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+	</body>
+</html>

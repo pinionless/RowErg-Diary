@@ -1,0 +1,229 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>RowErg Diary</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/mystyles.css') }}" />
+	</head>
+	<body class="is-preload">
+
+		<!-- Content -->
+			<div id="content" class="custom-calendar">
+				<div class="inner">
+					<!-- flash messages -->
+						{% with messages = get_flashed_messages(with_categories=true) %}
+							{% if messages %}
+								<article class="box post post-excerpt">
+								{% for category, message in messages %}
+									<div class="box alert-{{ category }}" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
+										{{ message }}
+									</div>
+								{% endfor %}
+								</article>
+							{% endif %}
+						{% endwith %}
+
+					<!-- Widgets -->
+						<article class="box post post-excerpt">
+							<style>
+								.flex-container {
+									display: flex;
+									gap: 20px;
+									flex-wrap: wrap;
+								}
+								.flex-box {
+									flex: 1 1 300px;
+									min-width: 300px;
+									border: 1px solid #ccc;
+									padding: 16px;
+									background: #fafafa;
+									box-sizing: border-box;
+								}
+								.flex-box h3 {
+									margin-bottom: 8px;
+									position: relative;
+									padding-bottom: 8px;
+								}
+								.flex-box h3::after {
+									content: "";
+									display: block;
+									width: 100%;
+									max-width: 100%;
+									height: 3px;
+									background: #b3c6e7;
+									border-radius: 2px;
+									margin-top: 6px;
+								}
+							</style>
+							<div class="flex-container">
+								<div class="flex-box">
+									<h3>Manual Workout Input</h3>
+									<form id="workoutInputForm" style="height:100%;display:flex;flex-direction:column;">
+										<div style="flex:0 0 auto;">
+											<label for="workoutDate">Date:</label>
+											<input type="date" id="workoutDate" name="workoutDate" required>
+										</div>
+										<div style="flex:0 0 auto;">
+											<label for="workoutTime">Time (HH:MM:SS.ms):</label>
+											<input type="text" id="workoutTime" name="workoutTime" placeholder="1:46:45.2 or 65:45.2" required pattern="^([0-9]+:)?([0-9]+:){1}([0-5]?[0-9])(\.[0-9]+)?$">
+										</div>
+										<div>
+											<label for="workoutDistance">Distance (Meters):</label>
+											<input type="number" id="workoutDistance" name="workoutDistance" placeholder="e.g., 2000" required>
+										</div>
+										<div>
+											<label for="workoutLevel">Level:</label>
+											<input type="text" id="workoutLevel" name="workoutLevel" placeholder="1-10">
+										</div>
+										<div>
+											<label for="calculatedPace">Pace:</label>
+											<input type="text" id="calculatedPace" name="calculatedPace" value="--:--.--" readonly style="background: #f8fbff; color: #3b4a6b; font-weight: bold;">
+										</div>
+										<button type="submit" id="workoutSubmitBtn">Add Workout</button>
+									</form>
+									<style>
+									#workoutInputForm {
+										display: flex;
+										flex-direction: column;
+										gap: 6px;
+									}
+									#workoutInputForm div {
+										display: flex;
+										flex-direction: column;
+										margin-bottom: 4px;
+									}
+									#workoutInputForm label {
+										font-weight: 600;
+										margin-bottom: 2px;
+										color: #3b4a6b;
+										letter-spacing: 0.02em;
+									}
+									#workoutInputForm input[type="date"],
+									#workoutInputForm input[type="text"],
+									#workoutInputForm input[type="number"] {
+										padding: 6px 8px;
+										border: 1px solid #b3c6e7;
+										border-radius: 4px;
+										background: #f8fbff;
+										font-size: 1em;
+										color: #222;
+										transition: border 0.2s;
+										height: 32px;
+									}
+									#workoutInputForm input:focus {
+										border-color: #6a8fd7;
+										outline: none;
+									}
+									#workoutInputForm input[readonly] {
+										background: #f8fbff;
+										color: #3b4a6b;
+										font-weight: bold;
+									}
+									#workoutSubmitBtn {
+										margin-top: 4px;
+										padding: 8px 0;
+										background: #b3c6e7;
+										color: #222;
+										border: none;
+										border-radius: 4px;
+										font-weight: 700;
+										font-size: 1.05em;
+										cursor: pointer;
+										transition: background 0.2s;
+										text-shadow: none;
+									}
+									#workoutSubmitBtn:hover {
+										background: #6a8fd7;
+										color: #fff;
+									}
+									</style>
+								</div>
+								<div class="flex-box">
+									<h3>Mywelness Json Import</h3>
+									<form id="jsonInputForm" method="POST" action="{{ url_for('submit_json_workout') }}">
+										<div>
+											<textarea id="jsonData" name="jsonData" placeholder='{"key": "value"}' required style="padding: 6px 8px; border: 1px solid #b3c6e7; border-radius: 4px; background: #f8fbff; font-size: 1em; color: #222; transition: border 0.2s; min-height: 80px; resize: vertical;"></textarea>
+										</div>
+										<div>
+											<button type="submit" id="jsonSubmitBtn" style="margin-top: 4px; padding: 8px 0; background: #b3c6e7; color: #222; border: none; border-radius: 4px; font-weight: 700; font-size: 1.05em; cursor: pointer; transition: background 0.2s; text-shadow: none;">Submit JSON</button>
+										</div>
+										<style>
+											#jsonInputForm {
+												display: flex;
+												flex-direction: column;
+												gap: 6px;
+											}
+											#jsonInputForm div {
+												display: flex;
+												flex-direction: column;
+												margin-bottom: 4px;
+											}
+											#jsonInputForm label {
+												font-weight: 600;
+												margin-bottom: 2px;
+												color: #3b4a6b;
+												letter-spacing: 0.02em;
+											}
+											#jsonInputForm textarea:focus {
+												border-color: #6a8fd7;
+												outline: none;
+											}
+											#jsonSubmitBtn:hover {
+												background: #6a8fd7;
+												color: #fff;
+											}
+										</style>
+									</form>
+								</div>
+							</div>
+						</article>
+						
+					<!-- Workouts -->
+						{% if workouts_display_data %}
+							{% for item_data in workouts_display_data %}
+								<hr class="extra_article">
+								<article class="box post post-excerpt">
+									<header style="margin-bottom: 0px; padding-top: 0px;"></header>
+										<h2 style="margin-bottom: 5px;"><a href="#">{{ item_data.name }}</a></h2>
+									</header>
+									<div class="info">
+										<span class="date"><span class="month">{{ item_data.workout_obj.workout_date.strftime('%b') if item_data.workout_obj.workout_date else 'N/A' }}<span>{{ (item_data.workout_obj.workout_date.strftime('%B'))[3:] if item_data.workout_obj.workout_date else 'N/A' }}</span></span> <span class="day">{{ item_data.workout_obj.workout_date.strftime('%d') if item_data.workout_obj.workout_date else 'N/A' }}</span><span class="year">, {{ item_data.workout_obj.workout_date.strftime('%Y') if item_data.workout_obj.workout_date else 'N/A' }}</span></span>
+										<ul class="stats">
+											<li><a href="#" class="icon distance">{{ item_data.summary.Distance | default('N/A') }}</a></li>
+											<li><a href="#" class="icon time">{{ item_data.summary.Duration | default('N/A') }}</a></li>
+											<li><a href="#" class="icon split">{{ item_data.summary.Split | default('N/A') }}</a></li>
+											<li><a href="{{ url_for('details', workout_id=item_data.workout_obj.workout_id) }}" class="icon details" style="color:green">Details</a></li>
+											<li><a href="{{ url_for('details', workout_id=item_data.workout_obj.workout_id) }}" class="icon brands fa-facebook-f"></a></li>
+										</ul>
+									</div>
+									<div id="workout-graph-placeholder" style="width:100%; height:250px; background:#f4f7fb; border:1px dashed #b3c6e7; display:flex; align-items:center; justify-content:center; margin: 0px 0;">
+										<span style="color:#6a8fd7; font-size:1.2em;">[ Graph will appear here ]</span>
+									</div>
+								</article>
+							{% endfor %}
+					{% else %}								
+							<article class="box post post-excerpt">
+								<div class="box alert-info" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
+									No workouts found.
+								</div>
+							</article>
+						<p></p>
+					{% endif %}
+					
+				</div>
+			</div>
+		<!-- Sidebar -->
+			{% include '_sidebar.html' %}
+
+		<!-- Scripts -->
+			<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+			<script src="{{ url_for('static', filename='js/browser.min.js') }}"></script>
+			<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
+			<script src="{{ url_for('static', filename='js/util.js') }}"></script>
+			<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+			<script src="{{ url_for('static', filename='js/pace.js') }}"></script>
+	</body>
+</html>

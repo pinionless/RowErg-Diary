@@ -1,0 +1,62 @@
+.alert-success {
+	color: #155724;
+	background-color: #d4edda;
+	border-color: #c3e6cb;
+}
+.alert-danger {
+	color: #721c24;
+	background-color: #f8d7da;
+	border-color: #f5c6cb;
+}
+.alert-warning {
+	color: #856404;
+	background-color: #fff3cd;
+	border-color: #ffeeba;
+}
+.alert-info {
+	color: #0c5460;
+	background-color: #d1ecf1;
+	border-color: #bee5eb;
+}
+
+
+/* static/css/mystyles.css */
+
+/* Add this to your existing mystyles.css file */
+
+/* static/css/mystyles.css */
+
+/* ... (your existing mystyles.css content) ... */
+
+.sidebar-total-stats {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+.sidebar-total-stats td {
+    padding: 2px 5px;
+    border: none;
+}
+
+.sidebar-total-stats .label {
+    text-align: left;
+    white-space: nowrap;
+    width: 40%;
+}
+
+.sidebar-total-stats .value {
+    text-align: right;
+    white-space: nowrap;
+    width: 60%;
+}
+
+/* --- NEW: Override background for sidebar-total-stats table rows --- */
+.sidebar-total-stats tbody tr:nth-child(2n+2) {
+    background: none; /* or background-color: transparent; */
+}
+
+/* Also ensure all rows have no specific background if not already transparent */
+.sidebar-total-stats tbody tr {
+    background: none; /* Ensure all rows are transparent */
+}

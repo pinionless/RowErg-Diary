@@ -1,0 +1,117 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>RowErg Diary</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/mystyles.css') }}" />
+	</head>
+	<body class="is-preload">
+
+		<!-- Content -->
+			<div id="content" class="custom-fullwidth">
+				<div class="inner">
+                    <h1 class="extra_h1">Workouts</h1>
+                    <hr class="extra_title_line">
+					<!-- flash messages -->
+						{% with messages = get_flashed_messages(with_categories=true) %}
+							{% if messages %}
+								<article class="box post post-excerpt">
+								{% for category, message in messages %}
+									<div class="box alert-{{ category }}" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
+										{{ message }}
+									</div>
+								{% endfor %}
+								</article>
+							{% endif %}
+						{% endwith %}
+					
+					<!-- Workouts -->
+
+						{% if workouts_display_data %}
+							<article class="box post post-excerpt">
+								<table>
+									<thead>
+										<tr>
+											<th>Date</th>
+											<th>Distance</th>
+											<th>Duration</th>
+											<th>Split</th>
+											<th>Actions</th>
+										</tr>
+									</thead>
+									<tbody>
+										{% for item_data in workouts_display_data %}
+										<tr>
+											<td>{{ item_data.workout_obj.workout_date.strftime('%Y-%m-%d') if item_data.workout_obj.workout_date else 'N/A' }}</td>
+											<td>{{ item_data.summary.Distance | default('N/A') }}</td>
+											<td>{{ item_data.summary.Duration | default('N/A') }}</td>
+											<td>{{ item_data.summary.Split | default('N/A') }}</td>
+											<td>
+												<a href="{{ url_for('details', workout_id=item_data.workout_obj.workout_id) }}">
+													<i class="fas fa-eye"></i> Details
+												</a>
+											</td>
+										</tr>
+										{% endfor %}
+									</tbody>
+								</table>
+							</article>
+							
+						{% else %}								
+								<article class="box post post-excerpt">
+									<div class="box alert-info" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
+										No workouts found.
+									</div>
+								</article>
+							<p></p>
+						{% endif %}
+
+					<!-- Pagination -->
+					{% if workouts_pagination.pages > 1 %} {# Only show pagination if there's more than one page #}
+						<div class="pagination">
+							{# Previous Page Button #}
+							{% if workouts_pagination.has_prev %}
+								<a href="{{ url_for('workouts_paginated', page_num=workouts_pagination.prev_num) }}"
+								   class="button previous">Previous Page</a>
+							{% else %}
+								<span class="button previous disabled" aria-disabled="true">Previous Page</span>
+							{% endif %}
+							
+							<div class="pages">
+								{# Page Numbers #}
+								{% for page in workouts_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+									{% if page %}
+										<a href="{{ url_for('workouts_paginated', page_num=page) }}"
+										   class="{% if page == workouts_pagination.page %}active{% endif %}">{{ page }}</a>
+									{% else %}
+										<span>…</span>
+									{% endif %}
+								{% endfor %}
+							</div>
+							
+							{# Next Page Button #}
+							{% if workouts_pagination.has_next %}
+								<a href="{{ url_for('workouts_paginated', page_num=workouts_pagination.next_num) }}"
+								   class="button next">Next Page</a>
+							{% else %}
+								<span class="button next disabled" aria-disabled="true">Next Page</span>
+							{% endif %}
+						</div>
+					{% endif %}
+
+				</div>
+			</div>
+		<!-- Sidebar -->
+			{% include '_sidebar.html' %}
+
+		<!-- Scripts -->
+			<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+			<script src="{{ url_for('static', filename='js/browser.min.js') }}"></script>
+			<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
+			<script src="{{ url_for('static', filename='js/util.js') }}"></script>
+			<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+	</body>
+</html>
