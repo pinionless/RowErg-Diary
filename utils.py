@@ -5,6 +5,36 @@ from sqlalchemy import text
 # Removed: from datetime import datetime, timedelta (not used by current functions)
 from decimal import Decimal # <--- ADD THIS LINE TO IMPORT DECIMAL
 
+def parse_duration_to_seconds(time_str):
+    """
+    Parses a time string (H:M:S.ms, M:S.ms, S.ms) into total seconds.
+    Returns None if parsing fails.
+    """
+    if not time_str:
+        return None
+    
+    parts = time_str.split(':')
+    total_seconds = 0
+    
+    try:
+        if len(parts) == 3: # H:M:S.ms
+            h = int(parts[0])
+            m = int(parts[1])
+            s_ms_part = float(parts[2])
+            total_seconds = h * 3600 + m * 60 + s_ms_part
+        elif len(parts) == 2: # M:S.ms
+            m = int(parts[0])
+            s_ms_part = float(parts[1])
+            total_seconds = m * 60 + s_ms_part
+        elif len(parts) == 1: # S.ms or S
+            s_ms_part = float(parts[0])
+            total_seconds = s_ms_part
+        else:
+            return None
+        return total_seconds
+    except ValueError:
+        return None
+        
 def format_duration_ms(total_seconds):
     if total_seconds is None or not isinstance(total_seconds, (int, float, Decimal)) or total_seconds < 0: # Added Decimal here too for consistency
         return "00:00.00"

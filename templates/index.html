@@ -32,7 +32,7 @@
 							<div class="flex-container">
 								<div class="flex-box">
 									<h3>Manual Workout Input</h3>
-									<form id="workoutInputForm">
+									<form id="workoutInputForm" method="POST" action="{{ url_for('submit_manual_workout') }}">
 										<!-- Line 1: Workout Type -->
                                         <div class="form-row-split">
 											<div class="form-field-group">

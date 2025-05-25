@@ -3,7 +3,7 @@ import os
 from flask import Flask
 from models import db
 # Import your views
-from views import home, submit_json_workout, workouts, details, database_management, dailysummary, workouts_by_date
+from views import home, submit_json_workout, workouts, details, database_management, dailysummary, workouts_by_date, submit_manual_workout
 # Import your utility functions and the context processor
 from utils import sidebar_stats_processor, format_total_seconds_human_readable, format_split_short, format_duration_ms # <--- IMPORT YOUR FILTERS
 
@@ -49,6 +49,7 @@ def create_app(config_object=None):
         database_management.register_routes(app)
         dailysummary.register_routes(app)
         workouts_by_date.register_routes(app)
+        submit_manual_workout.register_routes(app)
 
     return app
 
