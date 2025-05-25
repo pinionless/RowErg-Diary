@@ -1,37 +1,31 @@
 # views/home.py
 from flask import render_template
-from sqlalchemy.orm import joinedload
+# Removed: from sqlalchemy.orm import joinedload (no longer strictly needed here for summary data)
 from models import Workout
+# Removed: from utils import format_duration_ms (no longer used in this file, template uses it)
+
+# You might want a new utility function for formatting total_seconds into hh:mm:ss or d:hh:mm
+# e.g., from utils import format_seconds_to_readable_time
 
 def home():
-    latest_five_workouts = Workout.query.options(
-        joinedload(Workout.workout_summary_data)  # Eager load summary data
-    ).order_by(
-        Workout.workout_date.desc(),  # Order by date descending (newest first)
-        Workout.workout_id.desc()     # Secondary sort by ID descending (if dates are same)
+    latest_five_workouts = Workout.query.order_by(
+        Workout.workout_date.desc(),
+        Workout.workout_id.desc()
     ).limit(5).all()
 
+    # Simplified: workouts_display_data will now just be a list of Workout objects
+    # The templates (index.html) will handle formatting directly using filters.
+    # We still pass it as 'workouts_display_data' for consistency if the template
+    # expects 'item_data.workout_obj' inside a loop.
+    # Alternatively, we could just pass 'latest_five_workouts' directly and adjust the template.
+    # For minimal change to the template, we'll wrap it.
+    
     workouts_display_data = []
-    # Iterate over the list of the 5 (or fewer, if less than 5 exist) Workout objects
     for workout_item in latest_five_workouts:
-        summary_values = {
-            'Duration': 'N/A',
-            'Distance': 'N/A',
-            'Split': 'N/A'
-        }
-        # Access workout_summary_data directly from the loaded workout_item
-        for summary_item_detail in workout_item.workout_summary_data:
-            if summary_item_detail.property_key == 'Duration':
-                summary_values['Duration'] = summary_item_detail.value_text
-            elif summary_item_detail.property_key == 'derivedTotalDistance':
-                summary_values['Distance'] = summary_item_detail.value_text
-            elif summary_item_detail.property_key == 'derivedSplit500m':
-                summary_values['Split'] = summary_item_detail.value_text
-        
         workouts_display_data.append({
-            'workout_obj': workout_item,  # This is the actual Workout model instance
-            'name': workout_item.workout_name,  # <<< ADDED THIS LINE
-            'summary': summary_values
+            'workout_obj': workout_item,
+            'name': workout_item.workout_name # This was already used by the template
+            # The 'summary' dictionary is removed as templates format directly
         })
 
     return render_template('index.html',

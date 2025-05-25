@@ -1,20 +1,35 @@
 # views/details.py
 from flask import render_template
-from sqlalchemy.orm import joinedload
-from models import Workout, WorkoutSample, HeartRateSample
+from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy import distinct
+# Import db ALONG WITH your models
+from models import db, Workout, WorkoutSample, HeartRateSample, MetricDescriptor
 
 def details(workout_id):
     workout = Workout.query.options(
         joinedload(Workout.equipment_type_ref),
-        joinedload(Workout.physical_activity_ref),
-        joinedload(Workout.metric_descriptors).raiseload('*'),
-        joinedload(Workout.workout_hr_zones),
-        joinedload(Workout.workout_summary_data)
+        joinedload(Workout.workout_hr_zones)
     ).get_or_404(workout_id)
 
+    # Now 'db' will be defined
+    metric_descriptor_ids_with_samples = db.session.query(
+        distinct(WorkoutSample.metric_descriptor_id)
+    ).filter(
+        WorkoutSample.workout_id == workout_id
+    ).all()
+    
+    actual_metric_descriptor_ids = [md_id[0] for md_id in metric_descriptor_ids_with_samples if md_id[0] is not None]
+
+    workout_metric_descriptors_list = []
+    if actual_metric_descriptor_ids:
+        workout_metric_descriptors_list = MetricDescriptor.query.filter(
+            MetricDescriptor.metric_descriptor_id.in_(actual_metric_descriptor_ids)
+        ).order_by(MetricDescriptor.metric_name).all()
+
     all_workout_samples_query = WorkoutSample.query.options(
-        joinedload(WorkoutSample.metric_descriptor_ref)
+        selectinload(WorkoutSample.metric_descriptor_ref) 
     ).filter_by(workout_id=workout_id).order_by(WorkoutSample.time_offset_seconds.asc())
+    
     total_workout_samples = all_workout_samples_query.count()
     
     first_10_workout_samples = all_workout_samples_query.limit(10).all()
@@ -26,7 +41,6 @@ def details(workout_id):
         else:
             workout_samples_ellipsis_needed = True
             last_10_workout_samples = all_workout_samples_query.offset(total_workout_samples - 10).limit(10).all()
-
 
     all_hr_samples_query = HeartRateSample.query.filter_by(workout_id=workout_id).order_by(HeartRateSample.time_offset_seconds.asc())
     total_hr_samples = all_hr_samples_query.count()
@@ -43,6 +57,7 @@ def details(workout_id):
     return render_template(
         'details.html',
         workout=workout,
+        workout_metric_descriptors=workout_metric_descriptors_list, 
         first_10_workout_samples=first_10_workout_samples,
         last_10_workout_samples=last_10_workout_samples,
         total_workout_samples=total_workout_samples,

@@ -1,0 +1,40 @@
+# Roadmap
+- Database
+    - Store Total "IsoReps" in workout database
+    - Display IsoReps Everywhere
+- Adding backend functionality for the "Manual Workout Input" form.
+- Move Inline CSS from details.html
+- Enhanced Statistics & Dashboard Page
+    - Create a new route (e.g., /dashboard) that displays more comprehensive statistics.
+    - Utilize mv_year_totals, mv_month_totals, mv_week_totals to show trends.
+    - Charts: Integrate a simple charting library (e.g., Chart.js, ApexCharts) to visualize:
+        - Meters rowed per week/month.
+        - Average split over time.
+        - Workout frequency.
+    - Personal Bests: Longest distance, longest duration, fastest split for common distances (e.g., 500m, 1k, 2k, 5k).
+- Workout Editing and Deletion
+    - Add "Edit" and "Delete" buttons to the workout listings (e.g., in workouts.html, workouts_by_date.html, index.html).
+- Filtering and Sorting:
+    - Workouts Page:
+        - Add dropdowns or input fields to filter by date range.
+        - Add clickable table headers to sort by date, distance, duration, split.
+    - Daily Summary Page:
+        - Filter by year/month.
+- Weekly Summary
+- Monthly Summary
+- Yearly Summary
+- Total Summary
+- User Workout Notes:
+    - When importing JSON, if workout_main_container.get('name') is generic, allow users to easily rename it.
+    - Add a "Notes" field to the Workout model and allow users to add notes to workouts.
+- Data Export:
+    - Allow users to export their workout data (e.g., main workout stats or even detailed samples) to CSV.
+- Extra widgets on Homepage
+    - This Week 
+    - This Month
+    - This Year
+    - Totals
+    - Graphs widget
+- Backup/Restore Database.
+- Concept2 Log API integration
+    - autosync workouts

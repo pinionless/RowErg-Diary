@@ -1,41 +1,96 @@
-# **⚠️ EARLY DEVELOPMENT ⚠️**
+# RowErg Diary 🚣‍♂️
 
-This project is currently in its early development stages. Functionality may be incomplete, unstable, or subject to significant changes.
-### This readme, just like most of the code was written by AI.
-
-## Works:
-- JSON import from mywellness (SKILLROW DATA)
-
-## How to get JSON:
-You can easly get json file link from mywellness useing this greesemonkey script.
-https://github.com/pinionless/rowerg-json-helper/blob/main/rowerg-json-helper.user.js
-Copy JSON and paste into RowErg-Diary textarea.
-
+Tracking and analyzing SKILLROW RowErg an Concept2 (or similar cardio equipment) workouts. This application allows you to import workout data, view summaries, track progress, and manage your workout history.
 
 ---
-# RowErg Diary
+
+## ⚠️ **Status: Early Development** ⚠️
+
+This project is currently in its **early development stages**. Please be aware that:
+    
+    ❗ Active Development Notice: Expect breaking changes to features, APIs, and the database schema; backward compatibility is not guaranteed at this early stage.
+*   Functionality may be incomplete or change significantly.
+*   You might encounter bugs or instability.
+*   We appreciate your understanding and any feedback you might have!
+
+---
+
+## Current Features
+
+*   **Import SKILLROW Workouts:** Easily upload and parse your MyWellness JSON data.
+*   **Track Your Progress:** View a detailed list of all workouts with key stats.
+*   **Dive Deep into Details:** Analyze individual workouts with comprehensive metrics, samples, and heart rate zone data.
+*   **Daily Performance Summaries:** Get aggregated totals for each day's rowing activity.
+*   **Overall Statistics:** See your lifetime rowing achievements at a glance in the sidebar.
+*   **Efficient Data Handling:** Leverages materialized views for fast display of summaries and stats.
+*   **Dockerized & Developer Ready:** Easy to set up and contribute.
+---
+
+## Getting Your MyWellness JSON Data
+
+To import your SKILLROW workouts, you'll need the JSON data from your MyWellness account.
+
+1.  **Use the Helper Script:** We recommend using this Greasemonkey/Tampermonkey script to easily obtain the JSON link:
+    *   [RowErg JSON Helper Script](https://github.com/pinionless/rowerg-json-helper/blob/main/rowerg-json-helper.user.js)
+2.  **Copy & Paste:** Once you have the JSON content, copy it and paste it into the designated textarea in the RowErg Diary application.
+
+---
+
+## Project Roadmap
+
+We have exciting plans for RowErg Diary! You can view our detailed development roadmap here:
+
+➡️ **[View Project Roadmap](roadmap.md)**
+
+---
+
+## AI WARNING
+
+> I do not code a lot, That's why most of the foundational code and this README were created with the assistance of AI. I am actively refining and building upon this base.
+
+---
+
+## RowErg Diary
 
 A Flask-based web application for tracking and analyzing SKILLROW RowErg (or similar cardio equipment) workouts. This application allows you to import workout data, view summaries, track progress, and manage your workout history.
 
-## Features
+---
 
-*   **Workout Listing:** Browse all your recorded workouts with pagination.
-*   **Workout Summaries:** Quick overview of key metrics like Duration, Distance, and Split for each workout.
-*   **Detailed Workout View (Planned):** View comprehensive data for individual workouts, including samples and heart rate zones.
-*   **Data Import:** Functionality to submit workout data (e.g., via JSON uploads).
-*   **Database Management:** Tools for initial database setup and potential administration.
-*   **Sidebar Statistics:** Always-visible aggregated rowing statistics (total meters, total time, average split).
-*   **Dockerized Environment:** Easy setup and consistent development/deployment using Docker.
+## ✨ Key Features
 
-## Technologies Used
+*   **Workout Data Import:**
+    *   Seamlessly import detailed SKILLROW workout data via MyWellness JSON exports.
+    *   Automatic parsing of workout metrics, samples, heart rate data, and HR zones.
+*   **Comprehensive Workout Diary:**
+    *   Paginated list of all your workouts (`/workouts`).
+    *   At-a-glance summaries for each workout (Date, Name, Distance, Duration, Average Split).
+*   **Detailed Workout View (`/details/<id>`):**
+    *   In-depth information for individual workouts.
+    *   General workout information (ID, equipment, target, totals).
+    *   List of all metric descriptors used in the workout (e.g., Pace, Power, Stroke Rate).
+    *   Display of workout samples (first & last 10, with total count).
+    *   Display of heart rate samples (first & last 10, with total count).
+    *   Visualization of time spent in different heart rate zones.
+*   **Daily Summaries (`/dailysummary`):**
+    *   Paginated view of aggregated daily totals (Total Distance, Total Duration, Average Split for each day).
+    *   Ability to click through to see all workouts for a specific day (`/workouts/date/<date>`).
+*   **Dynamic Sidebar Statistics:**
+    *   Always-visible overall lifetime statistics (Total Meters Rowed, Total Duration, Overall Average Split).
+    *   Data is efficiently sourced from materialized views for quick display.
+*   **Robust Database Backend:**
+    *   Utilizes PostgreSQL for reliable data storage.
+    *   SQLAlchemy ORM for Pythonic database interaction.
+    *   Materialized views for pre-calculated aggregate statistics, ensuring fast dashboard/summary loading.
+    *   Automatic refresh of materialized views upon new workout data insertion, update, or deletion via database triggers.
+*   **Flexible Configuration:**
+    *   App settings (like items per page, secret key) configurable via environment variables.
+*   **Developer-Friendly:**
+    *   Modular Flask application structure (views, models, utils).
+    *   Dockerized environment for easy setup and consistent development/deployment (`docker-compose.yml` provided).
+    *   Database management scripts for easy creation and deletion of all DB components (tables, MVs, functions, triggers) during development.
+*   **(Planned/In Progress)** Manual workout entry form.
 
-*   **Backend:** Flask (Python)
-*   **Database:** PostgreSQL
-*   **ORM:** SQLAlchemy with Flask-SQLAlchemy
-*   **Containerization:** Docker, Docker Compose
-*   **Frontend:** HTML, CSS (using a templating engine like Jinja2)
-*   **Client-side:** jQuery, Font Awesome
-*   **AI Used:** Fully build with Gemini 2.5 Pro Preview 05-06
+---
 
 ## Getting Started
 
@@ -45,112 +100,74 @@ These instructions will get you a copy of the project up and running on your loc
 
 Before you begin, ensure you have the following installed on your system:
 
-*   **Git:** For cloning the repository.
 *   **Docker & Docker Compose:** For running the application in containers.
     *   [Install Docker Engine](https://docs.docker.com/engine/install/)
     *   [Install Docker Compose](https://docs.docker.com/compose/install/)
 
 ### Installation and Setup
 
-1.  **Clone the repository:**
+  1.  **Prepare `docker-compose.yml`:**
+  * See example below.
 
-    ```bash
-    git clone https://github.com/pinionless/RowErg-Diary.git # Replace with your actual repo URL
-    cd your-repo-name # Navigate into the project directory
-    ```
-
-2.  **Environment Variables (Optional for Development, Recommended for Production):**
-
-    For local development, `FLASK_SECRET_KEY` defaults to a generic value. For production or if you prefer explicit control, create a `.env` file in the root of your project:
-
-    ```bash
-    # .env (example for production/explicit setup)
-    FLASK_SECRET_KEY=a_very_long_and_random_secret_key_here
-    # You can also override PER_PAGE here if you want it different from docker-compose.yml
-    # PER_PAGE=15
-    ```
-    *Note: The database connection details (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, POSTGRES_HOST) are already configured within the `docker-compose.yml` file for convenience in development.*
-
-3.  **Build and Run the Docker Containers:**
-
-    From the root of your project directory (where `docker-compose.yml` is located), run:
-
-    ```bash
-    docker-compose up --build
-    ```
-    *   `--build`: This flag tells Docker Compose to rebuild the `flask_app_dev` image. It's essential the first time you run the application or after making changes to your `Dockerfile` or `requirements.txt`.
-    *   This command will download the PostgreSQL image, build your Flask app image, and start both services. It might take a few minutes on the first run.
-
-4.  **First-Time Database Setup (Crucial!)**
-
-    After the containers are up and running, the PostgreSQL database will be empty. You need to create the necessary tables and initial data (if any) by running a specific endpoint in your application.
-
-    *   Wait until you see output in your terminal indicating that the Flask application is running (e.g., `* Running on http://0.0.0.0:5000 (Press CTRL+C to quit)`).
-    *   Open your web browser and navigate to:
-        `http://localhost:5000/database/create`
-
-    *   This will trigger the database creation script defined in your `database_management`.
-    *   There is also `http://localhost:5000/database/delete` that will delete all for development only.
+  2.  **First-Time Database Setup (Crucial!):**
+  *   Open your web browser and navigate to:
+      `http://localhost:5000/database/create`
+  *   This will trigger the database creation script within the application, setting up necessary tables, materialized views, and triggers. You should see a success message.
 
 ### Usage
 
 Once the application is running and the database is initialized:
 
 *   Open your web browser and go to `http://localhost:5000`.
-*   You will see the home page.
-*   Navigate to `/workouts` to view your workout diary (initially empty until you import data).
-*   Explore other available routes as they are implemented.
 
 
 ### docker-compose.yml
 ```
-# docker-compose.yml
-version: '3.8' # Specify Docker Compose file format version
-
 services:
-  flask_app_dev:
-    build: ./flask_app_dev         # Path to the Dockerfile for the web app
+  rowergdiary:
+    image: ghcr.io/pinionless/rowerg-diary:latest
+    container_name: rowerg_diary
+    restart: unless-stopped
     networks:
-      - dev_net
+      - rowerg_diary
     ports:
-      - "5000:5000"      # Map host port 5000 to container port 5000
-    volumes:
-      - ./flask_app_dev:/usr/src/app # Mount your app directory to the container
-    environment:
+      - "5000:5000"
+    environment:      
       FLASK_APP: app.py
-      FLASK_ENV: development # Enables debug mode and reloader for Flask
+      FLASK_ENV: development
       FLASK_DEBUG: 1
-      PER_PAGE: 20           # Number of items per page for pagination
+      PER_PAGE: ${PER_PAGE:-20}
 
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
       POSTGRES_DB: mydatabase
-      POSTGRES_HOST: postgres_dev # Matches the service name of the PostgreSQL container
+      POSTGRES_HOST: rowerg_diary_db
     depends_on:
-      - postgres_dev # Ensures postgres_dev starts before flask_app_dev
+      rowerg_diary_db:
+        condition: service_healthy # Waits for postgres_dev to be healthy
 
-  postgres_dev:
+  rowerg_diary_db:
     image: postgres:17-alpine
-    restart: unless-stopped # Automatically restart if it crashes
+    container_name: rowerg_diary_db
+    restart: unless-stopped
     networks:
-      - dev_net
+      - rowerg_diary
     ports:
-      - "5432:5432" # Expose PostgreSQL port (optional for internal use, but good for local debugging)
+      - "5432:5432" # Expose PostgreSQL port for local debugging (optional)
     volumes:
       - postgres_data:/var/lib/postgresql/data/ # Persistent volume for database data
     environment:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
       POSTGRES_DB: mydatabase
-      POSTGRES_HOST: postgres_dev # This is typically not used by Postgres itself, but Flask app might look for it
-      # Note: POSTGRES_HOST is not usually needed by the postgres container itself,
-      # but it's fine to keep if your app expects it here.
-      # The important connection detail for the Flask app is POSTGRES_HOST.
-      # For the database container, it's just 'postgres_dev' (itself) by default within its network.
-
+    healthcheck: # Added healthcheck for postgres
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
-  dev_net: # Define the custom network
+  rowerg_diary:
     driver: bridge
 
 volumes:

@@ -1,7 +1,7 @@
-# database_management.py
+# views/database_management.py
 from flask import redirect, url_for, flash, current_app
-from models import db # Assuming db is initialized and available
-from sqlalchemy import text # Import text for raw SQL execution
+from models import db # WorkoutSummaryData is no longer in models
+from sqlalchemy import text
 
 def create_db_components():
     """
@@ -22,54 +22,41 @@ def create_db_components():
         DROP MATERIALIZED VIEW IF EXISTS mv_day_totals;
         """
 
-        # --- SQL for Creating Materialized Views (with unit conversion for Duration) ---
-        duration_conversion_case = """
-            CASE
-                WHEN ws.property_key = 'Duration' AND (ws.unit_of_measure = 'minutes' OR ws.unit_of_measure = 'min') THEN ws.raw_value * 60
-                WHEN ws.property_key = 'Duration' AND ws.unit_of_measure = 'hours' THEN ws.raw_value * 3600
-                WHEN ws.property_key = 'Duration' AND ws.unit_of_measure = 'milliseconds' THEN ws.raw_value / 1000.0
-                WHEN ws.property_key = 'Duration' AND (ws.unit_of_measure = 'seconds' OR ws.unit_of_measure IS NULL OR ws.unit_of_measure = '') THEN ws.raw_value
-                ELSE 0
-            END
-        """
-
-        # --- Corrected MV_WEEK_TOTALS for Monday as 1st day of week (assuming PostgreSQL config) ---
+        # --- SQL for Creating Materialized Views ---
+        # duration_conversion_case is no longer needed as duration_seconds is stored directly.
         create_mvs_sql = f"""
         CREATE MATERIALIZED VIEW mv_sum_totals AS
         SELECT
-            SUM(CASE WHEN ws.property_key = 'derivedTotalDistance' THEN ws.raw_value ELSE 0 END) AS total_meters_rowed,
-            SUM({duration_conversion_case}) AS total_seconds_rowed,
+            SUM(w.total_distance_meters) AS total_meters_rowed,
+            SUM(w.duration_seconds) AS total_seconds_rowed,
             CASE
-                WHEN SUM(CASE WHEN ws.property_key = 'derivedTotalDistance' THEN ws.raw_value ELSE 0 END) > 0 THEN
-                    SUM({duration_conversion_case}) / (SUM(CASE WHEN ws.property_key = 'derivedTotalDistance' THEN ws.raw_value ELSE 0 END) / 500.0)
+                WHEN SUM(w.total_distance_meters) > 0 AND SUM(w.duration_seconds) > 0 THEN
+                    SUM(w.duration_seconds) / (SUM(w.total_distance_meters) / 500.0)
                 ELSE
                     0
             END AS average_split_seconds_per_500m
         FROM
-            workout_summary_data ws
-        JOIN
-            workouts w ON ws.workout_id = w.workout_id
+            workouts w
         WHERE
-            ws.property_key IN ('derivedTotalDistance', 'Duration')
+            w.total_distance_meters IS NOT NULL AND w.duration_seconds IS NOT NULL 
+            -- Optionally filter out workouts where these values are NULL if they shouldn't contribute to totals
         WITH DATA;
 
         CREATE MATERIALIZED VIEW mv_year_totals AS
         SELECT
             EXTRACT(YEAR FROM w.workout_date) AS year,
-            SUM(CASE WHEN ws.property_key = 'derivedTotalDistance' THEN ws.raw_value ELSE 0 END) AS total_meters_rowed,
-            SUM({duration_conversion_case}) AS total_seconds_rowed,
+            SUM(w.total_distance_meters) AS total_meters_rowed,
+            SUM(w.duration_seconds) AS total_seconds_rowed,
             CASE
-                WHEN SUM(CASE WHEN ws.property_key = 'derivedTotalDistance' THEN ws.raw_value ELSE 0 END) > 0 THEN
-                    SUM({duration_conversion_case}) / (SUM(CASE WHEN ws.property_key = 'derivedTotalDistance' THEN ws.raw_value ELSE 0 END) / 500.0)
+                WHEN SUM(w.total_distance_meters) > 0 AND SUM(w.duration_seconds) > 0 THEN
+                    SUM(w.duration_seconds) / (SUM(w.total_distance_meters) / 500.0)
                 ELSE
                     0
             END AS average_split_seconds_per_500m
         FROM
-            workout_summary_data ws
-        JOIN
-            workouts w ON ws.workout_id = w.workout_id
-        WHERE
-            ws.property_key IN ('derivedTotalDistance', 'Duration')
+            workouts w
+        WHERE 
+            w.total_distance_meters IS NOT NULL AND w.duration_seconds IS NOT NULL
         GROUP BY
             EXTRACT(YEAR FROM w.workout_date)
         ORDER BY
@@ -80,20 +67,18 @@ def create_db_components():
         SELECT
             EXTRACT(YEAR FROM w.workout_date) AS year,
             EXTRACT(MONTH FROM w.workout_date) AS month,
-            SUM(CASE WHEN ws.property_key = 'derivedTotalDistance' THEN ws.raw_value ELSE 0 END) AS total_meters_rowed,
-            SUM({duration_conversion_case}) AS total_seconds_rowed,
+            SUM(w.total_distance_meters) AS total_meters_rowed,
+            SUM(w.duration_seconds) AS total_seconds_rowed,
             CASE
-                WHEN SUM(CASE WHEN ws.property_key = 'derivedTotalDistance' THEN ws.raw_value ELSE 0 END) > 0 THEN
-                    SUM({duration_conversion_case}) / (SUM(CASE WHEN ws.property_key = 'derivedTotalDistance' THEN ws.raw_value ELSE 0 END) / 500.0)
+                WHEN SUM(w.total_distance_meters) > 0 AND SUM(w.duration_seconds) > 0 THEN
+                    SUM(w.duration_seconds) / (SUM(w.total_distance_meters) / 500.0)
                 ELSE
                     0
             END AS average_split_seconds_per_500m
         FROM
-            workout_summary_data ws
-        JOIN
-            workouts w ON ws.workout_id = w.workout_id
-        WHERE
-            ws.property_key IN ('derivedTotalDistance', 'Duration')
+            workouts w
+        WHERE 
+            w.total_distance_meters IS NOT NULL AND w.duration_seconds IS NOT NULL
         GROUP BY
             EXTRACT(YEAR FROM w.workout_date),
             EXTRACT(MONTH FROM w.workout_date)
@@ -103,21 +88,19 @@ def create_db_components():
 
         CREATE MATERIALIZED VIEW mv_week_totals AS
         SELECT
-            DATE_TRUNC('week', w.workout_date)::date AS week_start_date, -- SIMPLIFIED FORMULA HERE (ASSUMES PG IS CONFIGURED FOR MONDAY START)
-            SUM(CASE WHEN ws.property_key = 'derivedTotalDistance' THEN ws.raw_value ELSE 0 END) AS total_meters_rowed,
-            SUM({duration_conversion_case}) AS total_seconds_rowed,
+            DATE_TRUNC('week', w.workout_date)::date AS week_start_date,
+            SUM(w.total_distance_meters) AS total_meters_rowed,
+            SUM(w.duration_seconds) AS total_seconds_rowed,
             CASE
-                WHEN SUM(CASE WHEN ws.property_key = 'derivedTotalDistance' THEN ws.raw_value ELSE 0 END) > 0 THEN
-                    SUM({duration_conversion_case}) / (SUM(CASE WHEN ws.property_key = 'derivedTotalDistance' THEN ws.raw_value ELSE 0 END) / 500.0)
+                WHEN SUM(w.total_distance_meters) > 0 AND SUM(w.duration_seconds) > 0 THEN
+                    SUM(w.duration_seconds) / (SUM(w.total_distance_meters) / 500.0)
                 ELSE
                     0
             END AS average_split_seconds_per_500m
         FROM
-            workout_summary_data ws
-        JOIN
-            workouts w ON ws.workout_id = w.workout_id
-        WHERE
-            ws.property_key IN ('derivedTotalDistance', 'Duration')
+            workouts w
+        WHERE 
+            w.total_distance_meters IS NOT NULL AND w.duration_seconds IS NOT NULL
         GROUP BY
             DATE_TRUNC('week', w.workout_date)::date
         ORDER BY
@@ -127,20 +110,18 @@ def create_db_components():
         CREATE MATERIALIZED VIEW mv_day_totals AS
         SELECT
             w.workout_date AS day_date,
-            SUM(CASE WHEN ws.property_key = 'derivedTotalDistance' THEN ws.raw_value ELSE 0 END) AS total_meters_rowed,
-            SUM({duration_conversion_case}) AS total_seconds_rowed,
+            SUM(w.total_distance_meters) AS total_meters_rowed,
+            SUM(w.duration_seconds) AS total_seconds_rowed,
             CASE
-                WHEN SUM(CASE WHEN ws.property_key = 'derivedTotalDistance' THEN ws.raw_value ELSE 0 END) > 0 THEN
-                    SUM({duration_conversion_case}) / (SUM(CASE WHEN ws.property_key = 'derivedTotalDistance' THEN ws.raw_value ELSE 0 END) / 500.0)
+                WHEN SUM(w.total_distance_meters) > 0 AND SUM(w.duration_seconds) > 0 THEN
+                    SUM(w.duration_seconds) / (SUM(w.total_distance_meters) / 500.0)
                 ELSE
                     0
             END AS average_split_seconds_per_500m
         FROM
-            workout_summary_data ws
-        JOIN
-            workouts w ON ws.workout_id = w.workout_id
-        WHERE
-            ws.property_key IN ('derivedTotalDistance', 'Duration')
+            workouts w
+        WHERE 
+            w.total_distance_meters IS NOT NULL AND w.duration_seconds IS NOT NULL
         GROUP BY
             w.workout_date
         ORDER BY
@@ -148,7 +129,7 @@ def create_db_components():
         WITH DATA;
         """
 
-        # --- SQL for Creating/Replacing Trigger Function ---
+        # --- SQL for Creating/Replacing Trigger Function (function itself is unchanged) ---
         create_function_sql = """
         CREATE OR REPLACE FUNCTION refresh_rowing_summary_mvs()
         RETURNS TRIGGER AS $$
@@ -163,23 +144,20 @@ def create_db_components():
         $$ LANGUAGE plpgsql;
         """
 
-        # --- SQL for Dropping and Creating Triggers (for idempotency and creation) ---
+        # --- SQL for Dropping and Creating Triggers ---
+        # Removed trigger for workout_summary_data
         drop_and_create_triggers_sql = """
         DROP TRIGGER IF EXISTS trg_refresh_rowing_summary_on_workout ON workouts;
-        DROP TRIGGER IF EXISTS trg_refresh_rowing_summary_on_summary_data ON workout_summary_data;
+        -- DROP TRIGGER IF EXISTS trg_refresh_rowing_summary_on_summary_data ON workout_summary_data; -- This line is removed
 
         CREATE TRIGGER trg_refresh_rowing_summary_on_workout
         AFTER INSERT OR UPDATE OR DELETE ON workouts
         FOR EACH STATEMENT
         EXECUTE FUNCTION refresh_rowing_summary_mvs();
 
-        CREATE TRIGGER trg_refresh_rowing_summary_on_summary_data
-        AFTER INSERT OR UPDATE OR DELETE ON workout_summary_data
-        FOR EACH STATEMENT
-        EXECUTE FUNCTION refresh_rowing_summary_mvs();
+        -- CREATE TRIGGER trg_refresh_rowing_summary_on_summary_data ... -- This block is removed
         """
 
-        # 3. Execute the raw SQL commands within a database connection
         with db.engine.connect() as connection:
             with connection.begin():
                 current_app.logger.info("Executing DDL for materialized views and triggers...")
@@ -201,14 +179,11 @@ def create_db_components():
 def delete_db_components():
     """
     Deletes all database components including triggers, materialized views, and tables.
-    Designed for development convenience to clear the database entirely.
-    Order of operations is crucial for dependencies.
     """
     try:
-        # Define SQL to drop triggers, function, and materialized views
         drop_triggers_sql = """
         DROP TRIGGER IF EXISTS trg_refresh_rowing_summary_on_workout ON workouts;
-        DROP TRIGGER IF EXISTS trg_refresh_rowing_summary_on_summary_data ON workout_summary_data;
+        -- DROP TRIGGER IF EXISTS trg_refresh_rowing_summary_on_summary_data ON workout_summary_data; -- Removed
         """
 
         drop_function_sql = """
@@ -226,21 +201,14 @@ def delete_db_components():
         with db.engine.connect() as connection:
             with connection.begin():
                 current_app.logger.info("Executing DDL for dropping database components...")
-
-                # 1. Drop Triggers first (they depend on tables and the function)
                 connection.execute(text(drop_triggers_sql))
                 current_app.logger.info("Dropped triggers.")
-
-                # 2. Drop the Trigger Function (it depends on nothing, but triggers depend on it)
                 connection.execute(text(drop_function_sql))
                 current_app.logger.info("Dropped trigger function.")
-
-                # 3. Drop Materialized Views (they depend on underlying tables)
                 connection.execute(text(drop_mvs_sql_reverse_order))
                 current_app.logger.info("Dropped materialized views.")
 
-        # 4. Drop all Flask-SQLAlchemy managed tables
-        db.drop_all()
+        db.drop_all() # This will drop WorkoutSummaryData table if it still exists due to old schema
         current_app.logger.info("Dropped all Flask-SQLAlchemy tables.")
 
         flash("All database components (tables, views, triggers) deleted successfully!", "success")
@@ -253,8 +221,5 @@ def delete_db_components():
 
 
 def register_routes(app):
-    """
-    Registers the database management routes with the Flask application.
-    """
     app.add_url_rule('/database/create', endpoint='create_db', view_func=create_db_components, methods=['GET'])
     app.add_url_rule('/database/delete', endpoint='delete_db', view_func=delete_db_components, methods=['GET'])
