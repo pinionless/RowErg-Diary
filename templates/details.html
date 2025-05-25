@@ -1,3 +1,4 @@
+<!-- templates/details.html -->
 <!DOCTYPE HTML>
 <html>
 	<head>
@@ -26,13 +27,6 @@
 							{% endif %}
 						{% endwith %}
 					
-					
-                    <!-- temp data dump -->
-
-                    
-
-
-
                     <div class="workout-details-main">
                         <!-- Workout Title -->
                         <div class="workout-header">
@@ -49,43 +43,22 @@
                                 <div><span>ID (DB):</span> {{ workout.workout_id }}</div>
                                 <div><span>Cardio Log ID:</span> {{ workout.cardio_log_id }}</div>
                                 <div><span>Equipment:</span> {{ workout.equipment_type_ref.name | default('N/A') }}</div>
-                                <div><span>Activity:</span> {{ workout.physical_activity_ref.name | default('N/A') }}</div>
+                                <!-- Removed Activity, Favorite, nEser, nAttr, Imported At -->
                                 <div><span>Target:</span> {{ workout.target_description | default('N/A') }}</div>
-                                <div><span>Favorite:</span> {{ 'Yes' if workout.is_favorite else 'No' }}</div>
-                                <div><span>nEser:</span> {{ workout.n_eser | default('N/A') }}</div>
-                                <div><span>nAttr:</span> {{ workout.n_attr | default('N/A') }}</div>
-                                <div><span>Imported At:</span> {{ workout.imported_at.strftime('%Y-%m-%d %H:%M:%S %Z') if workout.imported_at else 'N/A' }}</div>
+                                
+                                <!-- Display new summary fields -->
+                                <div><span>Total Distance:</span> {{ '{:,.0f}'.format(workout.total_distance_meters) if workout.total_distance_meters is not none else 'N/A' }} m</div>
+                                <div><span>Total Duration:</span> {{ workout.duration_seconds | format_total_seconds_human_readable }}</div>
+                                <div><span>Average Split (/500m):</span> {{ workout.average_split_seconds_500m | format_split_ms }}</div>
                             </div>
                         </div>
 
-                        <!-- Summary Data -->
-                        {% if workout.workout_summary_data %}
-                        <div class="card">
-                            <h2>Summary Data</h2>
-                            <table class="styled-table">
-                                <thead>
-                                    <tr>
-                                        <th>Property</th>
-                                        <th>Display Name</th>
-                                        <th>Value</th>
-                                        <th>Unit</th>
-                                        <th>Raw Value</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for summary in workout.workout_summary_data %}
-                                    <tr>
-                                        <td>{{ summary.property_key }}</td>
-                                        <td>{{ summary.display_name }}</td>
-                                        <td>{{ summary.value_text | default('N/A') }}</td>
-                                        <td>{{ summary.unit_of_measure | default('N/A') }}</td>
-                                        <td>{{ "%.2f"|format(summary.raw_value) if summary.raw_value is not none else 'N/A' }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        {% endif %}
+                        <!-- REMOVED Summary Data Table -->
+                        {# 
+                        {% if workout.workout_summary_data %} 
+                        ... table was here ...
+                        {% endif %} 
+                        #}
 
                         <!-- Metric Descriptors -->
                         {% if workout.metric_descriptors %}
@@ -112,7 +85,7 @@
                         </div>
                         {% endif %}
 
-                        <!-- Workout Samples -->
+                        <!-- Workout Samples (structure unchanged, data source is the same) -->
                         {% if first_10_workout_samples or last_10_workout_samples %}
                         <div class="card">
                             <h2>Workout Samples
@@ -124,7 +97,7 @@
                                     {% elif total_workout_samples <= 20 %}
                                         (Showing all {{ total_workout_samples }})
                                     {% else %}
-                                        (First 10 &amp; Last 10 of {{ total_workout_samples }})
+                                        (First 10 & Last 10 of {{ total_workout_samples }})
                                     {% endif %}
                                 </small>
                             </h2>
@@ -170,7 +143,7 @@
                         </div>
                         {% endif %}
 
-                        <!-- Heart Rate Samples -->
+                        <!-- Heart Rate Samples (structure unchanged, data source is the same) -->
                         {% if first_10_hr_samples or last_10_hr_samples %}
                         <div class="card">
                             <h2>Heart Rate Samples
@@ -182,7 +155,7 @@
                                     {% elif total_hr_samples <= 20 %}
                                         (Showing all {{ total_hr_samples }})
                                     {% else %}
-                                        (First 10 &amp; Last 10 of {{ total_hr_samples }})
+                                        (First 10 & Last 10 of {{ total_hr_samples }})
                                     {% endif %}
                                 </small>
                             </h2>
@@ -222,7 +195,7 @@
                         </div>
                         {% endif %}
 
-                        <!-- Heart Rate Zones -->
+                        <!-- Heart Rate Zones (structure unchanged, data source is the same) -->
                         {% if workout.workout_hr_zones and workout.workout_hr_zones|length > 0 %}
                         <div class="card">
                             <h2>Heart Rate Zones</h2>
@@ -257,17 +230,19 @@
                         <!-- Back Link -->
                         <div class="back-link-container">
                             <a href="javascript:window.history.back();" class="back-link">
-                                &#8592; Back
+                                ← Back
                             </a>
                         </div>
                     </div>
 
                     <style>
+                    /* Inline styles remain the same for now, consider moving to external CSS */
                     .workout-details-main {
                         max-width: 900px;
                         margin: 0 auto 40px auto;
                         padding: 20px 10px;
                     }
+                    /* ... rest of your inline styles ... */
                     .workout-header {
                         text-align: center;
                         margin-bottom: 24px;
@@ -367,31 +342,6 @@
                         }
                     }
                     </style>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 				</div>
 			</div>
 		<!-- Sidebar -->

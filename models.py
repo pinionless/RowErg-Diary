@@ -1,7 +1,7 @@
+# models.py
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.dialects.postgresql import UUID
-import uuid as py_uuid
-from datetime import datetime, timezone
+from datetime import datetime # Removed timezone as it's not directly used in models now
+# Removed UUID and py_uuid imports
 
 db = SQLAlchemy()
 
@@ -11,12 +11,6 @@ class EquipmentType(db.Model):
     name = db.Column(db.String(255), nullable=False, unique=True)
     workouts = db.relationship('Workout', backref='equipment_type_ref', lazy=True)
 
-class PhysicalActivity(db.Model):
-    __tablename__ = 'physical_activities'
-    physical_activity_guid = db.Column(UUID(as_uuid=True), primary_key=True, default=py_uuid.uuid4)
-    name = db.Column(db.String(255), nullable=False)
-    workouts = db.relationship('Workout', backref='physical_activity_ref', lazy=True)
-
 class Workout(db.Model):
     __tablename__ = 'workouts'
     workout_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -25,17 +19,17 @@ class Workout(db.Model):
     workout_name = db.Column(db.String(255))
     workout_date = db.Column(db.Date, nullable=False)
     target_description = db.Column(db.String(100))
-    is_favorite = db.Column(db.Boolean)
-    physical_activity_guid = db.Column(UUID(as_uuid=True), db.ForeignKey('physical_activities.physical_activity_guid'))
-    n_eser = db.Column(db.Integer)
-    n_attr = db.Column(db.Integer)
-    imported_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    # New columns for summary data
+    duration_seconds = db.Column(db.Numeric, nullable=True)
+    total_distance_meters = db.Column(db.Numeric, nullable=True)
+    average_split_seconds_500m = db.Column(db.Numeric, nullable=True)
+    
     metric_descriptors = db.relationship('MetricDescriptor', backref='workout', lazy='select', cascade="all, delete-orphan")
     workout_samples = db.relationship('WorkoutSample', backref='workout', lazy='select', cascade="all, delete-orphan")
     heart_rate_samples = db.relationship('HeartRateSample', backref='workout', lazy='select', cascade="all, delete-orphan")
     workout_hr_zones = db.relationship('WorkoutHRZone', backref='workout', lazy='select', cascade="all, delete-orphan")
-    workout_summary_data = db.relationship('WorkoutSummaryData', backref='workout', lazy='select', cascade="all, delete-orphan")
-
+    # Removed: workout_summary_data relationship
 
     def __repr__(self):
         return f"<Workout {self.workout_id} - {self.workout_name} on {self.workout_date}>"
@@ -76,12 +70,6 @@ class WorkoutHRZone(db.Model):
     upper_bound_bpm = db.Column(db.Numeric)
     seconds_in_zone = db.Column(db.Numeric, nullable=False)
 
-class WorkoutSummaryData(db.Model):
-    __tablename__ = 'workout_summary_data'
-    summary_data_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    workout_id = db.Column(db.Integer, db.ForeignKey('workouts.workout_id'), nullable=False)
-    property_key = db.Column(db.String(100), nullable=False)
-    display_name = db.Column(db.String(100), nullable=False)
-    value_text = db.Column(db.String(255))
-    unit_of_measure = db.Column(db.String(50))
-    raw_value = db.Column(db.Numeric, nullable=False)
+# Removed WorkoutSummaryData class:
+# class WorkoutSummaryData(db.Model):
+#    ...

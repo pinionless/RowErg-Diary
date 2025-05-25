@@ -1,3 +1,4 @@
+<!-- templates/_sidebar.html -->
 <div id="sidebar">
     <!-- Logo -->
         <h1 id="logo"><a href="{{ url_for('home') }}">Row Diary</a></h1>
@@ -7,13 +8,14 @@
                 <li class="{{ 'current' if request.path == url_for('home') else '' }}"><a href="{{ url_for('home') }}">Home</a></li>
                 <li class="{{ 'current' if request.path == url_for('workouts') else '' }}"><a href="{{ url_for('workouts') }}">Workouts</a></li>
                 <li class="{{ 'current' if request.path == url_for('dailysummary') else '' }}"><a href="{{ url_for('dailysummary') }}">Daily Summary</a></li>
+                <li><a href="/database/create">Database create</a></li>
+                <li><a href="/database/delete">Database delete</a></li>
             </ul>
         </nav>
     <!-- Text -->
         <section class="box text-style1">
             <div class="inner">
                 <h3>Total</h3>
-                {# Use a table for alignment #}
                 <table class="sidebar-total-stats">
                     <tbody>
                         <tr>
@@ -23,52 +25,13 @@
                         <tr>
                             <td class="label">Duration:</td>
                             <td class="value">
-                                {# Jinja2 logic for "days, hours:minutes" rounded up #}
-                                {% set total_seconds_duration = sidebar_stats.overall_totals.seconds | float %}
-                                {% if total_seconds_duration > 0 %}
-                                    {# Calculate total minutes by rounding up based on seconds #}
-                                    {% set total_minutes_rounded = (total_seconds_duration / 60) | round(0, 'ceil') | int %}
-                                    
-                                    {% set days = (total_minutes_rounded // (24 * 60)) | int %}
-                                    {% set remaining_minutes_after_days = total_minutes_rounded % (24 * 60) %}
-                                    {% set hours = (remaining_minutes_after_days // 60) | int %}
-                                    {% set final_minutes = (remaining_minutes_after_days % 60) | int %}
-
-                                    {% if days > 0 %}
-                                        {{ '%d days %02d:%02d' | format(days, hours, final_minutes) }}
-                                    {% else %}
-                                        {{ '%02d:%02d' | format(hours, final_minutes) }}
-                                    {% endif %}
-                                {% else %}
-                                    N/A
-                                {% endif %}
+                                {{ sidebar_stats.overall_totals.seconds | format_total_seconds_human_readable }}
                             </td>
                         </tr>
                         <tr>
                             <td class="label">Split:</td>
                             <td class="value">
-                                {# Jinja2 logic for mm:ss.ms format: Truncate seconds, then get first decimal #}
-                                {% set total_split_seconds_raw = sidebar_stats.overall_totals.split | float %}
-                                {% if total_split_seconds_raw > 0 %}
-                                    {% set minutes = (total_split_seconds_raw // 60) | int %}
-                                    {% set remaining_seconds_float = total_split_seconds_raw % 60 %}
-                                    
-                                    {#
-                                        To get "27.9" from "27.979...":
-                                        1. Multiply by 10 (e.g., 27.979 -> 279.79)
-                                        2. Truncate to integer (279)
-                                        3. Extract integer seconds (279 // 10 = 27)
-                                        4. Extract single millisecond digit (279 % 10 = 9)
-                                    #}
-                                    {% set seconds_and_ms_combined_truncated = (remaining_seconds_float * 10) | int %}
-                                    
-                                    {% set seconds_part = (seconds_and_ms_combined_truncated // 10) | int %}
-                                    {% set milliseconds_decimal_part = (seconds_and_ms_combined_truncated % 10) | int %}
-
-                                    {{ '%d:%02d.%01d' | format(minutes, seconds_part, milliseconds_decimal_part) }}
-                                {% else %}
-                                    N/A
-                                {% endif %}
+                                {{ sidebar_stats.overall_totals.split | format_split_short }}
                             </td>
                         </tr>
                     </tbody>

@@ -1,17 +1,17 @@
 # views/details.py
 from flask import render_template
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload # Keep for other relationships
 from models import Workout, WorkoutSample, HeartRateSample
 
 def details(workout_id):
     workout = Workout.query.options(
         joinedload(Workout.equipment_type_ref),
-        joinedload(Workout.physical_activity_ref),
-        joinedload(Workout.metric_descriptors).raiseload('*'),
-        joinedload(Workout.workout_hr_zones),
-        joinedload(Workout.workout_summary_data)
+        joinedload(Workout.metric_descriptors).raiseload('*'), # Consider if raiseload is always desired
+        joinedload(Workout.workout_hr_zones)
+        # Removed: joinedload(Workout.workout_summary_data)
     ).get_or_404(workout_id)
 
+    # The rest of the sample fetching logic remains the same
     all_workout_samples_query = WorkoutSample.query.options(
         joinedload(WorkoutSample.metric_descriptor_ref)
     ).filter_by(workout_id=workout_id).order_by(WorkoutSample.time_offset_seconds.asc())
@@ -27,7 +27,6 @@ def details(workout_id):
             workout_samples_ellipsis_needed = True
             last_10_workout_samples = all_workout_samples_query.offset(total_workout_samples - 10).limit(10).all()
 
-
     all_hr_samples_query = HeartRateSample.query.filter_by(workout_id=workout_id).order_by(HeartRateSample.time_offset_seconds.asc())
     total_hr_samples = all_hr_samples_query.count()
     first_10_hr_samples = all_hr_samples_query.limit(10).all()
@@ -40,6 +39,12 @@ def details(workout_id):
             hr_samples_ellipsis_needed = True
             last_10_hr_samples = all_hr_samples_query.offset(total_hr_samples - 10).limit(10).all()
             
+    # The workout object passed to the template now directly contains:
+    # workout.duration_seconds
+    # workout.total_distance_meters
+    # workout.average_split_seconds_500m
+    # These will need to be formatted in details.html
+
     return render_template(
         'details.html',
         workout=workout,
