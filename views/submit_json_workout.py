@@ -2,7 +2,7 @@
 import json
 from flask import request, redirect, url_for, flash, current_app
 from datetime import datetime
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError # Keep for other integrity errors
 from models import db, EquipmentType, Workout, MetricDescriptor, WorkoutSample, HeartRateSample, WorkoutHRZone
 from utils import format_duration_ms
 
@@ -24,21 +24,16 @@ def submit_json_workout():
             flash('Main "data" object is missing or empty in the submitted JSON.', 'danger')
             return redirect(url_for('home'))
 
-        # --- Hardcode equipment_name to "SKILLROW" ---
-        equipment_name = "SKILLROW"  # <--- HARDCODED VALUE
-        equipment_type = None
-        
-        # Find or create the "SKILLROW" equipment type
-        if equipment_name: # This will always be true now
-            equipment_type = EquipmentType.query.filter_by(name=equipment_name).first()
-            if not equipment_type:
-                equipment_type = EquipmentType(name=equipment_name)
-                db.session.add(equipment_type)
-                db.session.flush() # Ensure equipment_type_id is available if needed immediately
+        equipment_name = "SKILLROW"
+        equipment_type = EquipmentType.query.filter_by(name=equipment_name).first()
+        if not equipment_type:
+            equipment_type = EquipmentType(name=equipment_name)
+            db.session.add(equipment_type)
+            db.session.flush()
 
         cardio_log_id = workout_main_container.get('cardioLogId')
         if not cardio_log_id:
-            flash('Cardio Log ID is missing within the main "data" object of the JSON.', 'danger')
+            flash('Cardio Log ID is missing.', 'danger')
             return redirect(url_for('home'))
 
         existing_workout = Workout.query.filter_by(cardio_log_id=cardio_log_id).first()
@@ -53,144 +48,123 @@ def submit_json_workout():
             flash(f'Invalid date format: {workout_date_str}. Expected DD/MM/YYYY.', 'danger')
             return redirect(url_for('home'))
 
-        extracted_duration_seconds = None
-        calculated_total_distance_meters = None
-        calculated_average_split_seconds_500m = None
-
-        summary_entries_json = workout_main_container.get('data', [])
-        for entry_json in summary_entries_json:
-            property_key = entry_json.get('property')
-            if property_key == 'Move':
-                continue
-            
-            if property_key == 'Duration':
-                try:
-                    raw_duration_value = float(entry_json.get('rawValue'))
-                    unit_of_measure = entry_json.get('uM', '').lower()
-                    
-                    if unit_of_measure in ["min", "minute", "minutes"]:
-                        extracted_duration_seconds = raw_duration_value * 60
-                    elif unit_of_measure in ["h", "hour", "hours"]:
-                        extracted_duration_seconds = raw_duration_value * 3600
-                    elif unit_of_measure in ["ms", "millisecond", "milliseconds"]:
-                        extracted_duration_seconds = raw_duration_value / 1000.0
-                    elif unit_of_measure in ["s", "sec", "second", "seconds"] or not unit_of_measure:
-                        extracted_duration_seconds = raw_duration_value
-                    
-                    if extracted_duration_seconds is not None:
-                        break 
-                except (ValueError, TypeError, AttributeError):
-                    current_app.logger.warning(f"Could not parse duration from summary entry: {entry_json}")
-                    pass
-
         new_workout = Workout(
             cardio_log_id=cardio_log_id,
-            equipment_type_id=equipment_type.equipment_type_id if equipment_type else None, # equipment_type will be SKILLROW if found/created
+            equipment_type_id=equipment_type.equipment_type_id if equipment_type else None,
             workout_name=workout_main_container.get('name'),
             workout_date=workout_date_obj,
             target_description=workout_main_container.get('target')
         )
         db.session.add(new_workout)
-        db.session.flush()
+        db.session.flush() # Get new_workout.workout_id
 
+        # --- New MetricDescriptor handling ---
         descriptors_json = workout_main_container.get('analitics', {}).get('descriptor', [])
-        metric_descriptor_map = {}
-        for desc_json in descriptors_json:
-            metric_desc = MetricDescriptor(
-                workout_id=new_workout.workout_id,
-                json_index=desc_json.get('i'),
-                metric_name=desc_json.get('pr', {}).get('name'),
-                unit_of_measure=desc_json.get('pr', {}).get('um')
-            )
-            db.session.add(metric_desc)
-            db.session.flush()
-            metric_descriptor_map[metric_desc.json_index] = metric_desc
+        # metric_descriptor_map will map the JSON's 'i' (original json_index) 
+        # to the global MetricDescriptor object for this workout processing.
+        metric_descriptor_map_for_samples = {} 
 
+        for desc_data_from_json in descriptors_json:
+            json_i = desc_data_from_json.get('i')
+            metric_name_from_json = desc_data_from_json.get('pr', {}).get('name')
+            unit_of_measure_from_json = desc_data_from_json.get('pr', {}).get('um')
+
+            if metric_name_from_json is None: # Skip if no metric name
+                current_app.logger.warning(f"Skipping descriptor due to missing name: {desc_data_from_json}")
+                continue
+
+            # Find or create the global MetricDescriptor
+            metric_descriptor_entry = MetricDescriptor.query.filter_by(
+                metric_name=metric_name_from_json,
+                unit_of_measure=unit_of_measure_from_json
+            ).first()
+
+            if not metric_descriptor_entry:
+                try:
+                    metric_descriptor_entry = MetricDescriptor(
+                        metric_name=metric_name_from_json,
+                        unit_of_measure=unit_of_measure_from_json
+                    )
+                    db.session.add(metric_descriptor_entry)
+                    db.session.flush() # Flush to get its ID and ensure it's in DB for next lookup
+                except IntegrityError: # Handles rare race condition if using multiple workers, or retries
+                    db.session.rollback()
+                    metric_descriptor_entry = MetricDescriptor.query.filter_by(
+                        metric_name=metric_name_from_json,
+                        unit_of_measure=unit_of_measure_from_json
+                    ).first()
+                    if not metric_descriptor_entry: # Should not happen if unique constraint is working
+                        raise Exception(f"Failed to create or find metric descriptor: {metric_name_from_json} ({unit_of_measure_from_json})")
+
+
+            if json_i is not None and metric_descriptor_entry:
+                metric_descriptor_map_for_samples[json_i] = metric_descriptor_entry
+        
+        # --- Process WorkoutSamples using the new map ---
         samples_json = workout_main_container.get('analitics', {}).get('samples', [])
         for sample_json in samples_json:
             time_offset = sample_json.get('t')
-            values = sample_json.get('vs', [])
-            for i, value in enumerate(values):
-                descriptor = metric_descriptor_map.get(i)
-                if descriptor:
+            values_from_json = sample_json.get('vs', []) # Renamed to avoid clash
+            for original_json_index, value in enumerate(values_from_json):
+                # Use original_json_index (which is the 'i' from descriptor) to find the global descriptor
+                descriptor_obj = metric_descriptor_map_for_samples.get(original_json_index)
+                if descriptor_obj:
                     workout_sample = WorkoutSample(
                         workout_id=new_workout.workout_id,
-                        metric_descriptor_id=descriptor.metric_descriptor_id,
+                        metric_descriptor_id=descriptor_obj.metric_descriptor_id, # Use the ID of the global descriptor
                         time_offset_seconds=time_offset,
                         value=value
                     )
                     db.session.add(workout_sample)
-
-        hr_samples_json = json_data.get('hr')
-        if not hr_samples_json:
-            hr_samples_json = workout_main_container.get('hr')
-            if not hr_samples_json:
-                analitics_data = workout_main_container.get('analitics', {})
-                hr_samples_json = analitics_data.get('hr', [])
         
-        if hr_samples_json:
-            for hr_sample_json_item in hr_samples_json:
-                hr_val = hr_sample_json_item.get('hr')
-                time_val = hr_sample_json_item.get('t')
-                if hr_val is not None:
-                    hr_sample = HeartRateSample(
-                        workout_id=new_workout.workout_id,
-                        time_offset_seconds=time_val,
-                        heart_rate_bpm=hr_val
-                    )
-                    db.session.add(hr_sample)
-
-        hr_zones_json = json_data.get('hrZones')
-        if not hr_zones_json:
-            hr_zones_json = workout_main_container.get('hrZones')
-            if not hr_zones_json:
-                analitics_data = workout_main_container.get('analitics', {})
-                hr_zones_json = analitics_data.get('hrZones', [])
+        # --- Process summary data for Workout object (duration, distance, split) ---
+        extracted_duration_seconds = None
+        calculated_total_distance_meters = None
+        calculated_average_split_seconds_500m = None
         
-        if hr_zones_json:
-            for zone_json_item in hr_zones_json:
-                hr_zone = WorkoutHRZone(
-                    workout_id=new_workout.workout_id,
-                    zone_name=zone_json_item.get('name'),
-                    color_hex=zone_json_item.get('color'),
-                    lower_bound_bpm=zone_json_item.get('lowerBound'),
-                    upper_bound_bpm=zone_json_item.get('upperBound'),
-                    seconds_in_zone=zone_json_item.get('secondsInZone')
-                )
-                db.session.add(hr_zone)
+        summary_entries_json = workout_main_container.get('data', [])
+        for entry_json in summary_entries_json:
+            property_key = entry_json.get('property')
+            if property_key == 'Move': continue
+            if property_key == 'Duration':
+                try:
+                    raw_duration_value = float(entry_json.get('rawValue'))
+                    unit = entry_json.get('uM', '').lower()
+                    if unit in ["min", "minute", "minutes"]: extracted_duration_seconds = raw_duration_value * 60
+                    elif unit in ["h", "hour", "hours"]: extracted_duration_seconds = raw_duration_value * 3600
+                    elif unit in ["ms", "millisecond", "milliseconds"]: extracted_duration_seconds = raw_duration_value / 1000.0
+                    elif unit in ["s", "sec", "second", "seconds"] or not unit: extracted_duration_seconds = raw_duration_value
+                    if extracted_duration_seconds is not None: break
+                except: pass
         
-        distance_descriptor = MetricDescriptor.query.filter(
-            MetricDescriptor.workout_id == new_workout.workout_id,
-            MetricDescriptor.metric_name.ilike('%distance%')
-        ).first()
+        # Try to get total distance from metric samples using the mapped global descriptors
+        # Look for a descriptor whose name contains 'distance' (case-insensitive)
+        distance_metric_descriptor_id_to_check = None
+        for _json_idx, desc_obj_in_map in metric_descriptor_map_for_samples.items():
+            if desc_obj_in_map.metric_name and 'distance' in desc_obj_in_map.metric_name.lower():
+                distance_metric_descriptor_id_to_check = desc_obj_in_map.metric_descriptor_id
+                break # Found a potential distance descriptor
         
-        if distance_descriptor:
+        if distance_metric_descriptor_id_to_check:
             last_distance_sample = WorkoutSample.query.filter_by(
                 workout_id=new_workout.workout_id,
-                metric_descriptor_id=distance_descriptor.metric_descriptor_id
+                metric_descriptor_id=distance_metric_descriptor_id_to_check # Use the global ID
             ).order_by(WorkoutSample.time_offset_seconds.desc()).first()
             if last_distance_sample and last_distance_sample.value is not None:
                 calculated_total_distance_meters = float(last_distance_sample.value)
         
-        if calculated_total_distance_meters is None:
+        if calculated_total_distance_meters is None: # Fallback to summary_entries_json if not in samples
             for entry_json in summary_entries_json:
-                property_key = entry_json.get('property', '').lower()
-                if 'distance' in property_key: 
+                pkey = entry_json.get('property', '').lower()
+                if 'distance' in pkey:
                     try:
-                        raw_dist_value = float(entry_json.get('rawValue'))
-                        unit_of_measure = entry_json.get('uM', '').lower()
-                        if unit_of_measure == 'km':
-                            calculated_total_distance_meters = raw_dist_value * 1000
-                        elif unit_of_measure == 'mi':
-                            calculated_total_distance_meters = raw_dist_value * 1609.34
-                        elif unit_of_measure == 'm' or not unit_of_measure:
-                            calculated_total_distance_meters = raw_dist_value
-                        
-                        if calculated_total_distance_meters is not None:
-                            break 
-                    except (ValueError, TypeError, AttributeError):
-                        current_app.logger.warning(f"Could not parse distance from summary entry: {entry_json}")
-                        pass
+                        val = float(entry_json.get('rawValue'))
+                        unit = entry_json.get('uM', '').lower()
+                        if unit == 'km': calculated_total_distance_meters = val * 1000
+                        elif unit == 'mi': calculated_total_distance_meters = val * 1609.34
+                        elif unit == 'm' or not unit: calculated_total_distance_meters = val
+                        if calculated_total_distance_meters is not None: break
+                    except: pass
         
         if extracted_duration_seconds is not None and calculated_total_distance_meters is not None and calculated_total_distance_meters > 0:
             calculated_average_split_seconds_500m = (extracted_duration_seconds / calculated_total_distance_meters) * 500
@@ -198,17 +172,28 @@ def submit_json_workout():
         new_workout.duration_seconds = extracted_duration_seconds
         new_workout.total_distance_meters = calculated_total_distance_meters
         new_workout.average_split_seconds_500m = calculated_average_split_seconds_500m
+
+        # HeartRateSamples and WorkoutHRZones processing (remains the same)
+        hr_samples_json = json_data.get('hr', workout_main_container.get('hr', workout_main_container.get('analitics', {}).get('hr', [])))
+        if hr_samples_json:
+            for hr_item in hr_samples_json:
+                if hr_item.get('hr') is not None:
+                    db.session.add(HeartRateSample(workout_id=new_workout.workout_id, time_offset_seconds=hr_item.get('t'), heart_rate_bpm=hr_item.get('hr')))
         
+        hr_zones_json = json_data.get('hrZones', workout_main_container.get('hrZones', workout_main_container.get('analitics', {}).get('hrZones', [])))
+        if hr_zones_json:
+            for zone_item in hr_zones_json:
+                db.session.add(WorkoutHRZone(workout_id=new_workout.workout_id, zone_name=zone_item.get('name'), color_hex=zone_item.get('color'), lower_bound_bpm=zone_item.get('lowerBound'), upper_bound_bpm=zone_item.get('upperBound'), seconds_in_zone=zone_item.get('secondsInZone')))
+
         db.session.commit()
         flash('Workout data submitted successfully!', 'success')
         return redirect(url_for('details', workout_id=new_workout.workout_id))
 
     except IntegrityError as e:
         db.session.rollback()
-        if 'cardio_log_id' in str(e.orig).lower() and 'unique constraint' in str(e.orig).lower():
-             flash(f'Workout with Cardio Log ID {cardio_log_id} already exists. Integrity error.', 'danger')
-        else:
-            flash(f'Database integrity error: {str(e.orig)}. Please check data.', 'danger')
+        # More specific error checking could be added here if needed
+        current_app.logger.error(f"IntegrityError during workout submission: {e.orig}", exc_info=True)
+        flash(f'Database integrity error: {str(e.orig)}. Could not submit workout.', 'danger')
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f'Error submitting workout: {e}', exc_info=True)
@@ -216,5 +201,6 @@ def submit_json_workout():
     
     return redirect(url_for('home'))
 
+# register_routes remains the same
 def register_routes(app):
     app.add_url_rule('/submit_json_workout', endpoint='submit_json_workout', view_func=submit_json_workout, methods=['POST'])
