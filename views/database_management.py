@@ -23,7 +23,6 @@ def create_db_components():
         """
 
         # --- SQL for Creating Materialized Views ---
-        # duration_conversion_case is no longer needed as duration_seconds is stored directly.
         create_mvs_sql = f"""
         CREATE MATERIALIZED VIEW mv_sum_totals AS
         SELECT
@@ -34,7 +33,8 @@ def create_db_components():
                     SUM(w.duration_seconds) / (SUM(w.total_distance_meters) / 500.0)
                 ELSE
                     0
-            END AS average_split_seconds_per_500m
+            END AS average_split_seconds_per_500m,
+            SUM(w.total_isoreps) AS total_isoreps_sum -- <--- ADDED total_isoreps HERE
         FROM
             workouts w
         WHERE
@@ -52,7 +52,8 @@ def create_db_components():
                     SUM(w.duration_seconds) / (SUM(w.total_distance_meters) / 500.0)
                 ELSE
                     0
-            END AS average_split_seconds_per_500m
+            END AS average_split_seconds_per_500m,
+            SUM(w.total_isoreps) AS total_isoreps_sum -- <--- ADDED total_isoreps HERE
         FROM
             workouts w
         WHERE 
@@ -74,7 +75,8 @@ def create_db_components():
                     SUM(w.duration_seconds) / (SUM(w.total_distance_meters) / 500.0)
                 ELSE
                     0
-            END AS average_split_seconds_per_500m
+            END AS average_split_seconds_per_500m,
+            SUM(w.total_isoreps) AS total_isoreps_sum -- <--- ADDED total_isoreps HERE
         FROM
             workouts w
         WHERE 
@@ -96,7 +98,8 @@ def create_db_components():
                     SUM(w.duration_seconds) / (SUM(w.total_distance_meters) / 500.0)
                 ELSE
                     0
-            END AS average_split_seconds_per_500m
+            END AS average_split_seconds_per_500m,
+            SUM(w.total_isoreps) AS total_isoreps_sum -- <--- ADDED total_isoreps HERE
         FROM
             workouts w
         WHERE 
@@ -117,7 +120,8 @@ def create_db_components():
                     SUM(w.duration_seconds) / (SUM(w.total_distance_meters) / 500.0)
                 ELSE
                     0
-            END AS average_split_seconds_per_500m
+            END AS average_split_seconds_per_500m,
+            SUM(w.total_isoreps) AS total_isoreps_sum -- <--- ADDED total_isoreps HERE
         FROM
             workouts w
         WHERE 
@@ -145,17 +149,13 @@ def create_db_components():
         """
 
         # --- SQL for Dropping and Creating Triggers ---
-        # Removed trigger for workout_summary_data
         drop_and_create_triggers_sql = """
         DROP TRIGGER IF EXISTS trg_refresh_rowing_summary_on_workout ON workouts;
-        -- DROP TRIGGER IF EXISTS trg_refresh_rowing_summary_on_summary_data ON workout_summary_data; -- This line is removed
 
         CREATE TRIGGER trg_refresh_rowing_summary_on_workout
         AFTER INSERT OR UPDATE OR DELETE ON workouts
         FOR EACH STATEMENT
         EXECUTE FUNCTION refresh_rowing_summary_mvs();
-
-        -- CREATE TRIGGER trg_refresh_rowing_summary_on_summary_data ... -- This block is removed
         """
 
         with db.engine.connect() as connection:
@@ -176,50 +176,5 @@ def create_db_components():
     return redirect(url_for('home'))
 
 
-def delete_db_components():
-    """
-    Deletes all database components including triggers, materialized views, and tables.
-    """
-    try:
-        drop_triggers_sql = """
-        DROP TRIGGER IF EXISTS trg_refresh_rowing_summary_on_workout ON workouts;
-        -- DROP TRIGGER IF EXISTS trg_refresh_rowing_summary_on_summary_data ON workout_summary_data; -- Removed
-        """
-
-        drop_function_sql = """
-        DROP FUNCTION IF EXISTS refresh_rowing_summary_mvs();
-        """
-
-        drop_mvs_sql_reverse_order = """
-        DROP MATERIALIZED VIEW IF EXISTS mv_day_totals;
-        DROP MATERIALIZED VIEW IF EXISTS mv_week_totals;
-        DROP MATERIALIZED VIEW IF EXISTS mv_month_totals;
-        DROP MATERIALIZED VIEW IF EXISTS mv_year_totals;
-        DROP MATERIALIZED VIEW IF EXISTS mv_sum_totals;
-        """
-
-        with db.engine.connect() as connection:
-            with connection.begin():
-                current_app.logger.info("Executing DDL for dropping database components...")
-                connection.execute(text(drop_triggers_sql))
-                current_app.logger.info("Dropped triggers.")
-                connection.execute(text(drop_function_sql))
-                current_app.logger.info("Dropped trigger function.")
-                connection.execute(text(drop_mvs_sql_reverse_order))
-                current_app.logger.info("Dropped materialized views.")
-
-        db.drop_all() # This will drop WorkoutSummaryData table if it still exists due to old schema
-        current_app.logger.info("Dropped all Flask-SQLAlchemy tables.")
-
-        flash("All database components (tables, views, triggers) deleted successfully!", "success")
-
-    except Exception as e:
-        current_app.logger.error(f"Error deleting database components: {e}", exc_info=True)
-        flash(f"Error deleting database components: {str(e)}", "danger")
-
-    return redirect(url_for('home'))
-
-
 def register_routes(app):
     app.add_url_rule('/database/create', endpoint='create_db', view_func=create_db_components, methods=['GET'])
-    app.add_url_rule('/database/delete', endpoint='delete_db', view_func=delete_db_components, methods=['GET'])

@@ -21,6 +21,7 @@ class Workout(db.Model):
     duration_seconds = db.Column(db.Numeric, nullable=True)
     total_distance_meters = db.Column(db.Numeric, nullable=True)
     average_split_seconds_500m = db.Column(db.Numeric, nullable=True)
+    total_isoreps = db.Column(db.Numeric, nullable=True) # <--- NEW COLUMN ADDED HERE
     
     workout_samples = db.relationship('WorkoutSample', backref='workout', lazy='select', cascade="all, delete-orphan")
     heart_rate_samples = db.relationship('HeartRateSample', backref='workout', lazy='select', cascade="all, delete-orphan")
