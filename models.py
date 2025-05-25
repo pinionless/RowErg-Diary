@@ -21,7 +21,8 @@ class Workout(db.Model):
     duration_seconds = db.Column(db.Numeric, nullable=True)
     total_distance_meters = db.Column(db.Numeric, nullable=True)
     average_split_seconds_500m = db.Column(db.Numeric, nullable=True)
-    total_isoreps = db.Column(db.Numeric, nullable=True) # <--- NEW COLUMN ADDED HERE
+    total_isoreps = db.Column(db.Numeric, nullable=True)
+    notes = db.Column(db.Text, nullable=True) # <--- NEW COLUMN ADDED HERE
     
     workout_samples = db.relationship('WorkoutSample', backref='workout', lazy='select', cascade="all, delete-orphan")
     heart_rate_samples = db.relationship('HeartRateSample', backref='workout', lazy='select', cascade="all, delete-orphan")
@@ -33,17 +34,12 @@ class Workout(db.Model):
 class MetricDescriptor(db.Model):
     __tablename__ = 'metric_descriptors'
     metric_descriptor_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    # NO workout_id FOREIGN KEY HERE:
-    # Removed: workout_id = db.Column(db.Integer, db.ForeignKey('workouts.workout_id'), nullable=False) 
-    # Removed: json_index = db.Column(db.Integer, nullable=False)
     metric_name = db.Column(db.String(100), nullable=False)
-    unit_of_measure = db.Column(db.String(50), nullable=True) # Made unit_of_measure nullable
+    unit_of_measure = db.Column(db.String(50), nullable=True)
 
     __table_args__ = (
         db.UniqueConstraint('metric_name', 'unit_of_measure', name='uq_metric_descriptor_name_unit'),
     )
-    # This relationship means "many samples can point to one metric descriptor"
-    # It does NOT mean a descriptor owns samples. Samples are owned by Workouts.
     samples = db.relationship('WorkoutSample', backref='metric_descriptor_ref', lazy='select')
 
     def __repr__(self):
@@ -52,7 +48,7 @@ class MetricDescriptor(db.Model):
 class WorkoutSample(db.Model):
     __tablename__ = 'workout_samples'
     sample_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    workout_id = db.Column(db.Integer, db.ForeignKey('workouts.workout_id', ondelete='CASCADE'), nullable=False) # Added ondelete='CASCADE'
+    workout_id = db.Column(db.Integer, db.ForeignKey('workouts.workout_id', ondelete='CASCADE'), nullable=False)
     metric_descriptor_id = db.Column(db.Integer, db.ForeignKey('metric_descriptors.metric_descriptor_id'), nullable=False)
     time_offset_seconds = db.Column(db.Integer, nullable=False)
     value = db.Column(db.Numeric, nullable=False)
@@ -60,14 +56,14 @@ class WorkoutSample(db.Model):
 class HeartRateSample(db.Model):
     __tablename__ = 'heart_rate_samples'
     hr_sample_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    workout_id = db.Column(db.Integer, db.ForeignKey('workouts.workout_id', ondelete='CASCADE'), nullable=False) # Added ondelete='CASCADE'
+    workout_id = db.Column(db.Integer, db.ForeignKey('workouts.workout_id', ondelete='CASCADE'), nullable=False)
     time_offset_seconds = db.Column(db.Integer, nullable=False)
     heart_rate_bpm = db.Column(db.Integer)
 
 class WorkoutHRZone(db.Model):
     __tablename__ = 'workout_hr_zones'
     workout_hr_zone_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    workout_id = db.Column(db.Integer, db.ForeignKey('workouts.workout_id', ondelete='CASCADE'), nullable=False) # Added ondelete='CASCADE'
+    workout_id = db.Column(db.Integer, db.ForeignKey('workouts.workout_id', ondelete='CASCADE'), nullable=False)
     zone_name = db.Column(db.String(100), nullable=False)
     color_hex = db.Column(db.String(7))
     lower_bound_bpm = db.Column(db.Numeric)

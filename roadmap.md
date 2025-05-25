@@ -16,8 +16,6 @@
 - Filtering and Sorting:
     - Workouts Page:
         - Add clickable table headers to sort by date, distance, duration, split.
-    - Daily Summary Page:
-        - Filter by year/month.
 - Weekly Summary
 - Monthly Summary
 - Yearly Summary
@@ -36,3 +34,4 @@
 - Backup/Restore Database.
 - Concept2 Log API integration
     - autosync workouts
+- AVG Level setting to workouts

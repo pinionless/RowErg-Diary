@@ -32,27 +32,50 @@
 							<div class="flex-container">
 								<div class="flex-box">
 									<h3>Manual Workout Input</h3>
-									<form id="workoutInputForm" style="height:100%;display:flex;flex-direction:column;">
-										<div style="flex:0 0 auto;">
-											<label for="workoutDate">Date:</label>
-											<input type="date" id="workoutDate" name="workoutDate" required>
-										</div>
-										<div style="flex:0 0 auto;">
-											<label for="workoutTime">Time (HH:MM:SS.ms):</label>
-											<input type="text" id="workoutTime" name="workoutTime" placeholder="1:46:45.2 or 65:45.2" required pattern="^([0-9]+:)?([0-9]+:){1}([0-5]?[0-9])(\.[0-9]+)?$">
-										</div>
-										<div>
-											<label for="workoutDistance">Distance (Meters):</label>
-											<input type="number" id="workoutDistance" name="workoutDistance" placeholder="e.g., 2000" required>
-										</div>
-										<div>
-											<label for="workoutLevel">Level:</label>
-											<input type="text" id="workoutLevel" name="workoutLevel" placeholder="1-10">
-										</div>
-										<div>
-											<label for="calculatedPace">Pace:</label>
-											<input type="text" id="calculatedPace" name="calculatedPace" placeholder="--:--.--" readonly>
-										</div>
+									<form id="workoutInputForm">
+										<!-- Line 1: Workout Type -->
+                                        <div class="form-row-split">
+											<div class="form-field-group">
+												<label for="workoutName">Name:</label>
+												<input type="text" id="workoutName" name="workoutName" placeholder="e.g., Morning Row">
+											</div>
+											<div class="form-field-group">
+												<label for="workoutDate">Date:</label>
+												<input type="date" id="workoutDate" name="workoutDate" required>
+											</div>
+                                        </div>
+										
+                                        <!-- Line 3: Time and Distance -->
+                                        <div class="form-row-split">
+                                            <div class="form-field-group">
+                                                <label for="workoutTime">Time (HH:MM:SS.ms):</label>
+                                                <input type="text" id="workoutTime" name="workoutTime" placeholder="1:46:45.2 or 65:45.2" required pattern="^([0-9]+:)?([0-9]+:){1}([0-5]?[0-9])(\.[0-9]+)?$">
+                                            </div>
+                                            <div class="form-field-group">
+                                                <label for="workoutDistance">Distance (Meters):</label>
+                                                <input type="number" id="workoutDistance" name="workoutDistance" placeholder="e.g., 2000" required>
+                                            </div>
+                                        </div>
+
+                                        <!-- Line 4: Level and Pace -->
+                                        <div class="form-row-split">
+                                            <div class="form-field-group">
+                                                <label for="workoutLevel">Level:</label>
+                                                <input type="text" id="workoutLevel" name="workoutLevel" placeholder="1-10">
+                                            </div>
+                                            <div class="form-field-group">
+                                                <label for="calculatedPace">Pace:</label>
+                                                <input type="text" id="calculatedPace" name="calculatedPace" placeholder="--:--.--" readonly>
+                                            </div>
+                                        </div>
+
+                                        <!-- Line 5: Notes -->
+                                        <div>
+                                            <label for="workoutNotes">Notes:</label>
+                                            <textarea id="workoutNotes" name="workoutNotes" placeholder="e.g., Feeling strong today!"></textarea>
+                                        </div>
+                                        
+                                        <!-- Line 6: Button -->
 										<button type="submit" id="workoutSubmitBtn" class="button">Add Workout</button>
 									</form>
 								</div>
@@ -60,8 +83,13 @@
 									<h3>Mywelness Json Import</h3>
 									<form id="jsonInputForm" method="POST" action="{{ url_for('submit_json_workout') }}">
 										<div>
-											<textarea id="jsonData" name="jsonData" placeholder='{"key": "value"}' required style="padding: 6px 8px; border: 1px solid #b3c6e7; border-radius: 4px; background: #f8fbff; font-size: 1em; color: #222; transition: border 0.2s; min-height: 80px; resize: vertical;"></textarea>
+                                            <label for="jsonData">Json:</label>
+											<textarea id="jsonData" class="text_data" name="jsonData" placeholder='{"key": "value"}' required></textarea>
 										</div>
+                                        <div>
+                                            <label for="jsonNotes">Notes:</label>
+                                            <textarea id="jsonNotes" name="jsonNotes" placeholder="Any specific notes for this imported workout?"></textarea>
+                                        </div>
 										<div>
 											<button type="submit" id="jsonSubmitBtn" class="button">Submit JSON</button>
 										</div>

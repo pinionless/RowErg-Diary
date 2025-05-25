@@ -8,6 +8,8 @@ from utils import format_duration_ms
 
 def submit_json_workout():
     raw_json_data = request.form.get('jsonData')
+    workout_notes = request.form.get('jsonNotes') # <--- GET NOTES FROM THE FORM
+
     if not raw_json_data:
         flash('No JSON data provided.', 'danger')
         return redirect(url_for('home'))
@@ -39,6 +41,8 @@ def submit_json_workout():
         existing_workout = Workout.query.filter_by(cardio_log_id=cardio_log_id).first()
         if existing_workout:
             flash(f'Workout with Cardio Log ID {cardio_log_id} already exists.', 'warning')
+            # If workout exists, you might want to update its notes if new notes are provided
+            # For now, it just redirects.
             return redirect(url_for('details', workout_id=existing_workout.workout_id))
 
         workout_date_str = workout_main_container.get('date')
@@ -53,7 +57,8 @@ def submit_json_workout():
             equipment_type_id=equipment_type.equipment_type_id if equipment_type else None,
             workout_name=workout_main_container.get('name'),
             workout_date=workout_date_obj,
-            target_description=workout_main_container.get('target')
+            target_description=workout_main_container.get('target'),
+            notes=workout_notes if workout_notes and workout_notes.strip() else None # <--- SAVE NOTES HERE
             # total_isoreps will be populated after processing samples
         )
         db.session.add(new_workout)
@@ -61,22 +66,19 @@ def submit_json_workout():
 
         # --- New MetricDescriptor handling ---
         descriptors_json = workout_main_container.get('analitics', {}).get('descriptor', [])
-        # metric_descriptor_map will map the JSON's 'i' (original json_index) 
-        # to the global MetricDescriptor object for this workout processing.
         metric_descriptor_map_for_samples = {} 
         
-        isoreps_descriptor_id = None # <--- Added variable to store IsoReps descriptor ID
+        isoreps_descriptor_id = None 
 
         for desc_data_from_json in descriptors_json:
             json_i = desc_data_from_json.get('i')
             metric_name_from_json = desc_data_from_json.get('pr', {}).get('name')
             unit_of_measure_from_json = desc_data_from_json.get('pr', {}).get('um')
 
-            if metric_name_from_json is None: # Skip if no metric name
+            if metric_name_from_json is None: 
                 current_app.logger.warning(f"Skipping descriptor due to missing name: {desc_data_from_json}")
                 continue
 
-            # Find or create the global MetricDescriptor
             metric_descriptor_entry = MetricDescriptor.query.filter_by(
                 metric_name=metric_name_from_json,
                 unit_of_measure=unit_of_measure_from_json
@@ -89,28 +91,26 @@ def submit_json_workout():
                         unit_of_measure=unit_of_measure_from_json
                     )
                     db.session.add(metric_descriptor_entry)
-                    db.session.flush() # Flush to get its ID and ensure it's in DB for next lookup
-                except IntegrityError: # Handles rare race condition if using multiple workers, or retries
+                    db.session.flush() 
+                except IntegrityError: 
                     db.session.rollback()
                     metric_descriptor_entry = MetricDescriptor.query.filter_by(
                         metric_name=metric_name_from_json,
                         unit_of_measure=unit_of_measure_from_json
                     ).first()
-                    if not metric_descriptor_entry: # Should not happen if unique constraint is working
+                    if not metric_descriptor_entry: 
                         raise Exception(f"Failed to create or find metric descriptor: {metric_name_from_json} ({unit_of_measure_from_json})")
 
 
             if json_i is not None and metric_descriptor_entry:
                 metric_descriptor_map_for_samples[json_i] = metric_descriptor_entry
-                # <--- Check if this is the IsoReps descriptor
                 if metric_name_from_json == 'IsoReps' and unit_of_measure_from_json == 'Number':
                     isoreps_descriptor_id = metric_descriptor_entry.metric_descriptor_id
         
         # --- Process WorkoutSamples using the new map ---
         samples_json = workout_main_container.get('analitics', {}).get('samples', [])
         
-        # Keep track of the last IsoReps value
-        last_isoreps_value = None # <--- Added variable for IsoReps total
+        last_isoreps_value = None 
         
         for sample_json in samples_json:
             time_offset = sample_json.get('t')
@@ -126,7 +126,6 @@ def submit_json_workout():
                     )
                     db.session.add(workout_sample)
                     
-                    # <--- Capture IsoReps value if it's the correct descriptor
                     if descriptor_obj.metric_descriptor_id == isoreps_descriptor_id:
                         last_isoreps_value = value
 
@@ -150,7 +149,6 @@ def submit_json_workout():
                     if extracted_duration_seconds is not None: break
                 except: pass
         
-        # Try to get total distance from metric samples using the mapped global descriptors
         distance_metric_descriptor_id_to_check = None
         for _json_idx, desc_obj_in_map in metric_descriptor_map_for_samples.items():
             if desc_obj_in_map.metric_name and 'distance' in desc_obj_in_map.metric_name.lower():
@@ -165,7 +163,7 @@ def submit_json_workout():
             if last_distance_sample and last_distance_sample.value is not None:
                 calculated_total_distance_meters = float(last_distance_sample.value)
         
-        if calculated_total_distance_meters is None: # Fallback to summary_entries_json if not in samples
+        if calculated_total_distance_meters is None: 
             for entry_json in summary_entries_json:
                 pkey = entry_json.get('property', '').lower()
                 if 'distance' in pkey:
@@ -184,7 +182,7 @@ def submit_json_workout():
         new_workout.duration_seconds = extracted_duration_seconds
         new_workout.total_distance_meters = calculated_total_distance_meters
         new_workout.average_split_seconds_500m = calculated_average_split_seconds_500m
-        new_workout.total_isoreps = last_isoreps_value # <--- Assign IsoReps value to the workout
+        new_workout.total_isoreps = last_isoreps_value
 
         # HeartRateSamples and WorkoutHRZones processing (remains the same)
         hr_samples_json = json_data.get('hr', workout_main_container.get('hr', workout_main_container.get('analitics', {}).get('hr', [])))
