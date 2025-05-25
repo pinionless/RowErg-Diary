@@ -54,7 +54,7 @@
                                                 {{ item_data.split | format_split_short }}
                                             </td>
 											<td>
-												<a href="#codethislater"> {# Placeholder for linking to workouts on that day #}
+												<a href="{{ url_for('workouts_by_date', date_str=item_data.day_date.strftime('%Y-%m-%d')) }}">
 													<i class="fas fa-eye"></i> Details
 												</a>
 											</td>
