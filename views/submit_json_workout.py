@@ -187,7 +187,7 @@ def submit_json_workout():
 
         db.session.commit()
         flash('Workout data submitted successfully!', 'success')
-        return redirect(url_for('details', workout_id=new_workout.workout_id))
+        return redirect(url_for('home'))
 
     except IntegrityError as e:
         db.session.rollback()

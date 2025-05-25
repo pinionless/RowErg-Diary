@@ -29,7 +29,45 @@
 								</article>
 							{% endif %}
 						{% endwith %}
-					
+
+                    <!-- Daily Summary for Selected Date -->
+					{% if daily_summary_data %}
+						<article class="box post post-excerpt">
+							<header style="margin-bottom: 10px; padding-top: 0px;">
+								<h3 style="margin-bottom: 5px; color: #555;">Summary for {{ selected_date_str }}</h3>
+							</header>
+							<table style="width: 100%; margin-bottom: 20px;">
+								<thead>
+									<tr>
+										<th style="text-align: left; padding: 8px; background-color: #f4f7fb;">Metric</th>
+										<th style="text-align: right; padding: 8px; background-color: #f4f7fb;">Total</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td style="padding: 8px; border-bottom: 1px solid #eee;">Total Distance:</td>
+										<td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">
+											{{ '{:,.0f}'.format(daily_summary_data.meters) if daily_summary_data.meters is not none else '0' }} m
+										</td>
+									</tr>
+									<tr>
+										<td style="padding: 8px; border-bottom: 1px solid #eee;">Total Duration:</td>
+										<td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">
+											{{ daily_summary_data.seconds | format_total_seconds_human_readable if daily_summary_data.seconds is not none else 'N/A' }}
+										</td>
+									</tr>
+									<tr>
+										<td style="padding: 8px;">Average Split (/500m):</td>
+										<td style="padding: 8px; text-align: right;">
+											{{ daily_summary_data.split | format_split_short if daily_summary_data.split is not none and daily_summary_data.split > 0 else 'N/A' }}
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</article>
+						<hr class="extra_article"> {# Optional: to separate summary from workout list #}
+					{% endif %}
+
 					<!-- Workouts -->
 						{% if workouts_display_data %}
 							{% for item_data in workouts_display_data %}
