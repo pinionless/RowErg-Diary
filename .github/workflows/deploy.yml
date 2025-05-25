@@ -35,9 +35,9 @@ jobs:
       - name: Build and push Docker image to GHCR
         uses: docker/build-push-action@v6
         with:
-          context: ./flask_app_dev # <--- CRITICAL FIX: Specify the correct path to your Dockerfile and app code
+          context: .
           platforms: linux/amd64   # Defines the target platform for the image
           push: true               # Tells the action to push the image to the registry
           tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:latest # Tag with 'latest'
-            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ github.sha }} # Tag with commit SHA for unique versioning
+            ghcr.io/pinionless/rowerg-diary:latest
+            ghcr.io/pinionless/rowerg-diary:${{ github.sha }}
