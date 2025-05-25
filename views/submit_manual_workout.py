@@ -11,7 +11,7 @@ def submit_manual_workout():
         date_str = request.form.get('workoutDate')
         time_str = request.form.get('workoutTime')
         distance_str = request.form.get('workoutDistance')
-        # level_str = request.form.get('workoutLevel') #later create new table for levels
+        level_str = request.form.get('workoutLevel')
         notes = request.form.get('workoutNotes')
 
         # --- Validation ---
@@ -41,6 +41,17 @@ def submit_manual_workout():
             flash('Invalid distance format. Must be a number.', 'danger')
             return redirect(url_for('home'))
 
+        level_val = None
+        if level_str:
+            try:
+                level_val = float(level_str) # Changed from int() to float()
+                if level_val < 0: # Assuming level should not be negative
+                    flash('Level must be a non-negative number.', 'danger')
+                    return redirect(url_for('home'))
+            except ValueError:
+                flash('Invalid level format. Must be a number (e.g., 5 or 5.5).', 'danger') # Updated flash message
+                return redirect(url_for('home'))
+
         # --- Calculate Split ---
         average_split_val = None
         if total_distance_meters_val > 0 and duration_seconds_val > 0:
@@ -65,12 +76,13 @@ def submit_manual_workout():
                 equipment_type_id=equipment_type.equipment_type_id,
                 workout_name=workout_name,
                 workout_date=workout_date_obj,
-                #target_description=level_str if level_str else None, # Using level as target description
+                target_description=None, 
                 duration_seconds=duration_seconds_val,
                 total_distance_meters=total_distance_meters_val,
                 average_split_seconds_500m=average_split_val,
-                total_isoreps=None,  # IsoReps are not provided in manual entry
-                notes=notes if notes else None
+                total_isoreps=None,
+                notes=notes if notes else None,
+                level=level_val
             )
             
             db.session.add(new_workout)

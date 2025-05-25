@@ -7,7 +7,7 @@ from views import home, submit_json_workout, workouts, details, database_managem
 # Import your utility functions and the context processor
 from utils import sidebar_stats_processor, format_total_seconds_human_readable, format_split_short, format_duration_ms # <--- IMPORT YOUR FILTERS
 
-__version__ = "0.1beta"
+__version__ = "0.12"
 
 def create_app(config_object=None):
     app = Flask(__name__)
@@ -29,6 +29,11 @@ def create_app(config_object=None):
     db.init_app(app)
 
     app.context_processor(sidebar_stats_processor)
+
+    # Add app version to context
+    @app.context_processor
+    def inject_version():
+        return dict(app_version=__version__)
 
     # <<< --- ADD THESE LINES TO REGISTER YOUR FILTERS --- >>>
     app.jinja_env.filters['format_total_seconds_human_readable'] = format_total_seconds_human_readable
