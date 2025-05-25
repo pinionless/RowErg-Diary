@@ -36,3 +36,5 @@
     - Totals
     - Graphs widget
 - Backup/Restore Database.
+- Concept2 Log API integration
+    - autosync workouts
