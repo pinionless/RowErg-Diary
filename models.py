@@ -40,14 +40,12 @@ class Workout(db.Model):
     level = db.Column(db.Float, nullable=True) # User-defined difficulty level or intensity (float)
     
     # -- Relationships -------------------
-    # Defines one-to-many relationships with detailed sample data
     workout_samples = db.relationship('WorkoutSample', backref='workout', lazy='select', cascade="all, delete-orphan")
     heart_rate_samples = db.relationship('HeartRateSample', backref='workout', lazy='select', cascade="all, delete-orphan")
     workout_hr_zones = db.relationship('WorkoutHRZone', backref='workout', lazy='select', cascade="all, delete-orphan")
 
     # -- Representation -------------------
     def __repr__(self):
-        # String representation for debugging and logging
         return f"<Workout {self.workout_id} - {self.workout_name} on {self.workout_date}>"
 
 # --------------------------------------------------------
@@ -70,7 +68,6 @@ class MetricDescriptor(db.Model):
 
     # -- Representation -------------------
     def __repr__(self):
-        # String representation for debugging and logging
         return f"<MetricDescriptor {self.metric_descriptor_id} - {self.metric_name} ({self.unit_of_measure})>"
 
 # --------------------------------------------------------
