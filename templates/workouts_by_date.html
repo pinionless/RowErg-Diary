@@ -1,136 +1,137 @@
-<!-- templates/workouts_by_date.html -->
+<!-- ======================================================== -->
+<!-- = workouts_by_date.html - Template for displaying workouts for a specific date -->
+<!-- ======================================================== -->
 <!DOCTYPE HTML>
 <html>
 	<head>
-		<title>Workouts on {{ selected_date_str | default('Selected Date') }}</title>
+		<title>Workouts on {{ selected_date_str | default('Selected Date') }}</title> <!-- Page Title, dynamically set with the selected date -->
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-		<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
-		<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
-		<link rel="stylesheet" href="{{ url_for('static', filename='css/mystyles.css') }}" />
+		<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}"> <!-- Favicon Link -->
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" /> <!-- Main Stylesheet -->
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/mystyles.css') }}" /> <!-- Custom Stylesheet -->
 	</head>
 	<body class="is-preload">
 
-		<!-- Content -->
-			<div id="content" class="custom-fullwidth">
-				<div class="inner">
-                    <h1 class="extra_h1">Workouts on {{ selected_date_str | default('Selected Date') }}</h1>
-                    <hr class="extra_title_line">
+		<!-- == Main Content Area ============================================ -->
+		<div id="content" class="custom-fullwidth">
+			<div class="inner">
+				<!-- -- Page Header ------------------- -->
+				<h1 class="extra_h1">Workouts on {{ selected_date_str | default('Selected Date') }}</h1> <!-- Dynamic Page Header -->
+				<hr class="extra_title_line">
 
-					<!-- flash messages -->
-						{% with messages = get_flashed_messages(with_categories=true) %}
-							{% if messages %}
-								<article class="box post post-excerpt">
-								{% for category, message in messages %}
-									<div class="box alert-{{ category }}" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
-										{{ message }}
-									</div>
-								{% endfor %}
-								</article>
-							{% endif %}
-						{% endwith %}
-
-                    <!-- Daily Summary for Selected Date -->
-					{% if daily_summary_data %}
+				<!-- -- Flash Messages Section ------------------- -->
+				{% with messages = get_flashed_messages(with_categories=true) %}
+					{% if messages %}
 						<article class="box post post-excerpt">
-							<header style="margin-bottom: 10px; padding-top: 0px;">
-								<h3 style="margin-bottom: 5px; color: #555;">Summary for {{ selected_date_str }}</h3>
-							</header>
-							<table style="width: 100%; margin-bottom: 20px;">
-								<thead>
-									<tr>
-										<th style="text-align: left; padding: 8px; background-color: #f4f7fb;">Metric</th>
-										<th style="text-align: right; padding: 8px; background-color: #f4f7fb;">Total</th>
-									</tr>
-								</thead>
-								<tbody>
-									<tr>
-										<td style="padding: 8px; border-bottom: 1px solid #eee;">Total Distance:</td>
-										<td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">
-											{{ '{:,.0f}'.format(daily_summary_data.meters) if daily_summary_data.meters is not none else '0' }} m
-										</td>
-									</tr>
-									<tr>
-										<td style="padding: 8px; border-bottom: 1px solid #eee;">Total Duration:</td>
-										<td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">
-											{{ daily_summary_data.seconds | format_total_seconds_human_readable if daily_summary_data.seconds is not none else 'N/A' }}
-										</td>
-									</tr>
-									<tr>
-										<td style="padding: 8px;">Average Split (/500m):</td>
-										<td style="padding: 8px; text-align: right;">
-											{{ daily_summary_data.split | format_split_short if daily_summary_data.split is not none and daily_summary_data.split > 0 else 'N/A' }}
-										</td>
-									</tr>
-								</tbody>
-							</table>
+						{% for category, message in messages %}
+							<div class="box alert-{{ category }}" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
+								{{ message }} <!-- Display flash message -->
+							</div>
+						{% endfor %}
 						</article>
-						<hr class="extra_article"> {# Optional: to separate summary from workout list #}
 					{% endif %}
+				{% endwith %}
 
-					<!-- Workouts -->
-						{% if workouts_display_data %}
-							{% for item_data in workouts_display_data %}
-								{# This article structure is similar to index.html for consistency #}
-								{% if not loop.first %}<hr class="extra_article">{% endif %}
-								<article class="box post post-excerpt">
-									<header style="margin-bottom: 0px; padding-top: 0px;">
-										<h2 style="margin-bottom: 5px;"><a href="{{ url_for('details', workout_id=item_data.workout_obj.workout_id) }}">{{ item_data.name | default('Unnamed Workout') }}</a></h2>
-									</header>
-                                        {# Date display for each workout might be redundant here since all are for the same day, #}
-                                        {# but kept for consistency with index.html's article layout. #}
-                                        {# You could simplify this if desired or show workout time if available. #}
-                                        <table class="workout-stats-table" style="width:auto; margin-bottom: 0.5em;">
-                                            <tr>
-                                                <th>Distance</th>
-                                                <th>Time</th>
-                                                <th>Split</th>
-                                            </tr>
-                                            <tr>
-                                                <td>
-                                                    <span class="icon distance"></span>
-                                                    {{ '{:,.0f}'.format(item_data.workout_obj.total_distance_meters) if item_data.workout_obj.total_distance_meters is not none else 'N/A' }} m
-                                                </td>
-                                                <td>
-                                                    <span class="icon time"></span>
-                                                    {{ item_data.workout_obj.duration_seconds | format_total_seconds_human_readable }}
-                                                </td>
-                                                <td>
-                                                    <span class="icon split"></span>
-                                                    {{ item_data.workout_obj.average_split_seconds_500m | format_split_ms }}
-                                                </td>
-                                            </tr>
-                                        </table>
+				<!-- -- Daily Summary for Selected Date Section ------------------- -->
+				{% if daily_summary_data %} <!-- Check if daily summary data is available -->
+					<article class="box post post-excerpt">
+						<header style="margin-bottom: 10px; padding-top: 0px;">
+							<h3 style="margin-bottom: 5px; color: #555;">Summary for {{ selected_date_str }}</h3> <!-- Summary Sub-header -->
+						</header>
+						<table style="width: 100%; margin-bottom: 20px;">
+							<thead>
+								<tr>
+									<th style="text-align: left; padding: 8px; background-color: #f4f7fb;">Metric</th>
+									<th style="text-align: right; padding: 8px; background-color: #f4f7fb;">Total</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td style="padding: 8px; border-bottom: 1px solid #eee;">Total Distance:</td>
+									<td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">
+										{{ '{:,.0f}'.format(daily_summary_data.meters) if daily_summary_data.meters is not none else '0' }} m <!-- Formatted Total Distance -->
+									</td>
+								</tr>
+								<tr>
+									<td style="padding: 8px; border-bottom: 1px solid #eee;">Total Duration:</td>
+									<td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">
+										{{ daily_summary_data.seconds | format_total_seconds_human_readable if daily_summary_data.seconds is not none else 'N/A' }} <!-- Formatted Total Duration -->
+									</td>
+								</tr>
+								<tr>
+									<td style="padding: 8px;">Average Split (/500m):</td>
+									<td style="padding: 8px; text-align: right;">
+										{{ daily_summary_data.split | format_split_short if daily_summary_data.split is not none and daily_summary_data.split > 0 else 'N/A' }} <!-- Formatted Average Split -->
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</article>
+					<hr class="extra_article"> <!-- Separator line -->
+				{% endif %}
 
-									<div id="workout-graph-placeholder-{{ item_data.workout_obj.workout_id }}" style="width:100%; height:250px; background:#f4f7fb; border:1px dashed #b3c6e7; display:flex; align-items:center; justify-content:center; margin: 0px 0;">
-										<span style="color:#6a8fd7; font-size:1.2em;">[ Graph for {{ item_data.workout_obj.workout_name | default('Workout') }} (ID: {{ item_data.workout_obj.workout_id }}) ]</span>
-									</div>
-								</article>
-							{% endfor %}
-						{% else %}								
-							<article class="box post post-excerpt">
-								<div class="box alert-info" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
-									No workouts found for this date.
-								</div>
-							</article>
-						{% endif %}
+				<!-- -- Individual Workouts List Section ------------------- -->
+				{% if workouts_display_data %} <!-- Check if there are workouts to display for the date -->
+					{% for item_data in workouts_display_data %} <!-- Loop through each workout -->
+						{% if not loop.first %}<hr class="extra_article">{% endif %} <!-- Add separator between workouts -->
+						<article class="box post post-excerpt">
+							<header style="margin-bottom: 0px; padding-top: 0px;">
+								<h2 style="margin-bottom: 5px;"><a href="{{ url_for('details', workout_id=item_data.workout_obj.workout_id) }}">{{ item_data.name | default('Unnamed Workout') }}</a></h2> <!-- Workout Name (link to details) -->
+							</header>
+							<!-- Workout Stats Table -->
+							<table class="workout-stats-table" style="width:auto; margin-bottom: 0.5em;">
+								<tr>
+									<th>Distance</th>
+									<th>Time</th>
+									<th>Split</th>
+								</tr>
+								<tr>
+									<td>
+										<span class="icon distance"></span> <!-- Distance Icon (assuming CSS handles this) -->
+										{{ '{:,.0f}'.format(item_data.workout_obj.total_distance_meters) if item_data.workout_obj.total_distance_meters is not none else 'N/A' }} m <!-- Formatted Distance -->
+									</td>
+									<td>
+										<span class="icon time"></span> <!-- Time Icon -->
+										{{ item_data.workout_obj.duration_seconds | format_total_seconds_human_readable }} <!-- Formatted Duration -->
+									</td>
+									<td>
+										<span class="icon split"></span> <!-- Split Icon -->
+										{{ item_data.workout_obj.average_split_seconds_500m | format_split_ms }} <!-- Formatted Split -->
+									</td>
+								</tr>
+							</table>
 
-                    <!-- Back Link -->
-                    <div style="text-align: center; margin-top: 30px;">
-                        <a href="{{ url_for('dailysummary') }}" class="button">
-                            ← Back to Daily Summary
-                        </a>
-                    </div>
+							<!-- Placeholder for Workout Graph -->
+							<div id="workout-graph-placeholder-{{ item_data.workout_obj.workout_id }}" style="width:100%; height:250px; background:#f4f7fb; border:1px dashed #b3c6e7; display:flex; align-items:center; justify-content:center; margin: 0px 0;">
+								<span style="color:#6a8fd7; font-size:1.2em;">[ Graph for {{ item_data.workout_obj.workout_name | default('Workout') }} (ID: {{ item_data.workout_obj.workout_id }}) ]</span>
+							</div>
+						</article>
+					{% endfor %}
+				{% else %} <!-- If no workouts are found for this date -->							
+					<article class="box post post-excerpt">
+						<div class="box alert-info" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
+							No workouts found for this date. <!-- Message indicating no workouts -->
+						</div>
+					</article>
+				{% endif %}
+
+				<!-- -- Back Link Section ------------------- -->
+				<div style="text-align: center; margin-top: 30px;">
+					<a href="{{ url_for('dailysummary') }}" class="button">
+						← Back to Daily Summary <!-- Link to return to the main daily summary page -->
+					</a>
 				</div>
 			</div>
-		<!-- Sidebar -->
-			{% include '_sidebar.html' %}
+		</div>
+		<!-- == Sidebar Inclusion ============================================ -->
+		{% include '_sidebar.html' %} <!-- Include the sidebar template -->
 
-		<!-- Scripts -->
-			<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
-			<script src="{{ url_for('static', filename='js/browser.min.js') }}"></script>
-			<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
-			<script src="{{ url_for('static', filename='js/util.js') }}"></script>
-			<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+		<!-- == Scripts ============================================ -->
+		<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/browser.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/util.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 	</body>
 </html>

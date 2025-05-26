@@ -1,43 +1,50 @@
-# views/workouts.py
+# ========================================================
+# = workouts.py - View for displaying paginated workouts
+# ========================================================
 from flask import render_template, redirect, url_for, current_app
-# Removed: from sqlalchemy.orm import joinedload
 from models import Workout
-# Removed: from utils import format_duration_ms (no longer used in this file, template uses it)
 
-# You might want a new utility function for formatting total_seconds into hh:mm:ss or d:hh:mm
-# e.g., from utils import format_seconds_to_readable_time
-
+# --------------------------------------------------------
+# - Workouts View Function
+#---------------------------------------------------------
+# Displays a paginated list of workouts
 def workouts(page_num=1):
-    per_page_value = current_app.config.get('PER_PAGE', 10)
+    # == Pagination Configuration ============================================
+    per_page_value = current_app.config.get('PER_PAGE', 10) # Get items per page from app config
 
+    # == Query Workouts ============================================
+    # Fetch workouts, ordered by date and ID, paginated
     workouts_pagination = Workout.query.order_by(
-        Workout.workout_date.desc(),
-        Workout.workout_id.desc()
-    ).paginate(page=page_num, per_page=per_page_value, error_out=False)
+        Workout.workout_date.desc(), # Order by workout date descending
+        Workout.workout_id.desc() # Then by workout ID descending for consistent ordering
+    ).paginate(page=page_num, per_page=per_page_value, error_out=False) # Paginate results
 
-    # Simplified: workouts_display_data will now just be a list of Workout objects
-    # The template (workouts.html) will handle formatting directly using filters.
-    # We pass it as 'workouts_display_data' and the template expects item_data.workout_obj.
-    
+    # == Prepare Data for Template ============================================
+    # The template will directly use workout objects and Jinja filters for formatting
     workouts_display_data = []
-    for workout_item in workouts_pagination.items: # workout_item is a Workout object
+    for workout_item in workouts_pagination.items: # Iterate through paginated workout items
         workouts_display_data.append({
-            'workout_obj': workout_item
-            # The 'summary' dictionary is removed as templates format directly
-            # The workout name is accessed via item_data.workout_obj.workout_name in the template
+            'workout_obj': workout_item # Pass the raw workout object to the template
         })
 
+    # == Handle Empty Page Redirects ============================================
+    # If the current page is empty and not the first page, redirect to the last valid page or first page
     if not workouts_pagination.items and page_num > 1 and workouts_pagination.pages > 0 :
-        return redirect(url_for('workouts_paginated', page_num=workouts_pagination.pages))
-    elif not workouts_pagination.items and page_num > 1 and workouts_pagination.pages == 0:
-        return redirect(url_for('workouts_paginated', page_num=1))
+        return redirect(url_for('workouts_paginated', page_num=workouts_pagination.pages)) # Redirect to last page with items
+    elif not workouts_pagination.items and page_num > 1 and workouts_pagination.pages == 0: # Should ideally not happen if page_num > 1
+        return redirect(url_for('workouts_paginated', page_num=1)) # Redirect to first page if no pages exist (edge case)
 
+    # == Render Template ============================================
     return render_template(
         'workouts.html',
-        workouts_pagination=workouts_pagination,
-        workouts_display_data=workouts_display_data
+        workouts_pagination=workouts_pagination, # Pass pagination object
+        workouts_display_data=workouts_display_data # Pass prepared workout data
     )
 
+# --------------------------------------------------------
+# - Route Registration
+#---------------------------------------------------------
+# Registers the workout view routes with the Flask application
 def register_routes(app):
-    app.add_url_rule('/workouts/', endpoint='workouts', view_func=lambda: workouts(1), methods=['GET'])
-    app.add_url_rule('/workouts/page/<int:page_num>', endpoint='workouts_paginated', view_func=workouts, methods=['GET'])
+    app.add_url_rule('/workouts/', endpoint='workouts', view_func=lambda: workouts(1), methods=['GET']) # Route for the first page of workouts
+    app.add_url_rule('/workouts/page/<int:page_num>', endpoint='workouts_paginated', view_func=workouts, methods=['GET']) # Route for subsequent paginated workout pages

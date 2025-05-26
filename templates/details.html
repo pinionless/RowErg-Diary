@@ -1,226 +1,231 @@
-<!-- templates/details.html -->
+<!-- ======================================================== -->
+<!-- = details.html - Template for displaying workout details -->
+<!-- ======================================================== -->
 <!DOCTYPE HTML>
 <html>
 	<head>
-		<title>RowErg Diary - Workout Details</title> <!-- More specific title -->
+		<title>RowErg Diary - Workout Details</title> <!-- Page Title -->
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-		<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
-		<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
-		<link rel="stylesheet" href="{{ url_for('static', filename='css/mystyles.css') }}" />
+		<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}"> <!-- Favicon Link -->
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" /> <!-- Main Stylesheet -->
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/mystyles.css') }}" /> <!-- Custom Stylesheet -->
 	</head>
 	<body class="is-preload">
 
-		<!-- Content -->
-			<div id="content" class="custom-fullwidth">
-				<div class="inner">
-					<!-- flash messages -->
-						{% with messages = get_flashed_messages(with_categories=true) %}
-							{% if messages %}
-								<article class="box post post-excerpt">
-								{% for category, message in messages %}
-									<div class="box alert-{{ category }}" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
-										{{ message }}
-									</div>
-								{% endfor %}
-								</article>
-							{% endif %}
-						{% endwith %}
+		<!-- == Main Content Area ============================================ -->
+		<div id="content" class="custom-fullwidth">
+			<div class="inner">
+				<!-- -- Flash Messages Section ------------------- -->
+				{% with messages = get_flashed_messages(with_categories=true) %}
+					{% if messages %}
+						<article class="box post post-excerpt">
+						{% for category, message in messages %}
+							<div class="box alert-{{ category }}" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
+								{{ message }} <!-- Display flash message -->
+							</div>
+						{% endfor %}
+						</article>
+					{% endif %}
+				{% endwith %}
 					
-                    <div class="workout-details-main">
-                        <!-- Workout Title -->
-                        <div class="workout-header">
-                            <h1>{{ workout.workout_name | default('Unnamed Workout') }}</h1>
-                            <p class="workout-date">
-                                {{ workout.workout_date.strftime('%A, %B %d, %Y') if workout.workout_date else 'Date: N/A' }}
-                            </p>
-                        </div>
+				<div class="workout-details-main">
+					<!-- -- Workout Header Section ------------------- -->
+					<div class="workout-header">
+						<h1>{{ workout.workout_name | default('Unnamed Workout') }}</h1> <!-- Workout Name -->
+						<p class="workout-date">
+							{{ workout.workout_date.strftime('%A, %B %d, %Y') if workout.workout_date else 'Date: N/A' }} <!-- Workout Date -->
+						</p>
+					</div>
 
-                        <!-- General Information Card -->
-                        <div class="card info-card">
-                            <h2>General Information</h2>
-                            <div class="info-grid">
-                                <div><span>ID (DB):</span> {{ workout.workout_id }}</div>
-                                <div><span>Cardio Log ID:</span> {{ workout.cardio_log_id }}</div>
-                                <div><span>Equipment:</span> {{ workout.equipment_type_ref.name | default('N/A') }}</div>
-                                <div><span>Target:</span> {{ workout.target_description | default('N/A') }}</div>
-                                
-                                <div><span>Total Distance:</span> {{ '{:,.0f}'.format(workout.total_distance_meters) if workout.total_distance_meters is not none else 'N/A' }} m</div>
-                                <div><span>Total Duration:</span> {{ workout.duration_seconds | format_total_seconds_human_readable }}</div>
-                                <div><span>Average Split (/500m):</span> {{ workout.average_split_seconds_500m | format_split_ms }}</div>
-                            </div>
-                        </div>
+					<!-- -- General Information Card ------------------- -->
+					<div class="card info-card">
+						<h2>General Information</h2>
+						<div class="info-grid">
+							<div><span>ID (DB):</span> {{ workout.workout_id }}</div> <!-- Database ID -->
+							<div><span>Cardio Log ID:</span> {{ workout.cardio_log_id }}</div> <!-- External Log ID -->
+							<div><span>Equipment:</span> {{ workout.equipment_type_ref.name | default('N/A') }}</div> <!-- Equipment Used -->
+							<div><span>Target:</span> {{ workout.target_description | default('N/A') }}</div> <!-- Target Description -->
+							
+							<div><span>Total Distance:</span> {{ '{:,.0f}'.format(workout.total_distance_meters) if workout.total_distance_meters is not none else 'N/A' }} m</div> <!-- Total Distance -->
+							<div><span>Total Duration:</span> {{ workout.duration_seconds | format_total_seconds_human_readable }}</div> <!-- Total Duration -->
+							<div><span>Average Split (/500m):</span> {{ workout.average_split_seconds_500m | format_split_ms }}</div> <!-- Average Split -->
+						</div>
+					</div>
 
-                        <!-- Metric Descriptors Used in this Workout -->
-                        {% if workout_metric_descriptors %} {# Changed from workout.metric_descriptors #}
-                        <div class="card">
-                            <h2>Metric Descriptors Used</h2>
-                            <table class="styled-table">
-                                <thead>
-                                    <tr>
-                                        <!-- Removed JSON Index as it's not relevant for global descriptors in this context -->
-                                        <th>Name</th>
-                                        <th>Unit</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {# Iterate over workout_metric_descriptors passed from the view #}
-                                    {% for desc in workout_metric_descriptors %}
-                                    <tr>
-                                        <td>{{ desc.metric_name }}</td>
-                                        <td>{{ desc.unit_of_measure | default('N/A') }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        {% endif %}
+					<!-- -- Metric Descriptors Used Section ------------------- -->
+					{% if workout_metric_descriptors %} <!-- Check if metric descriptors are available -->
+					<div class="card">
+						<h2>Metric Descriptors Used</h2>
+						<table class="styled-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Unit</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for desc in workout_metric_descriptors %} <!-- Loop through each descriptor -->
+								<tr>
+									<td>{{ desc.metric_name }}</td> <!-- Metric Name -->
+									<td>{{ desc.unit_of_measure | default('N/A') }}</td> <!-- Unit of Measure -->
+								</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+					</div>
+					{% endif %}
 
-                        <!-- Workout Samples -->
-                        {% if first_10_workout_samples or last_10_workout_samples %}
-                        <div class="card">
-                            <h2>Workout Samples
-                                <small>
-                                    {% if total_workout_samples == 0 %} (No samples recorded)
-                                    {% elif total_workout_samples <= 10 %} (Showing all {{ total_workout_samples }})
-                                    {% elif total_workout_samples <= 20 %} (Showing all {{ total_workout_samples }})
-                                    {% else %} (First 10 & Last 10 of {{ total_workout_samples }})
-                                    {% endif %}
-                                </small>
-                            </h2>
-                            {% if total_workout_samples > 0 %}
-                            <table class="styled-table">
-                                <thead>
-                                    <tr>
-                                        <th>Time Offset (s)</th>
-                                        <th>Metric Name</th> {# From sample.metric_descriptor_ref #}
-                                        <th>Value</th>
-                                        <th>Unit</th> {# From sample.metric_descriptor_ref #}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for sample in first_10_workout_samples %}
-                                    <tr>
-                                        <td>{{ sample.time_offset_seconds }}</td>
-                                        <td>{{ sample.metric_descriptor_ref.metric_name | default('N/A') }}</td>
-                                        <td>{{ "%.2f"|format(sample.value) if sample.value is not none else 'N/A' }}</td>
-                                        <td>{{ sample.metric_descriptor_ref.unit_of_measure | default('') }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                    {% if workout_samples_ellipsis_needed %}
-                                    <tr>
-                                        <td colspan="4" class="ellipsis">... {{ total_workout_samples - 20 }} more samples ...</td>
-                                    </tr>
-                                    {% endif %}
-                                    {% if workout_samples_ellipsis_needed or (total_workout_samples > 10 and total_workout_samples <= 20) %}
-                                        {% for sample in last_10_workout_samples %}
-                                        <tr>
-                                            <td>{{ sample.time_offset_seconds }}</td>
-                                            <td>{{ sample.metric_descriptor_ref.metric_name | default('N/A') }}</td>
-                                            <td>{{ "%.2f"|format(sample.value) if sample.value is not none else 'N/A' }}</td>
-                                            <td>{{ sample.metric_descriptor_ref.unit_of_measure | default('') }}</td>
-                                        </tr>
-                                        {% endfor %}
-                                    {% endif %}
-                                </tbody>
-                            </table>
-                            {% else %}
-                            <p class="no-data">No workout samples available for this workout.</p>
-                            {% endif %}
-                        </div>
-                        {% endif %}
+					<!-- -- Workout Samples Section ------------------- -->
+					{% if first_10_workout_samples or last_10_workout_samples %} <!-- Check if workout samples are available -->
+					<div class="card">
+						<h2>Workout Samples
+							<small> <!-- Sub-heading for sample count -->
+								{% if total_workout_samples == 0 %} (No samples recorded)
+								{% elif total_workout_samples <= 10 %} (Showing all {{ total_workout_samples }})
+								{% elif total_workout_samples <= 20 %} (Showing all {{ total_workout_samples }})
+								{% else %} (First 10 & Last 10 of {{ total_workout_samples }})
+								{% endif %}
+							</small>
+						</h2>
+						{% if total_workout_samples > 0 %}
+						<table class="styled-table">
+							<thead>
+								<tr>
+									<th>Time Offset (s)</th>
+									<th>Metric Name</th>
+									<th>Value</th>
+									<th>Unit</th>
+								</tr>
+							</thead>
+							<tbody>
+								<!-- ---- First 10 Workout Samples ---- -->
+								{% for sample in first_10_workout_samples %}
+								<tr>
+									<td>{{ sample.time_offset_seconds }}</td> <!-- Time Offset -->
+									<td>{{ sample.metric_descriptor_ref.metric_name | default('N/A') }}</td> <!-- Metric Name from related descriptor -->
+									<td>{{ "%.2f"|format(sample.value) if sample.value is not none else 'N/A' }}</td> <!-- Sample Value (formatted) -->
+									<td>{{ sample.metric_descriptor_ref.unit_of_measure | default('') }}</td> <!-- Unit from related descriptor -->
+								</tr>
+								{% endfor %}
+								<!-- ---- Ellipsis if more than 20 samples ---- -->
+								{% if workout_samples_ellipsis_needed %}
+								<tr>
+									<td colspan="4" class="ellipsis">... {{ total_workout_samples - 20 }} more samples ...</td> <!-- Ellipsis row -->
+								</tr>
+								{% endif %}
+								<!-- ---- Last 10 Workout Samples (if applicable) ---- -->
+								{% if workout_samples_ellipsis_needed or (total_workout_samples > 10 and total_workout_samples <= 20) %}
+									{% for sample in last_10_workout_samples %}
+									<tr>
+										<td>{{ sample.time_offset_seconds }}</td>
+										<td>{{ sample.metric_descriptor_ref.metric_name | default('N/A') }}</td>
+										<td>{{ "%.2f"|format(sample.value) if sample.value is not none else 'N/A' }}</td>
+										<td>{{ sample.metric_descriptor_ref.unit_of_measure | default('') }}</td>
+									</tr>
+									{% endfor %}
+								{% endif %}
+							</tbody>
+						</table>
+						{% else %}
+						<p class="no-data">No workout samples available for this workout.</p> <!-- Message if no samples -->
+						{% endif %}
+					</div>
+					{% endif %}
 
-                        <!-- Heart Rate Samples (structure unchanged) -->
-                        {% if first_10_hr_samples or last_10_hr_samples %}
-                        <!-- ... (HR samples table remains the same) ... -->
-                        <div class="card">
-                            <h2>Heart Rate Samples
-                                <small>
-                                    {% if total_hr_samples == 0 %} (No HR samples recorded)
-                                    {% elif total_hr_samples <= 10 %} (Showing all {{ total_hr_samples }})
-                                    {% elif total_hr_samples <= 20 %} (Showing all {{ total_hr_samples }})
-                                    {% else %} (First 10 & Last 10 of {{ total_hr_samples }})
-                                    {% endif %}
-                                </small>
-                            </h2>
-                            {% if total_hr_samples > 0 %}
-                            <table class="styled-table">
-                                <thead>
-                                    <tr>
-                                        <th>Time Offset (s)</th>
-                                        <th>Heart Rate (bpm)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for sample in first_10_hr_samples %}
-                                    <tr>
-                                        <td>{{ sample.time_offset_seconds }}</td>
-                                        <td>{{ sample.heart_rate_bpm if sample.heart_rate_bpm is not none else 'N/A' }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                    {% if hr_samples_ellipsis_needed %}
-                                    <tr>
-                                        <td colspan="2" class="ellipsis">... {{ total_hr_samples - 20 }} more samples ...</td>
-                                    </tr>
-                                    {% endif %}
-                                    {% if hr_samples_ellipsis_needed or (total_hr_samples > 10 and total_hr_samples <= 20) %}
-                                        {% for sample in last_10_hr_samples %}
-                                        <tr>
-                                            <td>{{ sample.time_offset_seconds }}</td>
-                                            <td>{{ sample.heart_rate_bpm if sample.heart_rate_bpm is not none else 'N/A' }}</td>
-                                        </tr>
-                                        {% endfor %}
-                                    {% endif %}
-                                </tbody>
-                            </table>
-                            {% else %}
-                            <p class="no-data">No heart rate samples available for this workout.</p>
-                            {% endif %}
-                        </div>
-                        {% endif %}
+					<!-- -- Heart Rate Samples Section ------------------- -->
+					{% if first_10_hr_samples or last_10_hr_samples %} <!-- Check if HR samples are available -->
+					<div class="card">
+						<h2>Heart Rate Samples
+							<small> <!-- Sub-heading for HR sample count -->
+								{% if total_hr_samples == 0 %} (No HR samples recorded)
+								{% elif total_hr_samples <= 10 %} (Showing all {{ total_hr_samples }})
+								{% elif total_hr_samples <= 20 %} (Showing all {{ total_hr_samples }})
+								{% else %} (First 10 & Last 10 of {{ total_hr_samples }})
+								{% endif %}
+							</small>
+						</h2>
+						{% if total_hr_samples > 0 %}
+						<table class="styled-table">
+							<thead>
+								<tr>
+									<th>Time Offset (s)</th>
+									<th>Heart Rate (bpm)</th>
+								</tr>
+							</thead>
+							<tbody>
+								<!-- ---- First 10 HR Samples ---- -->
+								{% for sample in first_10_hr_samples %}
+								<tr>
+									<td>{{ sample.time_offset_seconds }}</td> <!-- Time Offset -->
+									<td>{{ sample.heart_rate_bpm if sample.heart_rate_bpm is not none else 'N/A' }}</td> <!-- Heart Rate Value -->
+								</tr>
+								{% endfor %}
+								<!-- ---- Ellipsis if more than 20 HR samples ---- -->
+								{% if hr_samples_ellipsis_needed %}
+								<tr>
+									<td colspan="2" class="ellipsis">... {{ total_hr_samples - 20 }} more samples ...</td> <!-- Ellipsis row -->
+								</tr>
+								{% endif %}
+								<!-- ---- Last 10 HR Samples (if applicable) ---- -->
+								{% if hr_samples_ellipsis_needed or (total_hr_samples > 10 and total_hr_samples <= 20) %}
+									{% for sample in last_10_hr_samples %}
+									<tr>
+										<td>{{ sample.time_offset_seconds }}</td>
+										<td>{{ sample.heart_rate_bpm if sample.heart_rate_bpm is not none else 'N/A' }}</td>
+									</tr>
+									{% endfor %}
+								{% endif %}
+							</tbody>
+						</table>
+						{% else %}
+						<p class="no-data">No heart rate samples available for this workout.</p> <!-- Message if no HR samples -->
+						{% endif %}
+					</div>
+					{% endif %}
 
-                        <!-- Heart Rate Zones (structure unchanged) -->
-                        {% if workout.workout_hr_zones and workout.workout_hr_zones|length > 0 %}
-                        <!-- ... (HR zones table remains the same) ... -->
-                        <div class="card">
-                            <h2>Heart Rate Zones</h2>
-                            <table class="styled-table">
-                                <thead>
-                                    <tr>
-                                        <th>Zone Name</th>
-                                        <th>Color</th>
-                                        <th>Lower BPM</th>
-                                        <th>Upper BPM</th>
-                                        <th>Seconds in Zone</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for zone in workout.workout_hr_zones | sort(attribute='lower_bound_bpm') %}
-                                    <tr>
-                                        <td>{{ zone.zone_name }}</td>
-                                        <td>
-                                            <span class="zone-color" style="background:{{ zone.color_hex | default('transparent') }};"></span>
-                                            {{ zone.color_hex | default('N/A') }}
-                                        </td>
-                                        <td>{{ "%.1f"|format(zone.lower_bound_bpm) if zone.lower_bound_bpm is not none else 'N/A' }}</td>
-                                        <td>{{ "%.1f"|format(zone.upper_bound_bpm) if zone.upper_bound_bpm is not none else 'N/A' }}</td>
-                                        <td>{{ "%.1f"|format(zone.seconds_in_zone) if zone.seconds_in_zone is not none else 'N/A' }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        {% endif %}
+					<!-- -- Heart Rate Zones Section ------------------- -->
+					{% if workout.workout_hr_zones and workout.workout_hr_zones|length > 0 %} <!-- Check if HR zones are available -->
+					<div class="card">
+						<h2>Heart Rate Zones</h2>
+						<table class="styled-table">
+							<thead>
+								<tr>
+									<th>Zone Name</th>
+									<th>Color</th>
+									<th>Lower BPM</th>
+									<th>Upper BPM</th>
+									<th>Seconds in Zone</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for zone in workout.workout_hr_zones | sort(attribute='lower_bound_bpm') %} <!-- Loop through each zone, sorted -->
+								<tr>
+									<td>{{ zone.zone_name }}</td> <!-- Zone Name -->
+									<td>
+										<span class="zone-color" style="background:{{ zone.color_hex | default('transparent') }};"></span> <!-- Color indicator -->
+										{{ zone.color_hex | default('N/A') }} <!-- Color Hex Code -->
+									</td>
+									<td>{{ "%.1f"|format(zone.lower_bound_bpm) if zone.lower_bound_bpm is not none else 'N/A' }}</td> <!-- Lower BPM -->
+									<td>{{ "%.1f"|format(zone.upper_bound_bpm) if zone.upper_bound_bpm is not none else 'N/A' }}</td> <!-- Upper BPM -->
+									<td>{{ "%.1f"|format(zone.seconds_in_zone) if zone.seconds_in_zone is not none else 'N/A' }}</td> <!-- Time in Zone -->
+								</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+					</div>
+					{% endif %}
 
-                        <!-- Back Link -->
-                        <div class="back-link-container">
-                            <a href="javascript:window.history.back();" class="back-link">
-                                ← Back
-                            </a>
-                        </div>
-                    </div>
+					<!-- -- Back Link Section ------------------- -->
+					<div class="back-link-container">
+						<a href="javascript:window.history.back();" class="back-link">
+							← Back <!-- Link to go back to the previous page -->
+						</a>
+					</div>
+				</div>
 
-                    <style>
+				<!-- -- Inline Styles Section (Consider moving to CSS file) ------------------- -->
+				<style>
                     /* Inline styles remain the same for now */
                     .workout-details-main { max-width: 900px; margin: 0 auto 40px auto; padding: 20px 10px; }
                     .workout-header { text-align: center; margin-bottom: 24px; }
@@ -244,17 +249,17 @@
                         .card { padding: 14px 6px 10px 6px; }
                         .info-card .info-grid { grid-template-columns: 1fr; }
                     }
-                    </style>
-				</div>
+                </style>
 			</div>
-		<!-- Sidebar -->
-			{% include '_sidebar.html' %}
+		</div>
+		<!-- == Sidebar Inclusion ============================================ -->
+		{% include '_sidebar.html' %} <!-- Include the sidebar template -->
 
-		<!-- Scripts -->
-			<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
-			<script src="{{ url_for('static', filename='js/browser.min.js') }}"></script>
-			<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
-			<script src="{{ url_for('static', filename='js/util.js') }}"></script>
-			<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+		<!-- == Scripts ============================================ -->
+		<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/browser.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/util.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 	</body>
 </html>
