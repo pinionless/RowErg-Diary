@@ -73,9 +73,8 @@ def format_total_seconds_human_readable(total_seconds):
     elif days > 0: # Ensure hours are shown if days are present
          parts.append("00h")
     
-    if total_seconds >= 0: # Always show minutes and seconds
-         parts.append(f"{minutes:02d}m")
-         parts.append(f"{seconds:02d}s")
+    parts.append(f"{minutes:02d}m")
+    parts.append(f"{seconds:02d}s")
     
     if not parts: # Default for zero duration
         return "00m:00s"
