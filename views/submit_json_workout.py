@@ -81,6 +81,7 @@ def submit_json_workout():
         metric_descriptor_map_for_samples = {} # Maps JSON index 'i' to MetricDescriptor object
         
         isoreps_descriptor_id = None # To identify IsoReps metric for summary
+        level_descriptor_json_index = None # To identify Level metric's index in JSON samples 'vs' array
 
         for desc_data_from_json in descriptors_json:
             json_i = desc_data_from_json.get('i') # Index from JSON used to map samples
@@ -119,14 +120,29 @@ def submit_json_workout():
                 metric_descriptor_map_for_samples[json_i] = metric_descriptor_entry
                 if metric_name_from_json == 'IsoReps' and unit_of_measure_from_json == 'Number':
                     isoreps_descriptor_id = metric_descriptor_entry.metric_descriptor_id
+                elif metric_name_from_json == 'Level' and unit_of_measure_from_json == 'Number': # Identify Level descriptor
+                    level_descriptor_json_index = json_i
         
         # == Workout Sample Processing ============================================
         samples_json = workout_main_container.get('analitics', {}).get('samples', [])
         last_isoreps_value = None # To store the final IsoReps count for summary
+        level_data_points = [] # To store (time_offset, level_value) for average calculation
         
         for sample_json in samples_json:
             time_offset = sample_json.get('t') # Time offset for the sample
             values_from_json = sample_json.get('vs', []) # List of values, index corresponds to descriptor's 'i'
+            
+            # -- Collect Level Data for Averaging -------------------
+            if level_descriptor_json_index is not None and \
+               time_offset is not None and \
+               level_descriptor_json_index < len(values_from_json):
+                level_value = values_from_json[level_descriptor_json_index]
+                if level_value is not None:
+                    try:
+                        level_data_points.append((float(time_offset), float(level_value)))
+                    except (ValueError, TypeError):
+                        current_app.logger.warning(f"Could not parse level data: t={time_offset}, v={level_value}")
+
             for original_json_index, value in enumerate(values_from_json):
                 descriptor_obj = metric_descriptor_map_for_samples.get(original_json_index) # Get corresponding MetricDescriptor
                 if descriptor_obj: # If a descriptor exists for this sample index
@@ -143,7 +159,7 @@ def submit_json_workout():
                         last_isoreps_value = value
 
         # == Workout Summary Data Population ============================================
-        # -- Initialize Summary Variables -------------------
+        # -- Initialize Summary Variables ------------------
         extracted_duration_seconds = None
         calculated_total_distance_meters = None
         calculated_average_split_seconds_500m = None
@@ -201,11 +217,45 @@ def submit_json_workout():
         if extracted_duration_seconds is not None and calculated_total_distance_meters is not None and calculated_total_distance_meters > 0:
             calculated_average_split_seconds_500m = (extracted_duration_seconds / calculated_total_distance_meters) * 500
         
+        # -- Calculate Average Level -------------------
+        calculated_average_level = None
+        if level_data_points and extracted_duration_seconds is not None and extracted_duration_seconds > 0:
+            level_data_points.sort(key=lambda x: x[0]) # Sort by time_offset
+            
+            weighted_level_sum = 0.0
+            last_event_time = 0.0
+
+            for i in range(len(level_data_points)):
+                current_sample_time, current_level = level_data_points[i]
+                
+                # Determine the level active *before* this sample's time
+                # For the first segment (0 to current_sample_time), use current_level
+                level_for_segment = current_level if i == 0 else level_data_points[i-1][1]
+                
+                duration_of_segment = current_sample_time - last_event_time
+                if duration_of_segment > 0:
+                    weighted_level_sum += level_for_segment * duration_of_segment
+                
+                last_event_time = current_sample_time
+
+            # Account for the last level up to extracted_duration_seconds
+            if level_data_points: # Ensure there was at least one sample
+                last_level_value = level_data_points[-1][1]
+                duration_of_last_segment = extracted_duration_seconds - last_event_time
+                if duration_of_last_segment > 0:
+                    weighted_level_sum += last_level_value * duration_of_last_segment
+            
+            if extracted_duration_seconds > 0: # Avoid division by zero
+                 calculated_average_level = weighted_level_sum / extracted_duration_seconds
+            elif level_data_points: # If duration is 0 but samples exist, take the first level
+                calculated_average_level = level_data_points[0][1]
+
         # -- Update Workout Object with Summary Data -------------------
         new_workout.duration_seconds = extracted_duration_seconds
         new_workout.total_distance_meters = calculated_total_distance_meters
         new_workout.average_split_seconds_500m = calculated_average_split_seconds_500m
         new_workout.total_isoreps = last_isoreps_value # Set total IsoReps from last sample
+        new_workout.level = calculated_average_level # Set calculated average level
 
         # == Heart Rate Data Processing ============================================
         # -- Process HeartRateSamples -------------------
