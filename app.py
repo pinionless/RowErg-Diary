@@ -15,7 +15,7 @@ from utils import sidebar_stats_processor, format_total_seconds_human_readable, 
 # --------------------------------------------------------
 # - Application Version
 #---------------------------------------------------------
-__version__ = "0.12"
+__version__ = "0.13"
 
 # --------------------------------------------------------
 # - Application Factory Function
