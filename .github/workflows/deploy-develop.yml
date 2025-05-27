@@ -1,4 +1,4 @@
-name: Deploy to Docker Hub (Develop Branch)
+name:  Deploy Develop Branch to GHCR
 
 on:
   workflow_dispatch: # Allows manual triggering from the GitHub Actions UI
