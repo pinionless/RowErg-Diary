@@ -7,22 +7,23 @@ from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 from models import db, EquipmentType, Workout, MetricDescriptor, WorkoutSample, HeartRateSample, WorkoutHRZone
 from utils import format_duration_ms # Retained as it might be used for debugging or future display logic, though not directly in current processing
+import os # Add os import for path operations
 
 # --------------------------------------------------------
 # - JSON Workout Submission View Function
 #---------------------------------------------------------
 def submit_json_workout():
     # == Form Data Retrieval ============================================
-    raw_json_data = request.form.get('jsonData') # Get raw JSON string from form
+    raw_json_data_str = request.form.get('jsonData') # Get raw JSON string from form
     workout_notes = request.form.get('jsonNotes') # Get workout notes from form
 
     # == Initial JSON Data Validation ============================================
-    if not raw_json_data:
+    if not raw_json_data_str:
         flash('No JSON data provided.', 'danger')
         return redirect(url_for('home'))
 
     try:
-        json_data = json.loads(raw_json_data) # Parse JSON string
+        json_data = json.loads(raw_json_data_str) # Parse JSON string
     except json.JSONDecodeError:
         flash('Invalid JSON format.', 'danger')
         return redirect(url_for('home'))
@@ -81,7 +82,6 @@ def submit_json_workout():
         metric_descriptor_map_for_samples = {} # Maps JSON index 'i' to MetricDescriptor object
         
         isoreps_descriptor_id = None # To identify IsoReps metric for summary
-        level_descriptor_json_index = None # To identify Level metric's index in JSON samples 'vs' array
 
         for desc_data_from_json in descriptors_json:
             json_i = desc_data_from_json.get('i') # Index from JSON used to map samples
@@ -120,29 +120,14 @@ def submit_json_workout():
                 metric_descriptor_map_for_samples[json_i] = metric_descriptor_entry
                 if metric_name_from_json == 'IsoReps' and unit_of_measure_from_json == 'Number':
                     isoreps_descriptor_id = metric_descriptor_entry.metric_descriptor_id
-                elif metric_name_from_json == 'Level' and unit_of_measure_from_json == 'Number': # Identify Level descriptor
-                    level_descriptor_json_index = json_i
         
         # == Workout Sample Processing ============================================
         samples_json = workout_main_container.get('analitics', {}).get('samples', [])
         last_isoreps_value = None # To store the final IsoReps count for summary
-        level_data_points = [] # To store (time_offset, level_value) for average calculation
         
         for sample_json in samples_json:
             time_offset = sample_json.get('t') # Time offset for the sample
             values_from_json = sample_json.get('vs', []) # List of values, index corresponds to descriptor's 'i'
-            
-            # -- Collect Level Data for Averaging -------------------
-            if level_descriptor_json_index is not None and \
-               time_offset is not None and \
-               level_descriptor_json_index < len(values_from_json):
-                level_value = values_from_json[level_descriptor_json_index]
-                if level_value is not None:
-                    try:
-                        level_data_points.append((float(time_offset), float(level_value)))
-                    except (ValueError, TypeError):
-                        current_app.logger.warning(f"Could not parse level data: t={time_offset}, v={level_value}")
-
             for original_json_index, value in enumerate(values_from_json):
                 descriptor_obj = metric_descriptor_map_for_samples.get(original_json_index) # Get corresponding MetricDescriptor
                 if descriptor_obj: # If a descriptor exists for this sample index
@@ -159,7 +144,7 @@ def submit_json_workout():
                         last_isoreps_value = value
 
         # == Workout Summary Data Population ============================================
-        # -- Initialize Summary Variables ------------------
+        # -- Initialize Summary Variables -------------------
         extracted_duration_seconds = None
         calculated_total_distance_meters = None
         calculated_average_split_seconds_500m = None
@@ -217,45 +202,11 @@ def submit_json_workout():
         if extracted_duration_seconds is not None and calculated_total_distance_meters is not None and calculated_total_distance_meters > 0:
             calculated_average_split_seconds_500m = (extracted_duration_seconds / calculated_total_distance_meters) * 500
         
-        # -- Calculate Average Level -------------------
-        calculated_average_level = None
-        if level_data_points and extracted_duration_seconds is not None and extracted_duration_seconds > 0:
-            level_data_points.sort(key=lambda x: x[0]) # Sort by time_offset
-            
-            weighted_level_sum = 0.0
-            last_event_time = 0.0
-
-            for i in range(len(level_data_points)):
-                current_sample_time, current_level = level_data_points[i]
-                
-                # Determine the level active *before* this sample's time
-                # For the first segment (0 to current_sample_time), use current_level
-                level_for_segment = current_level if i == 0 else level_data_points[i-1][1]
-                
-                duration_of_segment = current_sample_time - last_event_time
-                if duration_of_segment > 0:
-                    weighted_level_sum += level_for_segment * duration_of_segment
-                
-                last_event_time = current_sample_time
-
-            # Account for the last level up to extracted_duration_seconds
-            if level_data_points: # Ensure there was at least one sample
-                last_level_value = level_data_points[-1][1]
-                duration_of_last_segment = extracted_duration_seconds - last_event_time
-                if duration_of_last_segment > 0:
-                    weighted_level_sum += last_level_value * duration_of_last_segment
-            
-            if extracted_duration_seconds > 0: # Avoid division by zero
-                 calculated_average_level = weighted_level_sum / extracted_duration_seconds
-            elif level_data_points: # If duration is 0 but samples exist, take the first level
-                calculated_average_level = level_data_points[0][1]
-
         # -- Update Workout Object with Summary Data -------------------
         new_workout.duration_seconds = extracted_duration_seconds
         new_workout.total_distance_meters = calculated_total_distance_meters
         new_workout.average_split_seconds_500m = calculated_average_split_seconds_500m
         new_workout.total_isoreps = last_isoreps_value # Set total IsoReps from last sample
-        new_workout.level = calculated_average_level # Set calculated average level
 
         # == Heart Rate Data Processing ============================================
         # -- Process HeartRateSamples -------------------
@@ -282,6 +233,32 @@ def submit_json_workout():
 
         # == Finalize Transaction ============================================
         db.session.commit() # Commit all changes to the database
+        
+        # == JSON Backup (after successful commit) ============================================
+        try:
+            backup_dir = os.path.join(current_app.root_path, 'json_backup')
+            if not os.path.exists(backup_dir):
+                os.makedirs(backup_dir)
+            
+            # Format date for filename (YYYY-MM-DD)
+            # workout_date_obj is defined earlier in the try block
+            filename_date_str = workout_date_obj.strftime('%Y-%m-%d')
+            # new_workout.workout_id is available after db.session.flush() or commit
+            backup_filename = f"{filename_date_str}-{new_workout.workout_id}.json"
+            backup_filepath = os.path.join(backup_dir, backup_filename)
+            
+            # raw_json_data_str is the original string from the form
+            # Encode it to bytes before writing to a file opened in binary mode
+            with open(backup_filepath, 'wb') as f: 
+                f.write(raw_json_data_str.encode('utf-8')) 
+            current_app.logger.info(f"Successfully backed up JSON to {backup_filepath}")
+        except IOError as e:
+            current_app.logger.error(f"Failed to backup JSON for workout {new_workout.workout_id}: {e}", exc_info=True)
+            flash(f"Workout data saved, but JSON backup failed: {str(e)}", "warning")
+        except Exception as e: # Catch any other unexpected errors during backup
+            current_app.logger.error(f"Unexpected error during JSON backup for workout {new_workout.workout_id}: {e}", exc_info=True)
+            flash(f"Workout data saved, but JSON backup encountered an unexpected error: {str(e)}", "warning")
+
         flash('Workout data submitted successfully!', 'success')
         return redirect(url_for('home')) # Redirect to home page on success
 

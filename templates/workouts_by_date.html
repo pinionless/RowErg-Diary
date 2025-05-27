@@ -10,6 +10,7 @@
 		<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}"> <!-- Favicon Link -->
 		<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" /> <!-- Main Stylesheet -->
 		<link rel="stylesheet" href="{{ url_for('static', filename='css/mystyles.css') }}" /> <!-- Custom Stylesheet -->
+		<!-- ApexCharts Library will be moved to the bottom -->
 	</head>
 	<body class="is-preload">
 
@@ -93,6 +94,7 @@
 									<th>Distance</th>
 									<th>Time</th>
 									<th>Split</th>
+									<th>Level</th> <!-- Added Level Header -->
 								</tr>
 								<tr>
 									<td>
@@ -107,13 +109,229 @@
 										<span class="icon split"></span> <!-- Split Icon -->
 										{{ item_data.workout_obj.average_split_seconds_500m | format_split_ms }} <!-- Formatted Split -->
 									</td>
+									<td> <!-- Added Level Data -->
+										{% if item_data.workout_obj.level is not none %}
+											<span class="icon level"></span> <!-- Assuming you might add a level icon -->
+											{{ item_data.workout_obj.level }}
+										{% else %}
+											N/A
+										{% endif %}
+									</td>
 								</tr>
 							</table>
 
-							<!-- Placeholder for Workout Graph -->
-							<div id="workout-graph-placeholder-{{ item_data.workout_obj.workout_id }}" style="width:100%; height:250px; background:#f4f7fb; border:1px dashed #b3c6e7; display:flex; align-items:center; justify-content:center; margin: 0px 0;">
-								<span style="color:#6a8fd7; font-size:1.2em;">[ Graph for {{ item_data.workout_obj.workout_name | default('Workout') }} (ID: {{ item_data.workout_obj.workout_id }}) ]</span>
+							<!-- Additional Workout Information -->
+							<div class="workout-additional-info" style="margin-bottom: 1em; padding: 10px; background-color: #f9f9f9; border: 1px solid #eee; border-radius: 4px;">
+								{% if item_data.workout_obj.equipment_type_ref %}
+									<p style="margin-bottom: 0.5em;"><strong>Equipment:</strong> {{ item_data.workout_obj.equipment_type_ref.name }}</p>
+								{% endif %}
+								{% if item_data.workout_obj.notes %}
+									<p style="margin-bottom: 0;"><strong>Notes:</strong> {{ item_data.workout_obj.notes | nl2br }}</p>
+								{% endif %}
+								{% if not item_data.workout_obj.equipment_type_ref and not item_data.workout_obj.notes %}
+									<p style="margin-bottom: 0; font-style: italic;">No additional details (equipment or notes) recorded for this workout.</p>
+								{% endif %}
 							</div>
+
+							<!-- Container for Workout Graph - This div always exists -->
+							{% if item_data.chart_time_categories %}
+								<!-- Pace Chart -->
+								<div id="paceChart-{{ item_data.workout_obj.workout_id }}" style="width:100%; min-height:300px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0 15px 0;">
+									{% if not item_data.pace_series_data %}
+									<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:300px;">
+										<span style="color:#6a8fd7; font-size:1.2em;">[ No Pace data available ]</span>
+									</div>
+									{% endif %}
+								</div>
+
+								<!-- Power Chart -->
+								<div id="powerChart-{{ item_data.workout_obj.workout_id }}" style="width:100%; min-height:300px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0 15px 0;">
+									{% if not item_data.power_series_data %}
+									<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:300px;">
+										<span style="color:#6a8fd7; font-size:1.2em;">[ No Power data available ]</span>
+									</div>
+									{% endif %}
+								</div>
+
+								<!-- SPM Chart -->
+								<div id="spmChart-{{ item_data.workout_obj.workout_id }}" style="width:100%; min-height:300px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0;">
+									{% if not item_data.spm_series_data %}
+									<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:300px;">
+										<span style="color:#6a8fd7; font-size:1.2em;">[ No SPM data available ]</span>
+									</div>
+									{% endif %}
+								</div>
+							{% else %}
+								<!-- Message if no chart data at all (no time categories) -->
+								<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:300px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0;">
+									<span style="color:#6a8fd7; font-size:1.2em;">[ No chart data available for {{ item_data.workout_obj.workout_name | default('Workout') }} (ID: {{ item_data.workout_obj.workout_id }}) ]</span>
+								</div>
+							{% endif %}
+							
+							{% if item_data.chart_time_categories %}
+							<script>
+								document.addEventListener("DOMContentLoaded", function() {
+									// Common X-axis formatter
+									function formatXAxisTime(value) {
+										if (typeof value !== 'number' || isNaN(value)) {
+											return value; 
+										}
+										const totalSeconds = Math.floor(value); 
+										const minutes = Math.floor(totalSeconds / 60);
+										const seconds = totalSeconds % 60;
+										return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+									}
+
+									// Pace specific formatter
+									function formatPaceTooltip(seconds) {
+										if (seconds === null || typeof seconds === 'undefined' || seconds <= 0) {
+											return null; 
+										}
+										const totalSecondsFloat = parseFloat(seconds);
+										const minutes = Math.floor(totalSecondsFloat / 60);
+										const remainingSeconds = totalSecondsFloat % 60;
+										const secs = Math.floor(remainingSeconds);
+										const tenths = Math.floor((remainingSeconds - secs) * 10);
+										return `${minutes}:${secs.toString().padStart(2, '0')}.${tenths}`;
+									}
+
+									// Power specific formatter
+									function formatPowerTooltip(watts) {
+										if (watts === null || typeof watts === 'undefined' || watts <= 0) { // Changed from < 0 to <= 0
+											return null;
+										}
+										return Math.round(parseFloat(watts)) + " W";
+									}
+
+									// SPM specific formatter
+									function formatSpmTooltip(spm) {
+										if (spm === null || typeof spm === 'undefined' || spm <= 0) { // Changed from < 0 to <= 0
+											return null;
+										}
+										return Math.round(parseFloat(spm)) + " SPM";
+									}
+									
+									const commonXAxisOptions = {
+										categories: {{ item_data.chart_time_categories | safe }},
+										min: 0,
+										title: { text: 'Time (M:SS)' },
+										type: 'numeric',
+										labels: { formatter: formatXAxisTime }
+									};
+
+									// Define a unique group ID for this workout's charts
+									const chartGroupId = "workoutSync-{{ item_data.workout_obj.workout_id }}";
+
+									// Base options that are truly common and don't have nested objects that need careful merging
+									const baseChartSettings = {
+										stroke: { curve: 'straight', width: 2 },
+										dataLabels: { enabled: false },
+										markers: { size: 0 },
+										xaxis: commonXAxisOptions, // Common X-axis for all
+										tooltip: {
+											shared: true, // Enable shared tooltip for synchronized charts
+											intersect: false, // Show tooltip even if not directly hovering over a point
+											// x: { formatter: formatXAxisTime } // Optional: format x-axis in tooltip if needed
+										}
+									};
+
+									// Pace Chart
+									{% if item_data.pace_series_data %}
+									var optionsPaceChart_{{ item_data.workout_obj.workout_id }} = {
+										...baseChartSettings, // Spread base settings
+										chart: { 
+											id: "paceChartInstance-{{ item_data.workout_obj.workout_id }}", // Unique ID for this chart instance
+											group: chartGroupId, // Synchronization group
+											type: 'line',
+											height: 300, 
+											zoom: { enabled: true }, 
+											toolbar: { show: true }
+										},
+										series: [{
+											name: 'Pace (s/500m)',
+											data: {{ item_data.pace_series_data | safe }}.map(val => val === "N/A" ? null : val)
+										}],
+										yaxis: {
+											title: { text: 'Pace (s/500m)' },
+											reversed: true, 
+											labels: { formatter: function(val) { const f = formatPaceTooltip(val); return f !== null ? f : '';} }
+										},
+										tooltip: { // Override specific tooltip parts if necessary, inherits shared/intersect
+											...baseChartSettings.tooltip, // Inherit shared, intersect
+											y: { formatter: function(val) { const f = formatPaceTooltip(val); return f !== null ? f + " /500m" : null; } }
+										}
+									};
+									var chartPace_{{ item_data.workout_obj.workout_id }} = new ApexCharts(document.querySelector("#paceChart-{{ item_data.workout_obj.workout_id }}"), optionsPaceChart_{{ item_data.workout_obj.workout_id }});
+									chartPace_{{ item_data.workout_obj.workout_id }}.render();
+									{% endif %}
+
+									// Power Chart
+									{% if item_data.power_series_data %}
+									var optionsPowerChart_{{ item_data.workout_obj.workout_id }} = {
+										...baseChartSettings, // Spread base settings
+										chart: {
+											id: "powerChartInstance-{{ item_data.workout_obj.workout_id }}", // Unique ID
+											group: chartGroupId, // Synchronization group
+											type: 'area', 
+											height: 300, 
+											zoom: { enabled: true }, 
+											toolbar: { show: true }
+										},
+										series: [{
+											name: 'Power (Watts)',
+											data: {{ item_data.power_series_data | safe }}.map(val => val === "N/A" ? null : val)
+										}],
+										xaxis: commonXAxisOptions,
+										yaxis: {
+											title: { text: 'Power (Watts)' },
+											reversed: false,
+											min: 0, 
+											labels: { formatter: function(val) { return val !== null && val > 0 ? Math.round(val) : ''; } } // Changed from >=0 to >0
+										},
+										tooltip: { // Override specific tooltip parts
+											...baseChartSettings.tooltip, // Inherit shared, intersect
+											y: { formatter: formatPowerTooltip } 
+										},
+										fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.7, opacityTo: 0.3, stops: [0, 90, 100]}},
+									};
+									var chartPower_{{ item_data.workout_obj.workout_id }} = new ApexCharts(document.querySelector("#powerChart-{{ item_data.workout_obj.workout_id }}"), optionsPowerChart_{{ item_data.workout_obj.workout_id }});
+									chartPower_{{ item_data.workout_obj.workout_id }}.render();
+									{% endif %}
+
+									// SPM Chart
+									{% if item_data.spm_series_data %}
+									var optionsSpmChart_{{ item_data.workout_obj.workout_id }} = {
+										...baseChartSettings, // Spread base settings
+										chart: {
+											id: "spmChartInstance-{{ item_data.workout_obj.workout_id }}", // Unique ID
+											group: chartGroupId, // Synchronization group
+											type: 'line',
+											height: 300, 
+											zoom: { enabled: true }, 
+											toolbar: { show: true }
+										},
+										series: [{
+											name: 'SPM',
+											data: {{ item_data.spm_series_data | safe }}.map(val => val === "N/A" ? null : val)
+										}],
+										xaxis: commonXAxisOptions,
+										yaxis: {
+											title: { text: 'Strokes Per Minute (SPM)' },
+											reversed: false,
+											min: 0, 
+											labels: { formatter: function(val) { return val !== null && val > 0 ? Math.round(val) : ''; } } // Changed from >=0 to >0
+										},
+										tooltip: { // Override specific tooltip parts
+											...baseChartSettings.tooltip, // Inherit shared, intersect
+											y: { formatter: formatSpmTooltip }
+										}
+									};
+									var chartSpm_{{ item_data.workout_obj.workout_id }} = new ApexCharts(document.querySelector("#spmChart-{{ item_data.workout_obj.workout_id }}"), optionsSpmChart_{{ item_data.workout_obj.workout_id }});
+									chartSpm_{{ item_data.workout_obj.workout_id }}.render();
+									{% endif %}
+								});
+							</script>
+							{% endif %}
 						</article>
 					{% endfor %}
 				{% else %} <!-- If no workouts are found for this date -->							
@@ -141,5 +359,6 @@
 		<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/util.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+		<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script> <!-- ApexCharts Library Moved Here -->
 	</body>
 </html>

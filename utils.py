@@ -5,6 +5,7 @@ from flask import current_app
 from models import db
 from sqlalchemy import text
 from decimal import Decimal
+from markupsafe import Markup # Import Markup for custom filters
 
 # --------------------------------------------------------
 # - Parsing Functions
@@ -72,9 +73,8 @@ def format_total_seconds_human_readable(total_seconds):
     elif days > 0: # Ensure hours are shown if days are present
          parts.append("00h")
     
-    if total_seconds >= 0: # Always show minutes and seconds
-         parts.append(f"{minutes:02d}m")
-         parts.append(f"{seconds:02d}s")
+    parts.append(f"{minutes:02d}m")
+    parts.append(f"{seconds:02d}s")
     
     if not parts: # Default for zero duration
         return "00m:00s"
@@ -97,6 +97,15 @@ def format_split_short(total_split_seconds_raw):
     milliseconds_decimal_part = int(seconds_and_ms_combined_truncated % 10)
 
     return f"{minutes}:{seconds_part:02d}.{milliseconds_decimal_part}"
+
+# --------------------------------------------------------
+# - Custom Jinja2 Filters
+#---------------------------------------------------------
+# Converts newline characters in a string to HTML <br> tags.
+def nl2br_filter(value):
+    if value is None:
+        return ''
+    return Markup(str(value).replace('\n', '<br>\n'))
 
 # --------------------------------------------------------
 # - Context Processors

@@ -16,15 +16,6 @@
 - Filtering and Sorting:
     - Workouts Page:
         - Add clickable table headers to sort by date, distance, duration, split.
-- Weekly Summary
-- Monthly Summary
-- Yearly Summary
-- Total Summary
-- User Workout Notes:
-    - When importing JSON, if workout_main_container.get('name') is generic, allow users to easily rename it.
-    - Add a "Notes" field to the Workout model and allow users to add notes to workouts.
-- Data Export:
-    - Allow users to export their workout data (e.g., main workout stats or even detailed samples) to CSV.
 - Extra widgets on Homepage
     - This Week 
     - This Month
@@ -32,5 +23,7 @@
     - Totals
     - Graphs widget
 - Backup/Restore Database.
+- Data Export:
+    - Allow users to export their workout data (e.g., main workout stats or even detailed samples) to CSV.
 - Concept2 Log API integration
     - autosync workouts
