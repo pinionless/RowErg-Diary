@@ -1,18 +1,17 @@
-name: Deploy to GHCR # Name of your workflow
+name: Deploy to Docker Hub (Main Branch)
 
 on:
   workflow_dispatch: # Allows manual triggering from the GitHub Actions UI
-  push:
-    branches:
-      - main # Triggers the workflow on every push to the 'main' branch
+  release:
+    types: [published] # Triggers on release publication
 
 concurrency: # Ensures only one deployment job runs at a time for a given ref
   group: deploy-${{ github.ref }}
   cancel-in-progress: true # Cancels any in-progress runs for the same group when a new one starts
 
 jobs:
-  build:
-    runs-on: ubuntu-latest # Specifies the virtual machine environment
+  build_and_push_main: # Or your job name
+    runs-on: ubuntu-latest
 
     permissions: # Recommended: Explicitly grant permissions needed by this workflow
       contents: read   # To checkout the repository code
@@ -40,4 +39,8 @@ jobs:
           push: true               # Tells the action to push the image to the registry
           tags: |
             ghcr.io/pinionless/rowerg-diary:latest
-            ghcr.io/pinionless/rowerg-diary:${{ github.sha }}
+            ghcr.io/pinionless/rowerg-diary:${{ github.event.release.tag_name }}
+
+      - name: Logout from GitHub Container Registry
+        if: always()
+        run: docker logout ghcr.io # Ensures logout even if previous steps fail
