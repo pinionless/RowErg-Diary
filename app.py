@@ -10,7 +10,7 @@ from models import db
 # Import application views
 from views import home, submit_json_workout, workouts, details, database_management, dailysummary, weeklysummary, monthlysummary, yearlysummary, workouts_by_date, submit_manual_workout, workouts_by_week, workouts_by_month, workouts_by_year # Added workouts_by_year
 # Import utility functions and context processors
-from utils import sidebar_stats_processor, format_total_seconds_human_readable, format_split_short, format_duration_ms
+from utils import sidebar_stats_processor, format_total_seconds_human_readable, format_split_short, format_duration_ms, nl2br_filter
 
 # --------------------------------------------------------
 # - Application Version
@@ -56,6 +56,7 @@ def create_app(config_object=None):
     app.jinja_env.filters['format_total_seconds_human_readable'] = format_total_seconds_human_readable
     app.jinja_env.filters['format_split_short'] = format_split_short
     app.jinja_env.filters['format_split_ms'] = format_duration_ms 
+    app.jinja_env.filters['nl2br'] = nl2br_filter
     
     # == Route Registration ============================================
     # Register blueprints and routes from view modules

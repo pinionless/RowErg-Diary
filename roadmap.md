@@ -16,8 +16,6 @@
 - Filtering and Sorting:
     - Workouts Page:
         - Add clickable table headers to sort by date, distance, duration, split.
-- Data Export:
-    - Allow users to export their workout data (e.g., main workout stats or even detailed samples) to CSV.
 - Extra widgets on Homepage
     - This Week 
     - This Month
@@ -25,5 +23,7 @@
     - Totals
     - Graphs widget
 - Backup/Restore Database.
+- Data Export:
+    - Allow users to export their workout data (e.g., main workout stats or even detailed samples) to CSV.
 - Concept2 Log API integration
     - autosync workouts
