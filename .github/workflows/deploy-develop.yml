@@ -39,7 +39,7 @@ jobs:
           context: .
           platforms: linux/amd64   # Defines the target platform for the image
           push: true               # Tells the action to push the image to the registry
-          tags: ghcr.io/pinionless/rowergdiary:develop # Tag with :develop
+          tags: ghcr.io/pinionless/rowerg-diary:develop # Tag with :develop
 
       - name: Logout from GitHub Container Registry
         if: always()
