@@ -1,7 +1,6 @@
 # Roadmap
 - Database
-    - Store Total "IsoReps" in workout database
-    - Display IsoReps Everywhere
+    - The current templates (e.g., index.html, workouts.html, details.html, _sidebar.html, dailysummary.html, workouts_by_date.html) do not yet display the total_isoreps value
 - Adding backend functionality for the "Manual Workout Input" form.
 - Move Inline CSS from details.html
 - Enhanced Statistics & Dashboard Page
@@ -16,10 +15,7 @@
     - Add "Edit" and "Delete" buttons to the workout listings (e.g., in workouts.html, workouts_by_date.html, index.html).
 - Filtering and Sorting:
     - Workouts Page:
-        - Add dropdowns or input fields to filter by date range.
         - Add clickable table headers to sort by date, distance, duration, split.
-    - Daily Summary Page:
-        - Filter by year/month.
 - Weekly Summary
 - Monthly Summary
 - Yearly Summary

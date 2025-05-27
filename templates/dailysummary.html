@@ -1,116 +1,128 @@
-<!-- templates/dailysummary.html -->
+<!-- ======================================================== -->
+<!-- = dailysummary.html - Template for displaying daily workout summaries -->
+<!-- ======================================================== -->
 <!DOCTYPE HTML>
 <html>
 	<head>
-		<title>Daily Workout Totals</title>
+		<title>Daily Workout Totals</title> <!-- Page Title -->
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-		<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
-		<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
-		<link rel="stylesheet" href="{{ url_for('static', filename='css/mystyles.css') }}" />
+		<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}"> <!-- Favicon Link -->
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" /> <!-- Main Stylesheet -->
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/mystyles.css') }}" /> <!-- Custom Stylesheet -->
 	</head>
 	<body class="is-preload">
 
-		<!-- Content -->
-			<div id="content" class="custom-fullwidth">
-				<div class="inner">
-                    <h1 class="extra_h1">Daily Summary</h1>
-                    <hr class="extra_title_line">
-					<!-- flash messages -->
-						{% with messages = get_flashed_messages(with_categories=true) %}
-							{% if messages %}
-								<article class="box post post-excerpt">
-								{% for category, message in messages %}
-									<div class="box alert-{{ category }}" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
-										{{ message }}
-									</div>
-								{% endfor %}
-								</article>
-							{% endif %}
-						{% endwith %}
-					
-					<!-- Daily Totals Table -->
-						{% if dailysummary_display_data %}
-							<article class="box post post-excerpt">
-								<table>
-									<thead>
-										<tr>
-											<th>Date</th>
-											<th>Distance</th>
-											<th>Duration</th>
-											<th>Split</th>
-											<th>Actions</th>
-										</tr>
-									</thead>
-									<tbody>
-										{% for item_data in dailysummary_display_data %}
-										<tr>
-											<td>{{ item_data.day_date.strftime('%Y-%m-%d') if item_data.day_date else 'N/A' }}</td>
-											<td>{{ '{:,.0f}'.format(item_data.meters) }} m</td>
-											<td>
-                                                {{ item_data.seconds | format_total_seconds_human_readable }}
-                                            </td>
-											<td>
-                                                {{ item_data.split | format_split_short }}
-                                            </td>
-											<td>
-												<a href="{{ url_for('workouts_by_date', date_str=item_data.day_date.strftime('%Y-%m-%d')) }}">
-													<i class="fas fa-eye"></i> Details
-												</a>
-											</td>
-										</tr>
-										{% endfor %}
-									</tbody>
-								</table>
-							</article>
-						{% else %}								
-								<article class="box post post-excerpt">
-									<div class="box alert-info" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
-										No daily totals found.
-									</div>
-								</article>
-							<p></p>
-						{% endif %}
+		<!-- == Main Content Area ============================================ -->
+		<div id="content" class="custom-fullwidth">
+			<div class="inner">
+				<!-- -- Page Header ------------------- -->
+				<h1 class="extra_h1">Daily Summary</h1>
+				<hr class="extra_title_line">
 
-					<!-- Pagination -->
-					{% if dailysummary_pagination.pages > 1 %}
-						<div class="pagination">
-							{% if dailysummary_pagination.has_prev %}
-								<a href="{{ url_for('dailysummary_paginated', page_num=dailysummary_pagination.prev_num) }}"
-								   class="button previous">Previous Page</a>
-							{% else %}
-								<span class="button previous disabled" aria-disabled="true">Previous Page</span>
-							{% endif %}
-							
-							<div class="pages">
-								{% for page in dailysummary_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-									{% if page %}
-										<a href="{{ url_for('dailysummary_paginated', page_num=page) }}"
-										   class="{% if page == dailysummary_pagination.page %}active{% endif %}">{{ page }}</a>
-									{% else %}
-										<span>…</span>
-									{% endif %}
-								{% endfor %}
+				<!-- -- Flash Messages Section ------------------- -->
+				{% with messages = get_flashed_messages(with_categories=true) %}
+					{% if messages %}
+						<article class="box post post-excerpt">
+						{% for category, message in messages %}
+							<div class="box alert-{{ category }}" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
+								{{ message }} <!-- Display flash message -->
 							</div>
-							
-							{% if dailysummary_pagination.has_next %}
-								<a href="{{ url_for('dailysummary_paginated', page_num=dailysummary_pagination.next_num) }}"
-								   class="button next">Next Page</a>
-							{% else %}
-								<span class="button next disabled" aria-disabled="true">Next Page</span>
-							{% endif %}
-						</div>
+						{% endfor %}
+						</article>
 					{% endif %}
-				</div>
-			</div>
-		<!-- Sidebar -->
-			{% include '_sidebar.html' %}
+				{% endwith %}
+					
+				<!-- -- Daily Totals Table Section ------------------- -->
+				{% if dailysummary_display_data %} <!-- Check if there is data to display -->
+					<article class="box post post-excerpt">
+						<table>
+							<thead>
+								<tr>
+									<th>Date</th>
+									<th>Distance</th>
+									<th>Duration</th>
+									<th>Split</th>
+									<th>Total IsoReps</th>
+									<th>Actions</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for item_data in dailysummary_display_data %} <!-- Loop through each daily summary item -->
+								<tr>
+									<td>{{ item_data.day_date.strftime('%Y-%m-%d') if item_data.day_date else 'N/A' }}</td> <!-- Date of the summary -->
+									<td>{{ '{:,.0f}'.format(item_data.meters) }} m</td> <!-- Total distance for the day -->
+									<td>
+										{{ item_data.seconds | format_total_seconds_human_readable }} <!-- Total duration for the day -->
+									</td>
+									<td>
+										{{ item_data.split | format_split_short }} <!-- Average split for the day -->
+									</td>
+									<td>
+										{{ '{:,.0f}'.format(item_data.isoreps) if item_data.isoreps is not none else '0' }}
+									</td>
+									<td>
+										<!-- Link to view detailed workouts for this specific date -->
+										<a href="{{ url_for('workouts_by_date', date_str=item_data.day_date.strftime('%Y-%m-%d')) }}">
+											<i class="fas fa-eye"></i> Details
+										</a>
+									</td>
+								</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+					</article>
+				{% else %} <!-- If no daily totals are found -->							
+					<article class="box post post-excerpt">
+						<div class="box alert-info" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
+							No daily totals found. <!-- Message indicating no data -->
+						</div>
+					</article>
+					<p></p>
+				{% endif %}
 
-		<!-- Scripts -->
-			<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
-			<script src="{{ url_for('static', filename='js/browser.min.js') }}"></script>
-			<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
-			<script src="{{ url_for('static', filename='js/util.js') }}"></script>
-			<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+				<!-- -- Pagination Section ------------------- -->
+				{% if dailysummary_pagination.pages > 1 %} <!-- Check if pagination is needed -->
+					<div class="pagination">
+						<!-- Previous Page Button -->
+						{% if dailysummary_pagination.has_prev %}
+							<a href="{{ url_for('dailysummary_paginated', page_num=dailysummary_pagination.prev_num) }}"
+							   class="button previous">Previous Page</a>
+						{% else %}
+							<span class="button previous disabled" aria-disabled="true">Previous Page</span>
+						{% endif %}
+						
+						<!-- Page Numbers -->
+						<div class="pages">
+							{% for page in dailysummary_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+								{% if page %}
+									<a href="{{ url_for('dailysummary_paginated', page_num=page) }}"
+									   class="{% if page == dailysummary_pagination.page %}active{% endif %}">{{ page }}</a>
+								{% else %}
+									<span>…</span> <!-- Ellipsis for skipped pages -->
+								{% endif %}
+							{% endfor %}
+						</div>
+						
+						<!-- Next Page Button -->
+						{% if dailysummary_pagination.has_next %}
+							<a href="{{ url_for('dailysummary_paginated', page_num=dailysummary_pagination.next_num) }}"
+							   class="button next">Next Page</a>
+						{% else %}
+							<span class="button next disabled" aria-disabled="true">Next Page</span>
+						{% endif %}
+					</div>
+				{% endif %}
+			</div>
+		</div>
+		<!-- == Sidebar Inclusion ============================================ -->
+		{% include '_sidebar.html' %} <!-- Include the sidebar template -->
+
+		<!-- == Scripts ============================================ -->
+		<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/browser.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/util.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 	</body>
 </html>

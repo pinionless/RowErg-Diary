@@ -1,53 +1,61 @@
-# utils.py
+# ========================================================
+# = utils.py - Utility functions and context processors
+# ========================================================
 from flask import current_app
 from models import db
 from sqlalchemy import text
-# Removed: from datetime import datetime, timedelta (not used by current functions)
-from decimal import Decimal # <--- ADD THIS LINE TO IMPORT DECIMAL
+from decimal import Decimal
 
+# --------------------------------------------------------
+# - Parsing Functions
+#---------------------------------------------------------
+# Parses a time string into total seconds
+def parse_duration_to_seconds(time_str):
+    if not time_str: # Handle empty input
+        return None
+    
+    parts = time_str.split(':')
+    total_seconds = 0
+    
+    try:
+        if len(parts) == 3: # Format H:M:S.ms
+            h = int(parts[0])
+            m = int(parts[1])
+            s_ms_part = float(parts[2])
+            total_seconds = h * 3600 + m * 60 + s_ms_part
+        elif len(parts) == 2: # Format M:S.ms
+            m = int(parts[0])
+            s_ms_part = float(parts[1])
+            total_seconds = m * 60 + s_ms_part
+        elif len(parts) == 1: # Format S.ms or S
+            s_ms_part = float(parts[0])
+            total_seconds = s_ms_part
+        else: # Invalid format
+            return None
+        return total_seconds
+    except ValueError: # Handle non-numeric parts
+        return None
+        
+# --------------------------------------------------------
+# - Formatting Functions
+#---------------------------------------------------------
+# Formats total seconds into MM:SS.CS (centiseconds)
 def format_duration_ms(total_seconds):
-    if total_seconds is None or not isinstance(total_seconds, (int, float, Decimal)) or total_seconds < 0: # Added Decimal here too for consistency
+    if total_seconds is None or not isinstance(total_seconds, (int, float, Decimal)) or total_seconds < 0: # Validate input
         return "00:00.00"
-    total_seconds_float = float(total_seconds) # Convert to float for calculations
+    total_seconds_float = float(total_seconds) # Ensure float for calculations
     minutes = int(total_seconds_float // 60)
     remaining_seconds_component = total_seconds_float % 60
     seconds = int(remaining_seconds_component)
-    centiseconds = int((remaining_seconds_component - seconds) * 100)
+    centiseconds = int((remaining_seconds_component - seconds) * 100) # Calculate centiseconds
     return f"{minutes:02d}:{seconds:02d}.{centiseconds:02d}"
 
-def sidebar_stats_processor():
-    """
-    Fetches various rowing statistics from materialized views for the sidebar.
-    """
-    stats = {}
-    try:
-        with db.engine.connect() as connection:
-            overall_totals_result = connection.execute(text("SELECT * FROM mv_sum_totals LIMIT 1")).fetchone()
-            if overall_totals_result:
-                stats['overall_totals'] = {
-                    'meters': float(overall_totals_result.total_meters_rowed) if overall_totals_result.total_meters_rowed is not None else 0,
-                    'seconds': float(overall_totals_result.total_seconds_rowed) if overall_totals_result.total_seconds_rowed is not None else 0,
-                    'split': float(overall_totals_result.average_split_seconds_per_500m) if overall_totals_result.average_split_seconds_per_500m is not None else 0
-                }
-            else: # Handle case where mv_sum_totals might be empty
-                stats['overall_totals'] = {'meters': 0, 'seconds': 0, 'split': 0}
-
-
-    except Exception as e:
-        current_app.logger.error(f"Error fetching sidebar stats: {e}", exc_info=True)
-        stats = {
-            'overall_totals': {'meters': 0, 'seconds': 0, 'split': 0},
-        }
-    
-    return dict(sidebar_stats=stats)
-
-
+# Formats total seconds into a human-readable string (Xd XXh:XXm:XXs)
 def format_total_seconds_human_readable(total_seconds):
-    # The isinstance check now includes Decimal
-    if total_seconds is None or not isinstance(total_seconds, (int, float, Decimal)) or total_seconds < 0:
+    if total_seconds is None or not isinstance(total_seconds, (int, float, Decimal)) or total_seconds < 0: # Validate input
         return "N/A"
     
-    total_seconds = float(total_seconds) # Convert to float for consistent math operations
+    total_seconds = float(total_seconds) # Ensure float for consistent math
 
     days = int(total_seconds // (24 * 3600))
     remaining_seconds_after_days = total_seconds % (24 * 3600)
@@ -59,39 +67,93 @@ def format_total_seconds_human_readable(total_seconds):
     parts = []
     if days > 0:
         parts.append(f"{days}d")
-    # Show hours if days are shown, or if hours > 0 and no days
     if hours > 0: 
         parts.append(f"{hours:02d}h" if days > 0 else f"{hours}h")
-    elif days > 0: # If days > 0 but hours is 0, still show 00h
+    elif days > 0: # Ensure hours are shown if days are present
          parts.append("00h")
     
-    # Always show minutes and seconds if there was any duration or if we want to show 00m:00s for 0 total_seconds
-    if total_seconds >= 0: # Show 00m:00s for 0 seconds
+    if total_seconds >= 0: # Always show minutes and seconds
          parts.append(f"{minutes:02d}m")
          parts.append(f"{seconds:02d}s")
     
-    if not parts: # Should not happen if total_seconds >= 0
+    if not parts: # Default for zero duration
         return "00m:00s"
         
     return ":".join(parts)
 
+# Formats total split seconds into M:SS.s (tenths of a second)
 def format_split_short(total_split_seconds_raw):
-    # The isinstance check now includes Decimal
-    if total_split_seconds_raw is None or not isinstance(total_split_seconds_raw, (int, float, Decimal)) or total_split_seconds_raw <= 0:
+    if total_split_seconds_raw is None or not isinstance(total_split_seconds_raw, (int, float, Decimal)) or total_split_seconds_raw <= 0: # Validate input
         return "N/A"
     
-    total_split_seconds_raw = float(total_split_seconds_raw) # Convert to float for consistent math operations
+    total_split_seconds_raw = float(total_split_seconds_raw) # Ensure float for consistent math
     minutes = int(total_split_seconds_raw // 60)
     remaining_seconds_float = total_split_seconds_raw % 60
     
-    # To get "ss.s" (e.g., 27.9 from 27.979...)
-    # Multiply by 10 (e.g., 27.979 -> 279.79)
-    # Truncate to integer (279)
-    # Extract integer seconds (279 // 10 = 27)
-    # Extract single millisecond digit (279 % 10 = 9)
+    # Calculate seconds and tenths of a second
     seconds_and_ms_combined_truncated = int(remaining_seconds_float * 10) 
     
     seconds_part = int(seconds_and_ms_combined_truncated // 10) 
     milliseconds_decimal_part = int(seconds_and_ms_combined_truncated % 10)
 
     return f"{minutes}:{seconds_part:02d}.{milliseconds_decimal_part}"
+
+# --------------------------------------------------------
+# - Context Processors
+#---------------------------------------------------------
+# Fetches overall rowing statistics for the sidebar
+def sidebar_stats_processor():
+    stats = {}
+    try:
+        with db.engine.connect() as connection:
+            # Query materialized view for summed totals
+            overall_totals_result = connection.execute(text("SELECT * FROM mv_sum_totals LIMIT 1")).fetchone()
+            if overall_totals_result:
+                stats['overall_totals'] = {
+                    'meters': float(overall_totals_result.total_meters_rowed) if overall_totals_result.total_meters_rowed is not None else 0,
+                    'seconds': float(overall_totals_result.total_seconds_rowed) if overall_totals_result.total_seconds_rowed is not None else 0,
+                    'split': float(overall_totals_result.average_split_seconds_per_500m) if overall_totals_result.average_split_seconds_per_500m is not None else 0
+                }
+            else: # Handle empty materialized view
+                stats['overall_totals'] = {'meters': 0, 'seconds': 0, 'split': 0}
+
+
+    except Exception as e: # Catch potential database errors
+        current_app.logger.error(f"Error fetching sidebar stats: {e}", exc_info=True)
+        # Provide default stats on error
+        stats = {
+            'overall_totals': {'meters': 0, 'seconds': 0, 'split': 0},
+        }
+    
+    return dict(sidebar_stats=stats) # Make stats available to templates
+
+# --------------------------------------------------------
+# - Custom Pagination Class
+#---------------------------------------------------------
+# Provides pagination logic for views not using Flask-SQLAlchemy's paginate().
+class CustomPagination:
+    # -- Initialization Method -------------------
+    def __init__(self, page, per_page, total_count, items):
+        self.page = page # Current page number
+        self.per_page = per_page # Items per page
+        self.total = total_count # Total number of items
+        self.pages = (total_count + per_page - 1) // per_page if total_count > 0 else 1 # Total number of pages
+        self.has_prev = self.page > 1 # True if there's a previous page
+        self.has_next = self.page < self.pages # True if there's a next page
+        self.prev_num = self.page - 1 if self.has_prev else None # Previous page number
+        self.next_num = self.page + 1 if self.has_next else None # Next page number
+        self.items = items # The actual items for the current page
+
+    # -- Page Iterator Method -------------------
+    # Generates page numbers for pagination links, including ellipses.
+    def iter_pages(self, left_edge=2, right_edge=2, left_current=2, right_current=3):
+        last_page = 0
+        for num in range(1, self.pages + 1):
+            # Determine if the page number should be displayed
+            if num <= left_edge or \
+               (num > self.page - left_current - 1 and num < self.page + right_current) or \
+               num > self.pages - right_edge:
+                if last_page + 1 != num: # If there's a gap, yield None for ellipsis
+                    yield None
+                yield num # Yield the page number
+                last_page = num

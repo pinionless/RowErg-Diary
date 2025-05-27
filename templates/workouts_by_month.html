@@ -1,0 +1,202 @@
+<!-- ======================================================== -->
+<!-- = workouts_by_month.html - Template for displaying workouts for a specific month -->
+<!-- ======================================================== -->
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Workouts for {{ selected_month_str | default('Selected Month') }}</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/mystyles.css') }}" />
+	</head>
+	<body class="is-preload">
+
+		<!-- == Main Content Area ============================================ -->
+		<div id="content" class="custom-fullwidth">
+			<div class="inner">
+				<!-- -- Page Header ------------------- -->
+				<h1 class="extra_h1">Workout Details for {{ selected_month_str | default('Selected Month') }}</h1>
+				<hr class="extra_title_line">
+
+				<!-- -- Flash Messages Section ------------------- -->
+				{% with messages = get_flashed_messages(with_categories=true) %}
+					{% if messages %}
+						<article class="box post post-excerpt">
+						{% for category, message in messages %}
+							<div class="box alert-{{ category }}" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
+								{{ message }}
+							</div>
+						{% endfor %}
+						</article>
+					{% endif %}
+				{% endwith %}
+
+				<!-- -- Overall Monthly Summary Section ------------------- -->
+				{% if month_summary_data %}
+					<article class="box post post-excerpt">
+						<header style="margin-bottom: 10px; padding-top: 0px;">
+							<h3 style="margin-bottom: 5px; color: #555;">Overall Summary for {{ selected_month_str }}</h3>
+						</header>
+						<table style="width: 100%; margin-bottom: 20px;">
+							<thead>
+								<tr>
+									<th style="text-align: left; padding: 8px; background-color: #f4f7fb;">Metric</th>
+									<th style="text-align: right; padding: 8px; background-color: #f4f7fb;">Total</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td style="padding: 8px; border-bottom: 1px solid #eee;">Total Distance:</td>
+									<td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">
+										{{ '{:,.0f}'.format(month_summary_data.meters) if month_summary_data.meters is not none else '0' }} m
+									</td>
+								</tr>
+								<tr>
+									<td style="padding: 8px; border-bottom: 1px solid #eee;">Total Duration:</td>
+									<td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">
+										{{ month_summary_data.seconds | format_total_seconds_human_readable if month_summary_data.seconds is not none else 'N/A' }}
+									</td>
+								</tr>
+								<tr>
+									<td style="padding: 8px; border-bottom: 1px solid #eee;">Average Split (/500m):</td>
+									<td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">
+										{{ month_summary_data.split | format_split_short if month_summary_data.split is not none and month_summary_data.split > 0 else 'N/A' }}
+									</td>
+								</tr>
+								{% if month_summary_data.isoreps and month_summary_data.isoreps > 0 %}
+								<tr>
+									<td style="padding: 8px;">Total IsoReps:</td>
+									<td style="padding: 8px; text-align: right;">
+										{{ '{:,.0f}'.format(month_summary_data.isoreps) }}
+									</td>
+								</tr>
+								{% endif %}
+							</tbody>
+						</table>
+					</article>
+					<hr class="extra_article"> 
+				{% endif %}
+
+				<!-- -- Weekly Summaries in Month Section ------------------- -->
+				{% if weekly_summaries_in_month %}
+					<article class="box post post-excerpt">
+						<header style="margin-bottom: 10px; padding-top: 0px;">
+							<h3 style="margin-bottom: 5px; color: #555;">Weekly Breakdown</h3>
+						</header>
+						<div class="table-wrapper">
+							<table>
+								<thead>
+									<tr>
+										<th>Week (YYYY-Www)</th>
+										<th>Distance</th>
+										<th>Duration</th>
+										<th>Avg. Split</th>
+										<th>Total IsoReps</th>
+										<th>Actions</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for weekly_summary in weekly_summaries_in_month %}
+									<tr>
+										<td>{{ weekly_summary.year }}-W{{ "{:02d}".format(weekly_summary.week_number) }} <br><small>({{ weekly_summary.week_start_date.strftime('%b %d') }} - {{ weekly_summary.week_end_date_display.strftime('%b %d') }})</small></td>
+										<td>{{ '{:,.0f}'.format(weekly_summary.meters) if weekly_summary.meters > 0 else '-' }} m</td>
+										<td>
+											{{ weekly_summary.seconds | format_total_seconds_human_readable if weekly_summary.seconds > 0 else '-' }}
+										</td>
+										<td>
+											{{ weekly_summary.split | format_split_short if weekly_summary.split > 0 else '-' }}
+										</td>
+										<td>
+											{{ '{:,.0f}'.format(weekly_summary.isoreps) if weekly_summary.isoreps > 0 else '-' }}
+										</td>
+										<td>
+											<a href="{{ url_for('workouts_by_week_detail', year_week_str=weekly_summary.year~'-W'~'{:02d}'.format(weekly_summary.week_number)) }}">
+												<i class="fas fa-eye"></i> Details
+											</a>
+										</td>
+									</tr>
+									{% endfor %}
+								</tbody>
+							</table>
+						</div>
+					</article>
+					<hr class="extra_article">
+				{% endif %}
+
+
+				<!-- -- Daily Summaries in Month Section ------------------- -->
+				{% if daily_summaries_in_month %}
+					<article class="box post post-excerpt">
+						<header style="margin-bottom: 10px; padding-top: 0px;">
+							<h3 style="margin-bottom: 5px; color: #555;">Daily Breakdown</h3>
+						</header>
+						<div class="table-wrapper">
+							<table>
+								<thead>
+									<tr>
+										<th>Date</th>
+										<th>Distance</th>
+										<th>Duration</th>
+										<th>Split</th>
+										<th>Total IsoReps</th>
+										<th>Actions</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for daily_summary in daily_summaries_in_month %}
+									<tr>
+										<td>{{ daily_summary.day_date.strftime('%A, %b %d') }}</td>
+										<td>{{ '{:,.0f}'.format(daily_summary.meters) if daily_summary.meters > 0 else '-' }} m</td>
+										<td>
+											{{ daily_summary.seconds | format_total_seconds_human_readable if daily_summary.seconds > 0 else '-' }}
+										</td>
+										<td>
+											{{ daily_summary.split | format_split_short if daily_summary.split > 0 else '-' }}
+										</td>
+										<td>
+											{{ '{:,.0f}'.format(daily_summary.isoreps) if daily_summary.isoreps > 0 else '-' }}
+										</td>
+										<td>
+											{% if daily_summary.has_workouts %}
+											<a href="{{ url_for('workouts_by_date', date_str=daily_summary.day_date.strftime('%Y-%m-%d')) }}">
+												<i class="fas fa-eye"></i> Details
+											</a>
+											{% else %}
+											<span style="color: #999;">No Workouts</span>
+											{% endif %}
+										</td>
+									</tr>
+									{% endfor %}
+								</tbody>
+							</table>
+						</div>
+					</article>
+				{% else %}							
+					<article class="box post post-excerpt">
+						<div class="box alert-info" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
+							No daily summary data found for this month.
+						</div>
+					</article>
+				{% endif %}
+
+				<!-- -- Back Link Section ------------------- -->
+				<div style="text-align: center; margin-top: 30px;">
+					<a href="{{ url_for('monthlysummary') }}" class="button">
+						← Back to Monthly Summary
+					</a>
+				</div>
+			</div>
+		</div>
+		<!-- == Sidebar Inclusion ============================================ -->
+		{% include '_sidebar.html' %}
+
+		<!-- == Scripts ============================================ -->
+		<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/browser.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/util.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+	</body>
+</html>

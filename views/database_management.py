@@ -1,19 +1,25 @@
-# views/database_management.py
+# ========================================================
+# = database_management.py - View for database setup and maintenance
+# ========================================================
 from flask import redirect, url_for, flash, current_app
-from models import db # WorkoutSummaryData is no longer in models
+from models import db
 from sqlalchemy import text
 
+# --------------------------------------------------------
+# - Database Components Creation Function
+#---------------------------------------------------------
+# Creates all database tables, materialized views, functions, and triggers.
+# Designed to be idempotent, meaning it can be run multiple times without adverse effects.
 def create_db_components():
-    """
-    Creates all database tables, materialized views, functions, and triggers.
-    Designed to be idempotent.
-    """
     try:
-        # 1. Create all tables defined in Flask-SQLAlchemy models
+        # == Create SQLAlchemy Model Tables ============================================
+        # Ensures all tables defined in models.py exist in the database.
         db.create_all()
         flash("Database tables created (or ensured to exist) successfully!", "success")
 
-        # --- SQL for Dropping Materialized Views (for idempotency) ---
+        # == SQL Definitions for Materialized Views and Triggers ============================================
+        # -- SQL for Dropping Materialized Views (for idempotency) -------------------
+        # This ensures that views are recreated cleanly if they already exist.
         drop_mvs_sql = """
         DROP MATERIALIZED VIEW IF EXISTS mv_sum_totals;
         DROP MATERIALIZED VIEW IF EXISTS mv_year_totals;
@@ -22,8 +28,8 @@ def create_db_components():
         DROP MATERIALIZED VIEW IF EXISTS mv_day_totals;
         """
 
-        # --- SQL for Creating Materialized Views ---
-        # duration_conversion_case is no longer needed as duration_seconds is stored directly.
+        # -- SQL for Creating Materialized Views -------------------
+        # These views pre-calculate aggregate statistics for performance.
         create_mvs_sql = f"""
         CREATE MATERIALIZED VIEW mv_sum_totals AS
         SELECT
@@ -34,12 +40,13 @@ def create_db_components():
                     SUM(w.duration_seconds) / (SUM(w.total_distance_meters) / 500.0)
                 ELSE
                     0
-            END AS average_split_seconds_per_500m
+            END AS average_split_seconds_per_500m,
+            SUM(w.total_isoreps) AS total_isoreps_sum # Aggregate total IsoReps
         FROM
             workouts w
         WHERE
             w.total_distance_meters IS NOT NULL AND w.duration_seconds IS NOT NULL 
-            -- Optionally filter out workouts where these values are NULL if they shouldn't contribute to totals
+            # Filter out workouts with null distance or duration to prevent calculation errors
         WITH DATA;
 
         CREATE MATERIALIZED VIEW mv_year_totals AS
@@ -52,7 +59,8 @@ def create_db_components():
                     SUM(w.duration_seconds) / (SUM(w.total_distance_meters) / 500.0)
                 ELSE
                     0
-            END AS average_split_seconds_per_500m
+            END AS average_split_seconds_per_500m,
+            SUM(w.total_isoreps) AS total_isoreps_sum # Aggregate total IsoReps per year
         FROM
             workouts w
         WHERE 
@@ -74,7 +82,8 @@ def create_db_components():
                     SUM(w.duration_seconds) / (SUM(w.total_distance_meters) / 500.0)
                 ELSE
                     0
-            END AS average_split_seconds_per_500m
+            END AS average_split_seconds_per_500m,
+            SUM(w.total_isoreps) AS total_isoreps_sum # Aggregate total IsoReps per month
         FROM
             workouts w
         WHERE 
@@ -96,7 +105,8 @@ def create_db_components():
                     SUM(w.duration_seconds) / (SUM(w.total_distance_meters) / 500.0)
                 ELSE
                     0
-            END AS average_split_seconds_per_500m
+            END AS average_split_seconds_per_500m,
+            SUM(w.total_isoreps) AS total_isoreps_sum # Aggregate total IsoReps per week
         FROM
             workouts w
         WHERE 
@@ -117,7 +127,8 @@ def create_db_components():
                     SUM(w.duration_seconds) / (SUM(w.total_distance_meters) / 500.0)
                 ELSE
                     0
-            END AS average_split_seconds_per_500m
+            END AS average_split_seconds_per_500m,
+            SUM(w.total_isoreps) AS total_isoreps_sum # Aggregate total IsoReps per day
         FROM
             workouts w
         WHERE 
@@ -129,7 +140,8 @@ def create_db_components():
         WITH DATA;
         """
 
-        # --- SQL for Creating/Replacing Trigger Function (function itself is unchanged) ---
+        # -- SQL for Creating/Replacing Trigger Function -------------------
+        # This PostgreSQL function refreshes all materialized views.
         create_function_sql = """
         CREATE OR REPLACE FUNCTION refresh_rowing_summary_mvs()
         RETURNS TRIGGER AS $$
@@ -139,87 +151,45 @@ def create_db_components():
             REFRESH MATERIALIZED VIEW mv_month_totals;
             REFRESH MATERIALIZED VIEW mv_week_totals;
             REFRESH MATERIALIZED VIEW mv_day_totals;
-            RETURN NULL;
+            RETURN NULL; -- Result is ignored since this is an AFTER trigger
         END;
         $$ LANGUAGE plpgsql;
         """
 
-        # --- SQL for Dropping and Creating Triggers ---
-        # Removed trigger for workout_summary_data
+        # -- SQL for Dropping and Creating Triggers -------------------
+        # This trigger calls the refresh function after any DML operation on the workouts table.
         drop_and_create_triggers_sql = """
         DROP TRIGGER IF EXISTS trg_refresh_rowing_summary_on_workout ON workouts;
-        -- DROP TRIGGER IF EXISTS trg_refresh_rowing_summary_on_summary_data ON workout_summary_data; -- This line is removed
 
         CREATE TRIGGER trg_refresh_rowing_summary_on_workout
         AFTER INSERT OR UPDATE OR DELETE ON workouts
-        FOR EACH STATEMENT
+        FOR EACH STATEMENT -- Important: refreshes once per statement, not per row
         EXECUTE FUNCTION refresh_rowing_summary_mvs();
-
-        -- CREATE TRIGGER trg_refresh_rowing_summary_on_summary_data ... -- This block is removed
         """
 
+        # == Execute SQL Statements ============================================
+        # Use a single transaction for all DDL operations.
         with db.engine.connect() as connection:
-            with connection.begin():
+            with connection.begin(): # Start a transaction
                 current_app.logger.info("Executing DDL for materialized views and triggers...")
-                connection.execute(text(drop_mvs_sql))
-                connection.execute(text(create_mvs_sql))
-                connection.execute(text(create_function_sql))
-                connection.execute(text(drop_and_create_triggers_sql))
+                connection.execute(text(drop_mvs_sql)) # Drop existing MVs
+                connection.execute(text(create_mvs_sql)) # Create new MVs
+                connection.execute(text(create_function_sql)) # Create/replace refresh function
+                connection.execute(text(drop_and_create_triggers_sql)) # Create trigger
                 current_app.logger.info("Materialized views and triggers setup complete.")
+            # Transaction is committed here if no exceptions
 
         flash("Materialized views and triggers set up successfully!", "success")
 
-    except Exception as e:
+    except Exception as e: # Catch any errors during the setup process
         current_app.logger.error(f"Error setting up database components: {e}", exc_info=True)
         flash(f"Error setting up database components: {str(e)}", "danger")
 
-    return redirect(url_for('home'))
+    return redirect(url_for('home')) # Redirect to home page after completion or error
 
-
-def delete_db_components():
-    """
-    Deletes all database components including triggers, materialized views, and tables.
-    """
-    try:
-        drop_triggers_sql = """
-        DROP TRIGGER IF EXISTS trg_refresh_rowing_summary_on_workout ON workouts;
-        -- DROP TRIGGER IF EXISTS trg_refresh_rowing_summary_on_summary_data ON workout_summary_data; -- Removed
-        """
-
-        drop_function_sql = """
-        DROP FUNCTION IF EXISTS refresh_rowing_summary_mvs();
-        """
-
-        drop_mvs_sql_reverse_order = """
-        DROP MATERIALIZED VIEW IF EXISTS mv_day_totals;
-        DROP MATERIALIZED VIEW IF EXISTS mv_week_totals;
-        DROP MATERIALIZED VIEW IF EXISTS mv_month_totals;
-        DROP MATERIALIZED VIEW IF EXISTS mv_year_totals;
-        DROP MATERIALIZED VIEW IF EXISTS mv_sum_totals;
-        """
-
-        with db.engine.connect() as connection:
-            with connection.begin():
-                current_app.logger.info("Executing DDL for dropping database components...")
-                connection.execute(text(drop_triggers_sql))
-                current_app.logger.info("Dropped triggers.")
-                connection.execute(text(drop_function_sql))
-                current_app.logger.info("Dropped trigger function.")
-                connection.execute(text(drop_mvs_sql_reverse_order))
-                current_app.logger.info("Dropped materialized views.")
-
-        db.drop_all() # This will drop WorkoutSummaryData table if it still exists due to old schema
-        current_app.logger.info("Dropped all Flask-SQLAlchemy tables.")
-
-        flash("All database components (tables, views, triggers) deleted successfully!", "success")
-
-    except Exception as e:
-        current_app.logger.error(f"Error deleting database components: {e}", exc_info=True)
-        flash(f"Error deleting database components: {str(e)}", "danger")
-
-    return redirect(url_for('home'))
-
-
+# --------------------------------------------------------
+# - Route Registration
+#---------------------------------------------------------
+# Registers the database setup route with the Flask application
 def register_routes(app):
     app.add_url_rule('/database/create', endpoint='create_db', view_func=create_db_components, methods=['GET'])
-    app.add_url_rule('/database/delete', endpoint='delete_db', view_func=delete_db_components, methods=['GET'])

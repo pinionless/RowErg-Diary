@@ -1,3 +1,6 @@
+# ========================================================
+# = .gitignore - Specifies intentionally untracked files for Git
+# ========================================================
 # Python
 __pycache__/
 *.pyc
@@ -15,6 +18,10 @@ pip-delete-this-directory/
 .vscode/
 .git
 
+# Coverage reports
+.coverage
+htmlcov/
+
 # Flask
 instance/ # For Flask instance folder, might contain sqlite DB or configs
 .flaskenv # For local environment variables
@@ -22,14 +29,10 @@ flask_app.log # Example log file
 
 # Docker
 *.env # If you use separate .env files for secrets
-volumes/ # If you mount volumes that contain user data or temporary files (e.g., your postgres_data)
-postgres_data/ # Specifically for your Docker volume
-# If you ever build images and don't want to track the build context directly
-# .dockerignore can also be used for Docker build context, but .gitignore handles Git
-# temp files created during build
 
 # Operating System Files
 .DS_Store
 Thumbs.db
 
 # Any other files that might be generated or contain sensitive info
+*.sqlite3

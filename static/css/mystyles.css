@@ -91,17 +91,40 @@
     flex-direction: column;
     gap: 6px;
 }
-#workoutInputForm div {
+/* New styles for horizontal field rows */
+.form-row-split {
     display: flex;
-    flex-direction: column;
-    margin-bottom: 4px;
+    gap: 10px; /* Space between the two fields on the same line */
+}/* Style for individual field groups within horizontal rows */
+.form-field-group {
+    flex: 1; /* Makes each field group take up equal space in the row */
+    /* Labels and inputs inside this div will naturally stack because they are display: block by default. */
 }
+#jsonInputForm label,
 #workoutInputForm label {
     font-weight: 600;
     margin-bottom: 2px;
     color: #3b4a6b;
     letter-spacing: 0.02em;
 }
+#jsonInputForm textarea,
+#workoutInputForm textarea {
+    padding: 6px 8px;
+    border: 1px solid #b3c6e7;
+    border-radius: 4px;
+    background: #f8fbff;
+    font-size: 1em;
+    color: #222;
+    transition: border 0.2s;
+    min-height: 2em;
+    resize: vertical;
+    width: 100%; /* Ensure it takes full width of its parent */
+    display: block; /* Important: ensure it behaves as a block element */
+}
+#jsonInputForm textarea {
+    min-height: 5em;
+}
+
 #workoutInputForm input[readonly],
 #workoutInputForm input[type="date"],
 #workoutInputForm input[type="text"],
@@ -114,6 +137,8 @@
     color: #222;
     transition: border 0.2s;
     height: 32px;
+    width: 100%; /* Ensure it takes full width of its parent */
+    display: block; /* Important: ensure it behaves as a block element */
 }
 #workoutInputForm input:focus {
     border-color: #6a8fd7;
@@ -129,6 +154,7 @@
     font-size: 1.05em;
     cursor: pointer;
     text-shadow: none;
+    width: 100%; /* Ensure button takes full width */
 }
 
 /* JSON Input Form */
@@ -142,7 +168,8 @@
     flex-direction: column;
     margin-bottom: 4px;
 }
-#jsonInputForm textarea:focus {
+#jsonInputForm textarea:focus,
+#workoutInputForm textarea:focus {
     border-color: #6a8fd7;
     outline: none;
 }
