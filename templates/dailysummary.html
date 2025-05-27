@@ -43,6 +43,7 @@
 									<th>Distance</th>
 									<th>Duration</th>
 									<th>Split</th>
+									<th>Total IsoReps</th>
 									<th>Actions</th>
 								</tr>
 							</thead>
@@ -56,6 +57,9 @@
 									</td>
 									<td>
 										{{ item_data.split | format_split_short }} <!-- Average split for the day -->
+									</td>
+									<td>
+										{{ '{:,.0f}'.format(item_data.isoreps) if item_data.isoreps is not none else '0' }}
 									</td>
 									<td>
 										<!-- Link to view detailed workouts for this specific date -->

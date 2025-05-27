@@ -60,11 +60,19 @@
 									</td>
 								</tr>
 								<tr>
-									<td style="padding: 8px;">Average Split (/500m):</td>
-									<td style="padding: 8px; text-align: right;">
+									<td style="padding: 8px; border-bottom: 1px solid #eee;">Average Split (/500m):</td>
+									<td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">
 										{{ daily_summary_data.split | format_split_short if daily_summary_data.split is not none and daily_summary_data.split > 0 else 'N/A' }} <!-- Formatted Average Split -->
 									</td>
 								</tr>
+								{% if daily_summary_data.isoreps and daily_summary_data.isoreps > 0 %}
+								<tr>
+									<td style="padding: 8px;">Total IsoReps:</td>
+									<td style="padding: 8px; text-align: right;">
+										{{ '{:,.0f}'.format(daily_summary_data.isoreps) }}
+									</td>
+								</tr>
+								{% endif %}
 							</tbody>
 						</table>
 					</article>

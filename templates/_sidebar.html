@@ -11,7 +11,15 @@
             <li class="{{ 'current' if request.path == url_for('home') else '' }}"><a href="{{ url_for('home') }}">Home</a></li> <!-- Home Page Link -->
             <li class="{{ 'current' if request.path == url_for('workouts') else '' }}"><a href="{{ url_for('workouts') }}">Workouts</a></li> <!-- Workouts List Link -->
             <li class="{{ 'current' if request.path == url_for('dailysummary') else '' }}"><a href="{{ url_for('dailysummary') }}">Daily Summary</a></li> <!-- Daily Summary Link -->
+            <li class="{{ 'current' if request.path == url_for('weeklysummary') else '' }}"><a href="{{ url_for('weeklysummary') }}">Weekly Summary</a></li>
+            <li class="{{ 'current' if request.path == url_for('monthlysummary') else '' }}"><a href="{{ url_for('monthlysummary') }}">Monthly Summary</a></li>
+            <li class="{{ 'current' if request.path == url_for('yearlysummary') else '' }}"><a href="{{ url_for('yearlysummary') }}">Yearly Summary</a></li>
+
             <li><a href="/database/create">Database create</a></li> <!-- Link to Database Creation (Consider making this a proper endpoint) -->
+
+
+
+
         </ul>
     </nav>
 

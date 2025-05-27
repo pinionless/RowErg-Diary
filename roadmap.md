@@ -34,4 +34,3 @@
 - Backup/Restore Database.
 - Concept2 Log API integration
     - autosync workouts
-- AVG Level setting to workouts

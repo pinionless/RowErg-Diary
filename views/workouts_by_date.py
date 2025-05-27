@@ -28,7 +28,8 @@ def show_workouts_for_date(date_str):
                 SELECT
                     total_meters_rowed,
                     total_seconds_rowed,
-                    average_split_seconds_per_500m AS split
+                    average_split_seconds_per_500m AS split,
+                    total_isoreps_sum
                 FROM
                     mv_day_totals
                 WHERE
@@ -41,14 +42,15 @@ def show_workouts_for_date(date_str):
             daily_summary_data = {
                 'meters': float(summary_result.total_meters_rowed) if summary_result.total_meters_rowed is not None else 0,
                 'seconds': float(summary_result.total_seconds_rowed) if summary_result.total_seconds_rowed is not None else 0,
-                'split': float(summary_result.split) if summary_result.split is not None else 0
+                'split': float(summary_result.split) if summary_result.split is not None else 0,
+                'isoreps': float(summary_result.total_isoreps_sum) if summary_result.total_isoreps_sum is not None else 0
             }
         else: # If no summary found, provide default values
-            daily_summary_data = {'meters': 0, 'seconds': 0, 'split': 0}
+            daily_summary_data = {'meters': 0, 'seconds': 0, 'split': 0, 'isoreps': 0}
             
     except Exception as e: # Handle potential database errors
         current_app.logger.error(f"Error fetching daily summary for date {selected_date}: {e}", exc_info=True)
-        daily_summary_data = {'meters': 0, 'seconds': 0, 'split': 0} # Default on error
+        daily_summary_data = {'meters': 0, 'seconds': 0, 'split': 0, 'isoreps': 0} # Default on error
         flash("Could not retrieve daily summary statistics.", "warning")
 
 

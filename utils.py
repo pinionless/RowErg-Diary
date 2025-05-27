@@ -126,3 +126,34 @@ def sidebar_stats_processor():
         }
     
     return dict(sidebar_stats=stats) # Make stats available to templates
+
+# --------------------------------------------------------
+# - Custom Pagination Class
+#---------------------------------------------------------
+# Provides pagination logic for views not using Flask-SQLAlchemy's paginate().
+class CustomPagination:
+    # -- Initialization Method -------------------
+    def __init__(self, page, per_page, total_count, items):
+        self.page = page # Current page number
+        self.per_page = per_page # Items per page
+        self.total = total_count # Total number of items
+        self.pages = (total_count + per_page - 1) // per_page if total_count > 0 else 1 # Total number of pages
+        self.has_prev = self.page > 1 # True if there's a previous page
+        self.has_next = self.page < self.pages # True if there's a next page
+        self.prev_num = self.page - 1 if self.has_prev else None # Previous page number
+        self.next_num = self.page + 1 if self.has_next else None # Next page number
+        self.items = items # The actual items for the current page
+
+    # -- Page Iterator Method -------------------
+    # Generates page numbers for pagination links, including ellipses.
+    def iter_pages(self, left_edge=2, right_edge=2, left_current=2, right_current=3):
+        last_page = 0
+        for num in range(1, self.pages + 1):
+            # Determine if the page number should be displayed
+            if num <= left_edge or \
+               (num > self.page - left_current - 1 and num < self.page + right_current) or \
+               num > self.pages - right_edge:
+                if last_page + 1 != num: # If there's a gap, yield None for ellipsis
+                    yield None
+                yield num # Yield the page number
+                last_page = num
