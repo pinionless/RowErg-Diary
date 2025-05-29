@@ -2,7 +2,7 @@
 # = database_management.py - View for database setup and maintenance
 # ========================================================
 from flask import redirect, url_for, flash, current_app
-from models import db
+from models import db, UserSetting # Added UserSetting import
 from sqlalchemy import text
 
 # --------------------------------------------------------
@@ -41,12 +41,11 @@ def create_db_components():
                 ELSE
                     0
             END AS average_split_seconds_per_500m,
-            SUM(w.total_isoreps) AS total_isoreps_sum # Aggregate total IsoReps
+            SUM(w.total_isoreps) AS total_isoreps_sum
         FROM
             workouts w
         WHERE
             w.total_distance_meters IS NOT NULL AND w.duration_seconds IS NOT NULL 
-            # Filter out workouts with null distance or duration to prevent calculation errors
         WITH DATA;
 
         CREATE MATERIALIZED VIEW mv_year_totals AS
@@ -60,7 +59,7 @@ def create_db_components():
                 ELSE
                     0
             END AS average_split_seconds_per_500m,
-            SUM(w.total_isoreps) AS total_isoreps_sum # Aggregate total IsoReps per year
+            SUM(w.total_isoreps) AS total_isoreps_sum
         FROM
             workouts w
         WHERE 
@@ -83,7 +82,7 @@ def create_db_components():
                 ELSE
                     0
             END AS average_split_seconds_per_500m,
-            SUM(w.total_isoreps) AS total_isoreps_sum # Aggregate total IsoReps per month
+            SUM(w.total_isoreps) AS total_isoreps_sum
         FROM
             workouts w
         WHERE 
@@ -106,7 +105,7 @@ def create_db_components():
                 ELSE
                     0
             END AS average_split_seconds_per_500m,
-            SUM(w.total_isoreps) AS total_isoreps_sum # Aggregate total IsoReps per week
+            SUM(w.total_isoreps) AS total_isoreps_sum
         FROM
             workouts w
         WHERE 
@@ -128,7 +127,7 @@ def create_db_components():
                 ELSE
                     0
             END AS average_split_seconds_per_500m,
-            SUM(w.total_isoreps) AS total_isoreps_sum # Aggregate total IsoReps per day
+            SUM(w.total_isoreps) AS total_isoreps_sum
         FROM
             workouts w
         WHERE 
@@ -177,9 +176,24 @@ def create_db_components():
                 connection.execute(text(create_function_sql)) # Create/replace refresh function
                 connection.execute(text(drop_and_create_triggers_sql)) # Create trigger
                 current_app.logger.info("Materialized views and triggers setup complete.")
-            # Transaction is committed here if no exceptions
 
-        flash("Materialized views and triggers set up successfully!", "success")
+                # == Initialize Default Settings ============================================
+                current_app.logger.info("Initializing default settings...")
+                # Check if db_schema_ver setting exists
+                db_schema_ver_setting = db.session.query(UserSetting).filter_by(key='db_schema_ver').first()
+                if not db_schema_ver_setting:
+                    # Define the initial DB schema version
+                    initial_db_schema_version = "0.13"
+                    new_setting = UserSetting(key='db_schema_ver', value=initial_db_schema_version)
+                    db.session.add(new_setting)
+                    db.session.commit() # Commit the new setting
+                    current_app.logger.info(f"Initialized 'db_schema_ver' to '{initial_db_schema_version}'.")
+                else:
+                    current_app.logger.info(f"'db_schema_ver' already exists with value '{db_schema_ver_setting.value}'. No changes made.")
+                
+            # Transaction for DDL is committed here if no exceptions
+
+        flash("Materialized views, triggers, and default settings set up successfully!", "success")
 
     except Exception as e: # Catch any errors during the setup process
         current_app.logger.error(f"Error setting up database components: {e}", exc_info=True)
