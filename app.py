@@ -8,14 +8,14 @@ from models import db
 # - View and Utility Imports
 #---------------------------------------------------------
 # Import application views
-from views import home, submit_json_workout, workouts, details, database_management, dailysummary, weeklysummary, monthlysummary, yearlysummary, workouts_by_date, submit_manual_workout, workouts_by_week, workouts_by_month, workouts_by_year # Added workouts_by_year
+from views import home, submit_json_workout, workouts, details, database_management, dailysummary, weeklysummary, monthlysummary, yearlysummary, workouts_by_date, submit_manual_workout, workouts_by_week, workouts_by_month, workouts_by_year
 # Import utility functions and context processors
 from utils import sidebar_stats_processor, format_total_seconds_human_readable, format_split_short, format_duration_ms, nl2br_filter
 
 # --------------------------------------------------------
 # - Application Version
 #---------------------------------------------------------
-__version__ = "0.14"
+__version__ = "0.14" # Assuming version remains or will be updated separately
 
 # --------------------------------------------------------
 # - Application Factory Function
