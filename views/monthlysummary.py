@@ -6,6 +6,7 @@ from sqlalchemy import text
 from models import db 
 from utils import CustomPagination 
 from datetime import datetime
+import math # Import math for isnan and isfinite
 
 # --------------------------------------------------------
 # - Monthly Summary View Function
@@ -31,7 +32,8 @@ def monthlysummary(page_num=1):
     offset = (page_num - 1) * per_page_value
 
     # == Query Data for Current Page ============================================
-    monthlysummary_raw_results = db.session.execute(text(f"""
+    # Data is fetched DESC for table display. A reversed copy will be used for the chart.
+    monthlysummary_raw_results_desc = db.session.execute(text(f"""
         SELECT
             year,
             month,
@@ -48,7 +50,7 @@ def monthlysummary(page_num=1):
 
     # == Prepare Data for Template ============================================
     monthlysummary_display_data = []
-    for row in monthlysummary_raw_results:
+    for row in monthlysummary_raw_results_desc:
         monthlysummary_display_data.append({
             'year': int(row.year),
             'month': int(row.month),
@@ -62,12 +64,46 @@ def monthlysummary(page_num=1):
     # == Custom Pagination Object ============================================
     monthlysummary_pagination = CustomPagination(page_num, per_page_value, count_result, monthlysummary_display_data)
 
+    # == Prepare Data for Chart ============================================
+    # Use the paginated data (reversed for chronological order) for the chart.
+    chart_data_source = list(reversed(monthlysummary_raw_results_desc))
+
+    chart_categories_months = []
+    chart_series_data_meters = []
+    chart_series_data_seconds = []
+    chart_series_data_pace = []
+    chart_series_data_reps = []
+
+    if chart_data_source: # Process the paginated (and reversed) data
+        for row in chart_data_source:
+            month_year_str = datetime(int(row.year), int(row.month), 1).strftime('%B %Y')
+            chart_categories_months.append(month_year_str)
+            
+            meters = float(row.total_meters_rowed) if row.total_meters_rowed is not None else None
+            seconds = float(row.total_seconds_rowed) if row.total_seconds_rowed is not None else None
+            split = float(row.split) if row.split is not None else None
+            isoreps = float(row.total_isoreps_sum) if row.total_isoreps_sum is not None else None
+
+            chart_series_data_meters.append(meters if isinstance(meters, (int, float)) and math.isfinite(meters) else None)
+            chart_series_data_seconds.append(seconds if isinstance(seconds, (int, float)) and math.isfinite(seconds) else None)
+            chart_series_data_pace.append(split if isinstance(split, (int, float)) and math.isfinite(split) and split > 0 else None)
+            chart_series_data_reps.append(isoreps if isinstance(isoreps, (int, float)) and math.isfinite(isoreps) else None)
+    
+    has_chart_data = bool(chart_data_source) # Chart data now depends on the paginated source
+
     # == Render Template ============================================
     return render_template(
         'monthlysummary.html',
         monthlysummary_pagination=monthlysummary_pagination,
         monthlysummary_display_data=monthlysummary_display_data,
-        page_title="Monthly Workout Summaries"
+        page_title="Monthly Workout Summaries",
+        # Chart data
+        chart_categories_months=chart_categories_months,
+        series_data_meters=chart_series_data_meters, # Re-using standard names for template consistency
+        series_data_seconds=chart_series_data_seconds,
+        series_data_pace=chart_series_data_pace,
+        series_data_reps=chart_series_data_reps,
+        has_chart_data=has_chart_data
     )
 
 # --------------------------------------------------------

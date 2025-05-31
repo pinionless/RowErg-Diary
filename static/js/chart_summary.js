@@ -32,16 +32,52 @@
             return val !== null ? val.toLocaleString() + " reps" : null;
         }
 
+        // Helper function to set data label and X-axis label visibility
+        function updateChartElementsVisibility(chartInstance, visibleItemCount) { // Renamed function
+            const currentDataLabelEnabled = chartInstance.w.config.dataLabels.enabled;
+            const currentXAxisLabelsShow = chartInstance.w.config.xaxis.labels.show; // Target labels.show
+
+            let newDataLabelEnabled = currentDataLabelEnabled;
+            let newXAxisLabelsShow = currentXAxisLabelsShow; // Target labels.show
+
+            // Data labels logic
+            if (visibleItemCount > 5) {
+                if (currentDataLabelEnabled) newDataLabelEnabled = false;
+            } else {
+                if (!currentDataLabelEnabled) newDataLabelEnabled = true;
+            }
+
+            // X-axis labels logic
+            if (visibleItemCount > 8) {
+                if (currentXAxisLabelsShow) newXAxisLabelsShow = false; // Hide if currently shown
+            } else {
+                if (!currentXAxisLabelsShow) newXAxisLabelsShow = true; // Show if currently hidden
+            }
+            
+            // Only update if there's a change to avoid unnecessary re-renders
+            if (newDataLabelEnabled !== currentDataLabelEnabled || 
+                newXAxisLabelsShow !== currentXAxisLabelsShow) { // Compare with labels.show
+                chartInstance.updateOptions({
+                    dataLabels: { enabled: newDataLabelEnabled },
+                    xaxis: {
+                        labels: { show: newXAxisLabelsShow } // Update labels.show
+                    }
+                }, false, false, false); // Pass false for redraw, animate, and updateSyncedCharts
+            }
+        }
+
         const commonXAxisOptions = {
             categories: [...categoriesData], // Use renamed parameter
             title: { text: xAxisTitle }, // Use new xAxisTitle parameter
-            type: 'category'
+            type: 'category',
+            axisTicks: { show: true }, // Default state for ticks (remains as is)
+            labels: { show: true } // Default state for labels
         };
 
         const baseChartSettings = {
             stroke: { show: true, width: 2, colors: ['transparent', 'transparent', 'transparent', 'transparent'] },
             dataLabels: { 
-                enabled: true, 
+                enabled: true, // Default state, will be managed by events
                 position: 'top',
                 offsetY: -20,
                 style: {
@@ -105,6 +141,18 @@
                         // This is a workaround if y-axes don't update automatically based on visible series
                         // This might require more specific logic if ApexCharts doesn't auto-adjust axes correctly
                         // For now, assume ApexCharts handles y-axis updates based on visible series with seriesName matching.
+                    },
+                    mounted: function(chartContext, config) {
+                        // For category axis, config.xaxis.categories.length gives total categories
+                        // If initial min/max were set on xaxis, this would be different.
+                        // Assuming full initial view here based on current chart_summary.js state.
+                        const initialVisibleCount = chartContext.w.config.xaxis.categories.length;
+                        updateChartElementsVisibility(chartContext, initialVisibleCount); // Use renamed function
+                    },
+                    zoomed: function(chartContext, { xaxis, yaxis }) {
+                        // For category axes, minX and maxX in globals are category indices
+                        const visibleCount = chartContext.w.globals.maxX - chartContext.w.globals.minX + 1;
+                        updateChartElementsVisibility(chartContext, visibleCount); // Use renamed function
                     }
                 }
             },
