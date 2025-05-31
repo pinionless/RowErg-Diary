@@ -30,9 +30,6 @@ EXPOSE 5000
 # Define environment variables for Flask
 ENV FLASK_APP=app.py
 ENV FLASK_RUN_HOST=0.0.0.0
-# Add the working directory to PYTHONPATH to help Python find 'app.py'.
-# This can resolve "Could not import 'app'" errors if the module isn't found by default.
-ENV PYTHONPATH=/usr/src/app
 # Ensure Python output is sent straight to terminal without being buffered
 ENV PYTHONUNBUFFERED=1
 
