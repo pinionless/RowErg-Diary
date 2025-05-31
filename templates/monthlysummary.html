@@ -58,14 +58,14 @@
 							<table class="type01">
 								<thead>
 									<tr>
-										<th>Month<span class="action-text"> (MM-YYYY)</span></th>
-										<th>Dist<span class="action-text">ance</span> (m)</th>
+										<th>Month<span class="showhide"> (MM-YYYY)</span></th>
+										<th>Dist<span class="showhide">ance </span>(m)</th>
 										<th>Duration</th>
 										<th>Pace</th>
-										<th>Reps</th>
+										<th class="showhide">Reps</th>
 										<th>
-											<span class="header-text">Actions</span>
-											<span class="header-icon"><i class="fas fa-eye"></i></span>
+											<span class="showhide">Actions</span>
+											<span class="hideshow"><i class="fas fa-eye"></i></span>
 										</th>
 									</tr>
 								</thead>
@@ -80,12 +80,12 @@
 										<td>
 											{{ summary.split | format_split_short if summary.split is not none and summary.split > 0 else 'N/A' }}
 										</td>
-										<td>
+										<td class="showhide">
 											{{ '{:,.0f}'.format(summary.isoreps) if summary.isoreps is not none else '0' }}
 										</td>
 										<td>
 											<a href="{{ url_for('workouts_by_month_detail', year_month_str=summary.year~'-'~'{:02d}'.format(summary.month)) }}">
-												<i class="fas fa-eye"></i><span class="action-text"> Details</span>
+												<i class="fas fa-eye hideshow"></i><span class="showhide"> Details</span>
 											</a>
 										</td>
 									</tr>

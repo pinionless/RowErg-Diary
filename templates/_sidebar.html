@@ -32,7 +32,7 @@
                     <tr>
                         <td class="label">Duration:</td> <!-- Total Duration Label -->
                         <td class="value">
-                            {{ sidebar_stats.overall_totals.seconds | format_total_seconds_human_readable }} <!-- Total Duration Value (Formatted) -->
+                            {{ sidebar_stats.overall_totals.seconds | format_seconds_to_hms }} <!-- Total Duration Value (Formatted) -->
                         </td>
                     </tr>
                     <tr>

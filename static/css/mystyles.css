@@ -195,30 +195,19 @@
     text-align: left;
 }
 
-/* Default visibility for header text/icon */
-.table-wrapper table.type01 th:last-child .header-icon {
-    display: none; /* Icon hidden by default */
+.table-wrapper table.type01 .hideshow {
+    display: none;
 }
-.table-wrapper table.type01 th:last-child .header-text {
-    display: inline; /* Text visible by default */
-}
-
 /* Media query for smaller screens */
 @media screen and (max-width: 525px) {
-    .table-wrapper table.type01 th:nth-child(5), /* Hide Reps header */
-    .table-wrapper table.type01 td:nth-child(5) { /* Hide Reps data */
+    .table-wrapper table.type01 .showhide {
         display: none;
     }
-    .table-wrapper table.type01 .action-text { /* Hide "Details" text in Actions column */
-        display: none;
-    }
-    .table-wrapper table.type01 th:last-child .header-text { /* Hide "Actions" text in header */
-        display: none;
-    }
-    .table-wrapper table.type01 th:last-child .header-icon { /* Show icon in header */
+    .table-wrapper table.type01 .hideshow {
         display: inline;
     }
 }
+
 /* Change cursor to pointer on legend item hover, scoped by div.type01 */
 div.type01 .apexcharts-legend-series {
     cursor: pointer !important;

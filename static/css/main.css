@@ -1182,7 +1182,7 @@ input, select, textarea {
 
 		}
 
-		@media screen and (min-width: 737px) and (max-width: 1000px) {
+		@media screen and (min-width: 737px) and (max-width: 1100px) {
 			.extra_article {
 				display: none;
 			}
@@ -1431,6 +1431,10 @@ input, select, textarea {
 		}
 
 		@media screen and (max-width: 736px) {
+			.pagination {
+				display: flex;
+				gap: 10px;
+			}
 			.extra_article {
 				display: none;
 			}
@@ -2795,7 +2799,7 @@ input, select, textarea {
 
 /* Narrower */
 
-	@media screen and (min-width: 737px) and (max-width: 1000px) {
+	@media screen and (min-width: 737px) and (max-width: 1100px) {
 
 		/* Basic */
 
@@ -2991,7 +2995,7 @@ input, select, textarea {
 
 /* Off-Canvas Sidebar */
 
-	@media screen and (max-width: 1000px) {
+	@media screen and (max-width: 1100px) {
 
 		/* Basic */
 

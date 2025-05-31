@@ -36,46 +36,51 @@
 				<!-- -- Workouts Table Section ------------------- -->
 				{% if workouts_display_data %} <!-- Check if there are workouts to display -->
 					<article class="box post post-excerpt">
-						<table>
-							<thead>
-								<tr>
-									<th>Date</th>
-									<th>Name</th>
-									<th>Distance</th>
-									<th>Time</th>
-									<th>Split</th>
-									<th>Total IsoReps</th>
-									<th>Actions</th>
-								</tr>
-							</thead>
-							<tbody>
-								{% for item_data in workouts_display_data %} <!-- Loop through each workout item -->
-								<tr>
-									<td>{{ item_data.workout_obj.workout_date.strftime('%Y-%m-%d') if item_data.workout_obj.workout_date else 'N/A' }}</td> <!-- Workout Date -->
-									<td>
-										<a href="{{ url_for('details', workout_id=item_data.workout_obj.workout_id) }}">
-											{{ item_data.workout_obj.workout_name | default('Unnamed Workout') }} <!-- Workout Name (link to details) -->
-										</a>
-									</td>
-									<td>{{ '{:,.0f}'.format(item_data.workout_obj.total_distance_meters) if item_data.workout_obj.total_distance_meters is not none else 'N/A' }} m</td> <!-- Formatted Distance -->
-									<td>{{ item_data.workout_obj.duration_seconds | format_total_seconds_human_readable if item_data.workout_obj.duration_seconds is not none else 'N/A' }}</td> <!-- Formatted Duration -->
-									<td>{{ item_data.workout_obj.average_split_seconds_500m | format_split_ms if item_data.workout_obj.average_split_seconds_500m is not none else 'N/A' }}</td> <!-- Formatted Split -->
-									<td>
-										{{ '{:,.0f}'.format(item_data.workout_obj.total_isoreps) if item_data.workout_obj.total_isoreps is not none and item_data.workout_obj.total_isoreps > 0 else '-' }}
-									</td>
-									<td>
-										<!-- Link to view detailed information for this workout -->
-										<a href="{{ url_for('details', workout_id=item_data.workout_obj.workout_id) }}">
-											<i class="fas fa-eye"></i> Details <!-- Link to workout details page -->
-										</a>
-									</td>
-								</tr>
-								{% endfor %}
-							</tbody>
-						</table>
+						<div class="table-wrapper">
+							<table class="type01">
+								<thead>
+									<tr>
+										<th>Date</th>
+										<th class="showhide">Name</th>
+										<th>Dist<span class="showhide">ance </span>(m)</th>
+										<th>Duration</th>
+										<th>Pace</th>
+										<th class="showhide">Reps</th>
+										<th class="hideshow">
+											<span class="showhide">Actions</span>
+											<span class="hideshow"><i class="fas fa-eye"></i></span>
+										</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for item_data in workouts_display_data %} <!-- Loop through each workout item -->
+									<tr>
+										<td>{{ item_data.workout_obj.workout_date.strftime('%d-%m-%Y') if item_data.workout_obj.workout_date else 'N/A' }}</td> <!-- Workout Date -->
+										<td class="showhide">
+											<a href="{{ url_for('details', workout_id=item_data.workout_obj.workout_id) }}">
+												{{ item_data.workout_obj.workout_name | default('Unnamed Workout') }} <!-- Workout Name (link to details) -->
+											</a>
+										</td>
+										<td>{{ '{:,.0f}'.format(item_data.workout_obj.total_distance_meters) if item_data.workout_obj.total_distance_meters is not none else 'N/A' }}</td> <!-- Formatted Distance -->
+										<td>{{ item_data.workout_obj.duration_seconds | format_total_seconds_human_readable if item_data.workout_obj.duration_seconds is not none else 'N/A' }}</td> <!-- Formatted Duration -->
+										<td>{{ item_data.workout_obj.average_split_seconds_500m | format_split_ms if item_data.workout_obj.average_split_seconds_500m is not none else 'N/A' }}</td> <!-- Formatted Split -->
+										<td class="showhide">
+											{{ '{:,.0f}'.format(item_data.workout_obj.total_isoreps) if item_data.workout_obj.total_isoreps is not none and item_data.workout_obj.total_isoreps > 0 else '-' }}
+										</td>
+										<td class="hideshow">
+											<!-- Link to view detailed information for this workout -->
+											<a href="{{ url_for('details', workout_id=item_data.workout_obj.workout_id) }}">
+												<i class="fas fa-eye hideshow"></i><span class="showhide"> Details</span>
+											</a>
+										</td>
+									</tr>
+									{% endfor %}
+								</tbody>
+							</table>
+						</div>
 					</article>
-					
-				{% else %} <!-- If no workouts are found -->							
+
+				{% else %} <!-- If no workouts are found -->
 					<article class="box post post-excerpt">
 						<div class="box alert-info" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
 							No workouts found. <!-- Message indicating no workouts -->
