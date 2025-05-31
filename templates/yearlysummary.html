@@ -33,28 +33,49 @@
 					{% endif %}
 				{% endwith %}
 					
+				<!-- -- Yearly Summary Chart Section (New Implementation) ------------------- -->
+				{% if has_chart_data %}
+				<article class="box post post-excerpt">
+					<!-- Wrapper for Chart to control max-width -->
+					<div style="max-width: 800px;" class="type01">
+						<!-- Combined Chart for Distance, Duration, Pace, and IsoReps -->
+						<div id="yearlyTrendsChart" style="width:100%; min-height:350px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0 15px 0;">
+							{% if not series_data_meters and not series_data_seconds and not series_data_pace and not series_data_reps %}
+							<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:350px;">
+								<span style="color:#6a8fd7; font-size:1.2em;">[ No chart data available ]</span>
+							</div>
+							{% endif %}
+						</div>
+					</div>
+				</article>
+				<hr class="extra_article"> <!-- Separator line -->
+				{% endif %}
+
 				<!-- -- Yearly Totals Table Section ------------------- -->
 				{% if yearlysummary_display_data %}
 					<article class="box post post-excerpt">
 						<div class="table-wrapper">
-							<table>
+							<table class="type01">
 								<thead>
 									<tr>
 										<th>Year</th>
-										<th>Distance</th>
+										<th>Dist<span class="action-text">ance</span> (m)</th>
 										<th>Duration</th>
-										<th>Avg. Split</th>
-										<th>Total IsoReps</th>
-										<th>Actions</th>
+										<th>Pace</th>
+										<th>Reps</th>
+										<th>
+											<span class="header-text">Actions</span>
+											<span class="header-icon"><i class="fas fa-eye"></i></span>
+										</th>
 									</tr>
 								</thead>
 								<tbody>
 									{% for summary in yearlysummary_display_data %}
 									<tr>
 										<td>{{ summary.year }}</td>
-										<td>{{ '{:,.0f}'.format(summary.meters) if summary.meters is not none else '0' }} m</td>
+										<td>{{ '{:,.0f}'.format(summary.meters) if summary.meters is not none else '0' }}</td>
 										<td>
-											{{ summary.seconds | format_total_seconds_human_readable if summary.seconds is not none else 'N/A' }}
+											{{ summary.seconds | format_seconds_to_hms if summary.seconds is not none else 'N/A' }} <!-- Changed filter -->
 										</td>
 										<td>
 											{{ summary.split | format_split_short if summary.split is not none and summary.split > 0 else 'N/A' }}
@@ -64,7 +85,7 @@
 										</td>
 										<td>
 											<a href="{{ url_for('workouts_by_year_detail', year_param=summary.year) }}">
-												<i class="fas fa-eye"></i> Details
+												<i class="fas fa-eye"></i><span class="action-text"> Details</span>
 											</a>
 										</td>
 									</tr>
@@ -80,36 +101,6 @@
 						</div>
 					</article>
 				{% endif %}
-
-				<!-- -- Pagination Section ------------------- -->
-				{% if yearlysummary_pagination and yearlysummary_pagination.pages > 1 %}
-					<div class="pagination">
-						{% if yearlysummary_pagination.has_prev %}
-							<a href="{{ url_for('yearlysummary_paginated', page_num=yearlysummary_pagination.prev_num) }}"
-							   class="button previous">Previous Page</a>
-						{% else %}
-							<span class="button previous disabled" aria-disabled="true">Previous Page</span>
-						{% endif %}
-						
-						<div class="pages">
-							{% for page in yearlysummary_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-								{% if page %}
-									<a href="{{ url_for('yearlysummary_paginated', page_num=page) }}"
-									   class="{% if page == yearlysummary_pagination.page %}active{% endif %}">{{ page }}</a>
-								{% else %}
-									<span>…</span>
-								{% endif %}
-							{% endfor %}
-						</div>
-						
-						{% if yearlysummary_pagination.has_next %}
-							<a href="{{ url_for('yearlysummary_paginated', page_num=yearlysummary_pagination.next_num) }}"
-							   class="button next">Next Page</a>
-						{% else %}
-							<span class="button next disabled" aria-disabled="true">Next Page</span>
-						{% endif %}
-					</div>
-				{% endif %}
 			</div>
 		</div>
 		<!-- == Sidebar Inclusion ============================================ -->
@@ -121,5 +112,33 @@
 		<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/util.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+		<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+		{% if has_chart_data %}
+		<script src="{{ url_for('static', filename='js/chart_yearlysummary.js') }}"></script>
+		<script>
+			document.addEventListener("DOMContentLoaded", function() {
+				// Ensure data are arrays, defaulting to empty if null/undefined
+				const yearsCategoriesData = Array.isArray({{ chart_categories_years | tojson | safe }}) ? {{ chart_categories_years | tojson | safe }} : [];
+				const metersSeriesDataValues = Array.isArray({{ series_data_meters | tojson | safe }}) ? {{ series_data_meters | tojson | safe }} : [];
+				const secondsSeriesDataValues = Array.isArray({{ series_data_seconds | tojson | safe }}) ? {{ series_data_seconds | tojson | safe }} : [];
+				const paceSeriesDataValues = Array.isArray({{ series_data_pace | tojson | safe }}) ? {{ series_data_pace | tojson | safe }} : [];
+				const repsSeriesDataValues = Array.isArray({{ series_data_reps | tojson | safe }}) ? {{ series_data_reps | tojson | safe }} : [];
+
+				// Check if the function from the external script is available
+				if (typeof initializeYearlyChart === "function") {
+					initializeYearlyChart(
+						yearsCategoriesData,
+						metersSeriesDataValues,
+						secondsSeriesDataValues,
+						paceSeriesDataValues,
+						repsSeriesDataValues
+					);
+				} else {
+					console.error("Error: initializeYearlyChart function not found. Check js/chart_yearlysummary.js.");
+				}
+			});
+		</script>
+		{% endif %}
 	</body>
 </html>

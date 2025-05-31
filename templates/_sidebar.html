@@ -15,10 +15,6 @@
             <li class="{{ 'current' if request.path == url_for('monthlysummary') else '' }}"><a href="{{ url_for('monthlysummary') }}">Monthly Summary</a></li>
             <li class="{{ 'current' if request.path == url_for('yearlysummary') else '' }}"><a href="{{ url_for('yearlysummary') }}">Yearly Summary</a></li>
 
-            <li><a href="/database/create">Database create</a></li> <!-- Link to Database Creation (Consider making this a proper endpoint) -->
-
-
-
 
         </ul>
     </nav>

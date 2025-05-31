@@ -37,24 +37,27 @@
 				{% if weeklysummary_display_data %}
 					<article class="box post post-excerpt">
 						<div class="table-wrapper">
-							<table>
+							<table class="type01">
 								<thead>
 									<tr>
-										<th>Week (YYYY-Www)</th>
-										<th>Distance</th>
+										<th>Week<span class="action-text"> (Www-YYYY)</span></th>
+										<th>Dist<span class="action-text">ance</span> (m)</th>
 										<th>Duration</th>
-										<th>Avg. Split</th>
-										<th>Total IsoReps</th>
-										<th>Actions</th>
+										<th>Pace</th>
+										<th>Reps</th>
+										<th>
+											<span class="header-text">Actions</span>
+											<span class="header-icon"><i class="fas fa-eye"></i></span>
+										</th>
 									</tr>
 								</thead>
 								<tbody>
 									{% for summary in weeklysummary_display_data %}
 									<tr>
 										<td>{{ summary.year }}-W{{ "{:02d}".format(summary.week_number) }}</td>
-										<td>{{ '{:,.0f}'.format(summary.meters) if summary.meters is not none else '0' }} m</td>
+										<td>{{ '{:,.0f}'.format(summary.meters) if summary.meters is not none else '0' }}</td>
 										<td>
-											{{ summary.seconds | format_total_seconds_human_readable if summary.seconds is not none else 'N/A' }}
+											{{ summary.seconds | format_seconds_to_hms if summary.seconds is not none else 'N/A' }} <!-- Changed filter -->
 										</td>
 										<td>
 											{{ summary.split | format_split_short if summary.split is not none and summary.split > 0 else 'N/A' }}
@@ -64,7 +67,7 @@
 										</td>
 										<td>
 											<a href="{{ url_for('workouts_by_week_detail', year_week_str=summary.year~'-W'~'{:02d}'.format(summary.week_number)) if summary.year and summary.week_number is not none else '#' }}">
-												<i class="fas fa-eye"></i> Details
+												<i class="fas fa-eye"></i><span class="action-text"> Details</span>
 											</a>
 										</td>
 									</tr>

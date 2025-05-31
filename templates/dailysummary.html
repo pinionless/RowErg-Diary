@@ -36,41 +36,45 @@
 				<!-- -- Daily Totals Table Section ------------------- -->
 				{% if dailysummary_display_data %} <!-- Check if there is data to display -->
 					<article class="box post post-excerpt">
-						<table>
-							<thead>
-								<tr>
-									<th>Date</th>
-									<th>Distance</th>
-									<th>Duration</th>
-									<th>Split</th>
-									<th>Total IsoReps</th>
-									<th>Actions</th>
-								</tr>
-							</thead>
-							<tbody>
-								{% for item_data in dailysummary_display_data %} <!-- Loop through each daily summary item -->
-								<tr>
-									<td>{{ item_data.day_date.strftime('%Y-%m-%d') if item_data.day_date else 'N/A' }}</td> <!-- Date of the summary -->
-									<td>{{ '{:,.0f}'.format(item_data.meters) }} m</td> <!-- Total distance for the day -->
-									<td>
-										{{ item_data.seconds | format_total_seconds_human_readable }} <!-- Total duration for the day -->
-									</td>
-									<td>
-										{{ item_data.split | format_split_short }} <!-- Average split for the day -->
-									</td>
-									<td>
-										{{ '{:,.0f}'.format(item_data.isoreps) if item_data.isoreps is not none else '0' }}
-									</td>
-									<td>
-										<!-- Link to view detailed workouts for this specific date -->
-										<a href="{{ url_for('workouts_by_date', date_str=item_data.day_date.strftime('%Y-%m-%d')) }}">
-											<i class="fas fa-eye"></i> Details
-										</a>
-									</td>
-								</tr>
-								{% endfor %}
-							</tbody>
-						</table>
+						<div class="table-wrapper">
+							<table class="type01">
+								<thead>
+									<tr>
+										<th>Date</th>
+										<th>Dist<span class="action-text">ance</span> (m)</th>
+										<th>Duration</th>
+										<th>Pace</th>
+										<th>Reps</th>
+										<th>
+											<span class="header-text">Actions</span>
+											<span class="header-icon"><i class="fas fa-eye"></i></span>
+										</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for item_data in dailysummary_display_data %} <!-- Loop through each daily summary item -->
+									<tr>
+										<td>{{ item_data.day_date.strftime('%d-%m-%Y') if item_data.day_date else 'N/A' }}</td> <!-- Date of the summary -->
+										<td>{{ '{:,.0f}'.format(item_data.meters) }}</td> <!-- Total distance for the day -->
+										<td>
+											{{ item_data.seconds | format_seconds_to_hms }} <!-- Total duration for the day -->
+										</td>
+										<td>
+											{{ item_data.split | format_split_short }} <!-- Average split for the day -->
+										</td>
+										<td>
+											{{ '{:,.0f}'.format(item_data.isoreps) if item_data.isoreps is not none else '0' }}
+										</td>
+										<td>
+											<a href="{{ url_for('workouts_by_date', date_str=item_data.day_date.strftime('%Y-%m-%d')) }}">
+												<i class="fas fa-eye"></i><span class="action-text"> Details</span>
+											</a>
+										</td>
+									</tr>
+									{% endfor %}
+								</tbody>
+							</table>
+						</div>
 					</article>
 				{% else %} <!-- If no daily totals are found -->							
 					<article class="box post post-excerpt">

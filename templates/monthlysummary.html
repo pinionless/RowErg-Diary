@@ -37,24 +37,27 @@
 				{% if monthlysummary_display_data %}
 					<article class="box post post-excerpt">
 						<div class="table-wrapper">
-							<table>
+							<table class="type01">
 								<thead>
 									<tr>
-										<th>Month (YYYY-MM)</th>
-										<th>Distance</th>
+										<th>Month<span class="action-text"> (MM-YYYY)</span></th>
+										<th>Dist<span class="action-text">ance</span> (m)</th>
 										<th>Duration</th>
-										<th>Avg. Split</th>
-										<th>Total IsoReps</th>
-										<th>Actions</th>
+										<th>Pace</th>
+										<th>Reps</th>
+										<th>
+											<span class="header-text">Actions</span>
+											<span class="header-icon"><i class="fas fa-eye"></i></span>
+										</th>
 									</tr>
 								</thead>
 								<tbody>
 									{% for summary in monthlysummary_display_data %}
 									<tr>
-										<td>{{ summary.year }}-{{ "{:02d}".format(summary.month) }} ({{ summary.month_name }})</td>
-										<td>{{ '{:,.0f}'.format(summary.meters) if summary.meters is not none else '0' }} m</td>
+										<td>{{ "{:02d}".format(summary.month) }} - {{ summary.year }}</td>
+										<td>{{ '{:,.0f}'.format(summary.meters) if summary.meters is not none else '0' }}</td>
 										<td>
-											{{ summary.seconds | format_total_seconds_human_readable if summary.seconds is not none else 'N/A' }}
+											{{ summary.seconds | format_seconds_to_hms if summary.seconds is not none else 'N/A' }} <!-- Changed filter -->
 										</td>
 										<td>
 											{{ summary.split | format_split_short if summary.split is not none and summary.split > 0 else 'N/A' }}
@@ -64,7 +67,7 @@
 										</td>
 										<td>
 											<a href="{{ url_for('workouts_by_month_detail', year_month_str=summary.year~'-'~'{:02d}'.format(summary.month)) }}">
-												<i class="fas fa-eye"></i> Details
+												<i class="fas fa-eye"></i><span class="action-text"> Details</span>
 											</a>
 										</td>
 									</tr>
