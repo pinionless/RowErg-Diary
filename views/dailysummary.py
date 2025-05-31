@@ -5,6 +5,8 @@ from flask import render_template, redirect, url_for, current_app
 from sqlalchemy import text # Import text for raw SQL execution
 from models import db # Assuming db is initialized and available
 from utils import CustomPagination # Import CustomPagination from utils
+from datetime import datetime # Added for chart category formatting
+import math # Added for chart data sanitization
 
 # --------------------------------------------------------
 # - Daily Summary View Function
@@ -33,7 +35,8 @@ def dailysummary(page_num=1):
 
     # == Query Data for Current Page ============================================
     # Fetch daily summary data for the current page using LIMIT and OFFSET.
-    dailysummary_raw_results = db.session.execute(text(f"""
+    # Data is fetched DESC for table display. A reversed copy will be used for the chart.
+    dailysummary_raw_results_desc = db.session.execute(text(f"""
         SELECT
             day_date,
             total_meters_rowed,
@@ -50,7 +53,7 @@ def dailysummary(page_num=1):
     # == Prepare Data for Template ============================================
     # Convert raw SQL results into a list of dictionaries for easier template access.
     dailysummary_display_data = []
-    for row in dailysummary_raw_results:
+    for row in dailysummary_raw_results_desc:
         dailysummary_display_data.append({
             'day_date': row.day_date,
             'meters': float(row.total_meters_rowed) if row.total_meters_rowed is not None else 0,
@@ -66,11 +69,47 @@ def dailysummary(page_num=1):
     # -- Instantiate Custom Pagination Object -------------------
     dailysummary_pagination = CustomPagination(page_num, per_page_value, count_result, dailysummary_display_data)
 
+    # == Prepare Data for Chart (from paginated results) ============================================
+    # Use the paginated data (reversed for chronological order) for the chart.
+    chart_data_source = list(reversed(dailysummary_raw_results_desc))
+
+    chart_categories_dates = []
+    chart_series_data_meters = []
+    chart_series_data_seconds = []
+    chart_series_data_pace = []
+    chart_series_data_reps = []
+
+    if chart_data_source: # Process the paginated (and reversed) data
+        for row in chart_data_source:
+            # Format date as "YYYY-MM-DD" or any other preferred format
+            date_str = row.day_date.strftime('%Y-%m-%d')
+            chart_categories_dates.append(date_str)
+            
+            meters = float(row.total_meters_rowed) if row.total_meters_rowed is not None else None
+            seconds = float(row.total_seconds_rowed) if row.total_seconds_rowed is not None else None
+            split = float(row.split) if row.split is not None else None
+            isoreps = float(row.total_isoreps_sum) if row.total_isoreps_sum is not None else None
+
+            chart_series_data_meters.append(meters if isinstance(meters, (int, float)) and math.isfinite(meters) else None)
+            chart_series_data_seconds.append(seconds if isinstance(seconds, (int, float)) and math.isfinite(seconds) else None)
+            chart_series_data_pace.append(split if isinstance(split, (int, float)) and math.isfinite(split) and split > 0 else None)
+            chart_series_data_reps.append(isoreps if isinstance(isoreps, (int, float)) and math.isfinite(isoreps) else None)
+    
+    has_chart_data = bool(chart_data_source) # Chart data now depends on the paginated source
+
     # == Render Template ============================================
     return render_template(
         'dailysummary.html',
         dailysummary_pagination=dailysummary_pagination, # Pass pagination object to template
-        dailysummary_display_data=dailysummary_display_data # Pass display data to template
+        dailysummary_display_data=dailysummary_display_data, # Pass display data to template
+        page_title="Daily Workout Summaries", 
+        # Chart data
+        chart_categories_dates=chart_categories_dates,
+        series_data_meters=chart_series_data_meters,
+        series_data_seconds=chart_series_data_seconds,
+        series_data_pace=chart_series_data_pace,
+        series_data_reps=chart_series_data_reps,
+        has_chart_data=has_chart_data
     )
 
 # --------------------------------------------------------

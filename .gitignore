@@ -17,6 +17,7 @@ pip-delete-this-directory/
 .idea/
 .vscode/
 .git
+json_backup/*
 
 # Coverage reports
 .coverage

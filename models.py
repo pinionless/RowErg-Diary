@@ -106,3 +106,16 @@ class WorkoutHRZone(db.Model):
     lower_bound_bpm = db.Column(db.Numeric)
     upper_bound_bpm = db.Column(db.Numeric)
     seconds_in_zone = db.Column(db.Numeric, nullable=False)
+
+# --------------------------------------------------------
+# - UserSettings Model
+#---------------------------------------------------------
+# Stores application and user-specific settings as key-value pairs
+class UserSetting(db.Model):
+    __tablename__ = 'user_settings'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True) # Primary key
+    key = db.Column(db.String(255), nullable=False, unique=True) # The name of the setting (e.g., 'db_schema_ver')
+    value = db.Column(db.Text, nullable=True) # The value of the setting
+
+    def __repr__(self):
+        return f"<UserSetting {self.key}='{self.value}'>"

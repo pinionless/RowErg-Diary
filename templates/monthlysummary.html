@@ -33,38 +33,59 @@
 					{% endif %}
 				{% endwith %}
 					
+				<!-- -- Monthly Summary Chart Section (New) ------------------- -->
+				{% if has_chart_data %}
+				<article class="box post post-excerpt">
+					<!-- Wrapper for Chart to control max-width -->
+					<div style="max-width: 800px;" class="type01">
+						<!-- Combined Chart for Distance, Duration, Pace, and Reps -->
+						<div id="summaryTrendsChart" style="width:100%; min-height:350px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0 15px 0;">
+							{% if not series_data_meters and not series_data_seconds and not series_data_pace and not series_data_reps %}
+							<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:350px;">
+								<span style="color:#6a8fd7; font-size:1.2em;">[ No chart data available ]</span>
+							</div>
+							{% endif %}
+						</div>
+					</div>
+				</article>
+				<hr class="extra_article"> <!-- Separator line -->
+				{% endif %}
+
 				<!-- -- Monthly Totals Table Section ------------------- -->
 				{% if monthlysummary_display_data %}
 					<article class="box post post-excerpt">
 						<div class="table-wrapper">
-							<table>
+							<table class="type01">
 								<thead>
 									<tr>
-										<th>Month (YYYY-MM)</th>
-										<th>Distance</th>
+										<th>Month<span class="showhide"> (MM-YYYY)</span></th>
+										<th>Dist<span class="showhide">ance </span>(m)</th>
 										<th>Duration</th>
-										<th>Avg. Split</th>
-										<th>Total IsoReps</th>
-										<th>Actions</th>
+										<th>Pace</th>
+										<th class="showhide">Reps</th>
+										<th>
+											<span class="showhide">Actions</span>
+											<span class="hideshow"><i class="fas fa-eye"></i></span>
+										</th>
 									</tr>
 								</thead>
 								<tbody>
 									{% for summary in monthlysummary_display_data %}
 									<tr>
-										<td>{{ summary.year }}-{{ "{:02d}".format(summary.month) }} ({{ summary.month_name }})</td>
-										<td>{{ '{:,.0f}'.format(summary.meters) if summary.meters is not none else '0' }} m</td>
+										<td>{{ "{:02d}".format(summary.month) }} - {{ summary.year }}</td>
+										<td>{{ '{:,.0f}'.format(summary.meters) if summary.meters is not none else '0' }}</td>
 										<td>
-											{{ summary.seconds | format_total_seconds_human_readable if summary.seconds is not none else 'N/A' }}
+											{{ summary.seconds | format_seconds_to_hms if summary.seconds is not none else 'N/A' }} <!-- Changed filter -->
 										</td>
 										<td>
 											{{ summary.split | format_split_short if summary.split is not none and summary.split > 0 else 'N/A' }}
 										</td>
-										<td>
+										<td class="showhide">
 											{{ '{:,.0f}'.format(summary.isoreps) if summary.isoreps is not none else '0' }}
 										</td>
 										<td>
 											<a href="{{ url_for('workouts_by_month_detail', year_month_str=summary.year~'-'~'{:02d}'.format(summary.month)) }}">
-												<i class="fas fa-eye"></i> Details
+												<i class="fas fa-eye hideshow"></i><span class="showhide"> Details</span>
 											</a>
 										</td>
 									</tr>
@@ -121,5 +142,34 @@
 		<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/util.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+		<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+		{% if has_chart_data %}
+		<script src="{{ url_for('static', filename='js/chart_summary.js') }}"></script>
+		<script>
+			document.addEventListener("DOMContentLoaded", function() {
+				// Ensure data are arrays, defaulting to empty if null/undefined
+				const categoriesDataValues = Array.isArray({{ chart_categories_months | tojson | safe }}) ? {{ chart_categories_months | tojson | safe }} : [];
+				const metersSeriesDataValues = Array.isArray({{ series_data_meters | tojson | safe }}) ? {{ series_data_meters | tojson | safe }} : [];
+				const secondsSeriesDataValues = Array.isArray({{ series_data_seconds | tojson | safe }}) ? {{ series_data_seconds | tojson | safe }} : [];
+				const paceSeriesDataValues = Array.isArray({{ series_data_pace | tojson | safe }}) ? {{ series_data_pace | tojson | safe }} : [];
+				const repsSeriesDataValues = Array.isArray({{ series_data_reps | tojson | safe }}) ? {{ series_data_reps | tojson | safe }} : [];
+
+				// Check if the function from the external script is available
+				if (typeof initializeSummaryChart === "function") {
+					initializeSummaryChart(
+						categoriesDataValues,
+						metersSeriesDataValues,
+						secondsSeriesDataValues,
+						paceSeriesDataValues,
+						repsSeriesDataValues,
+						"Month" // xAxisTitle for monthly chart
+					);
+				} else {
+					console.error("Error: initializeSummaryChart function not found. Check js/chart_summary.js.");
+				}
+			});
+		</script>
+		{% endif %}
 	</body>
 </html>

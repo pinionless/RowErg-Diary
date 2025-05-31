@@ -8,14 +8,14 @@ from models import db
 # - View and Utility Imports
 #---------------------------------------------------------
 # Import application views
-from views import home, submit_json_workout, workouts, details, database_management, dailysummary, weeklysummary, monthlysummary, yearlysummary, workouts_by_date, submit_manual_workout, workouts_by_week, workouts_by_month, workouts_by_year # Added workouts_by_year
+from views import home, submit_json_workout, workouts, details, database_management, dailysummary, weeklysummary, monthlysummary, yearlysummary, workouts_by_date, submit_manual_workout, workouts_by_week, workouts_by_month, workouts_by_year
 # Import utility functions and context processors
-from utils import sidebar_stats_processor, format_total_seconds_human_readable, format_split_short, format_duration_ms, nl2br_filter
+from utils import sidebar_stats_processor, format_total_seconds_human_readable, format_split_short, format_duration_ms, nl2br_filter, format_seconds_to_hms # Changed format_duration_hms_tenths
 
 # --------------------------------------------------------
 # - Application Version
 #---------------------------------------------------------
-__version__ = "0.14"
+__version__ = "0.14" # Assuming version remains or will be updated separately
 
 # --------------------------------------------------------
 # - Application Factory Function
@@ -57,6 +57,7 @@ def create_app(config_object=None):
     app.jinja_env.filters['format_split_short'] = format_split_short
     app.jinja_env.filters['format_split_ms'] = format_duration_ms 
     app.jinja_env.filters['nl2br'] = nl2br_filter
+    app.jinja_env.filters['format_seconds_to_hms'] = format_seconds_to_hms # Changed from format_hms_tenths
     
     # == Route Registration ============================================
     # Register blueprints and routes from view modules

@@ -15,7 +15,7 @@
 			desktop:   [ '737px',   null     ],
 			wide:      [ '1201px',  null     ],
 			narrow:    [ '737px',   '1200px' ],
-			narrower:  [ '737px',   '1000px' ],
+			narrower:  [ '737px',   '1100px' ],
 			mobile:    [ null,      '736px'  ]
 		});
 

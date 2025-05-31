@@ -98,6 +98,24 @@ def format_split_short(total_split_seconds_raw):
 
     return f"{minutes}:{seconds_part:02d}.{milliseconds_decimal_part}"
 
+# Formats total seconds into a descriptive string e.g., "Xh Ym Zs".
+# All components (hours, minutes, seconds) are always displayed.
+def format_seconds_to_hms(total_seconds_input): # Renamed from format_duration_hms_tenths
+    if total_seconds_input is None or not isinstance(total_seconds_input, (int, float, Decimal)) or total_seconds_input < 0:
+        return "N/A"
+
+    total_seconds_val = float(total_seconds_input)
+
+    hrs = int(total_seconds_val // 3600)
+    remaining_secs_after_hrs = total_seconds_val % 3600
+    mins = int(remaining_secs_after_hrs // 60)
+    secs = int(remaining_secs_after_hrs % 60) # Integer seconds
+
+    if hrs > 0:
+        return f"{hrs}h {mins:02d}m {secs:02d}s"
+    else:
+        return f"{mins:02d}m {secs:02d}s"
+
 # --------------------------------------------------------
 # - Custom Jinja2 Filters
 #---------------------------------------------------------

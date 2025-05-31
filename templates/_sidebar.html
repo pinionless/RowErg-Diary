@@ -15,10 +15,6 @@
             <li class="{{ 'current' if request.path == url_for('monthlysummary') else '' }}"><a href="{{ url_for('monthlysummary') }}">Monthly Summary</a></li>
             <li class="{{ 'current' if request.path == url_for('yearlysummary') else '' }}"><a href="{{ url_for('yearlysummary') }}">Yearly Summary</a></li>
 
-            <li><a href="/database/create">Database create</a></li> <!-- Link to Database Creation (Consider making this a proper endpoint) -->
-
-
-
 
         </ul>
     </nav>
@@ -36,7 +32,7 @@
                     <tr>
                         <td class="label">Duration:</td> <!-- Total Duration Label -->
                         <td class="value">
-                            {{ sidebar_stats.overall_totals.seconds | format_total_seconds_human_readable }} <!-- Total Duration Value (Formatted) -->
+                            {{ sidebar_stats.overall_totals.seconds | format_seconds_to_hms }} <!-- Total Duration Value (Formatted) -->
                         </td>
                     </tr>
                     <tr>
