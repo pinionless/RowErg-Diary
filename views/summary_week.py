@@ -3,7 +3,7 @@
 # ========================================================
 from flask import render_template, redirect, url_for, current_app
 from sqlalchemy import text
-from models import db # Assuming db is initialized and available
+from models import db, UserSetting # Assuming db is initialized and available, Added UserSetting
 from utils import CustomPagination # Import CustomPagination
 from datetime import datetime # Added for chart category formatting
 import math # Added for chart data sanitization
@@ -14,7 +14,19 @@ import math # Added for chart data sanitization
 # Displays paginated weekly workout summaries from the mv_week_totals materialized view.
 def summary_week(page_num=1): # Renamed function
     # == Pagination Configuration ============================================
-    per_page_value = current_app.config.get('PER_PAGE', 10) # Get items per page from app config
+    # Fetch 'per_page_summary_week' from UserSetting table
+    per_page_setting = UserSetting.query.filter_by(key='per_page_summary_week').first()
+    if per_page_setting and per_page_setting.value and per_page_setting.value.isdigit():
+        per_page_value = int(per_page_setting.value)
+        if per_page_value <= 0: # Ensure positive value
+            per_page_value = 12 # Fallback to a sensible default (e.g., from DEFAULT_SETTINGS in settings.py)
+            current_app.logger.warning("per_page_summary_week setting is not positive, using default 12.")
+    else:
+        per_page_value = 12 # Default if setting not found or invalid
+        if per_page_setting: # Log if found but invalid
+            current_app.logger.warning(f"per_page_summary_week setting '{per_page_setting.value}' is invalid, using default 12.")
+        else: # Log if not found
+            current_app.logger.info("per_page_summary_week setting not found, using default 12.")
 
     # == Query Total Count for Pagination ============================================
     count_result = db.session.execute(text("SELECT COUNT(*) FROM mv_week_totals")).scalar()

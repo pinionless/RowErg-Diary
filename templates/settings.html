@@ -32,22 +32,58 @@
 					</header>
 					<div class="content">
 						<form method="POST" action="{{ url_for('settings') }}">
+							
 							<div class="form-group" style="margin-bottom: 1em;">
-								<label for="items_per_page" style="display: block; margin-bottom: .5em; font-weight: bold;">Items per Page:</label>
-								<input type="number" id="items_per_page" name="items_per_page" class="form-control" 
-									   value="{{ settings_data.items_per_page }}" min="1" required
+								<label for="per_page_workouts" style="display: block; margin-bottom: .5em; font-weight: bold;">Workouts Per Page:</label>
+								<input type="number" id="per_page_workouts" name="per_page_workouts" class="form-control" 
+									   value="{{ settings_data.per_page_workouts }}" min="1" required
 									   style="width: 100%; padding: .5em; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
-								<small class="form-text text-muted" style="display: block; margin-top: .5em; color: #6c757d;">Number of items to display on paginated lists.</small>
+								<small class="form-text text-muted" style="display: block; margin-top: .5em; color: #6c757d;">Number of items on the main workouts list.</small>
 							</div>
-				
+
 							<div class="form-group" style="margin-bottom: 1em;">
-								<label for="preferred_theme" style="display: block; margin-bottom: .5em; font-weight: bold;">Preferred Theme:</label>
-								<select id="preferred_theme" name="preferred_theme" class="form-control"
-										style="width: 100%; padding: .5em; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; height: auto;">
-									<option value="light" {% if settings_data.preferred_theme == 'light' %}selected{% endif %}>Light</option>
-									<option value="dark" {% if settings_data.preferred_theme == 'dark' %}selected{% endif %}>Dark</option>
-								</select>
-								<small class="form-text text-muted" style="display: block; margin-top: .5em; color: #6c757d;">Choose your preferred application theme.</small>
+								<label for="per_page_summary_day" style="display: block; margin-bottom: .5em; font-weight: bold;">Daily Summaries Per Page:</label>
+								<input type="number" id="per_page_summary_day" name="per_page_summary_day" class="form-control" 
+									   value="{{ settings_data.per_page_summary_day }}" min="1" required
+									   style="width: 100%; padding: .5em; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+								<small class="form-text text-muted" style="display: block; margin-top: .5em; color: #6c757d;">Number of items on the daily summary page.</small>
+							</div>
+
+							<div class="form-group" style="margin-bottom: 1em;">
+								<label for="per_page_summary_week" style="display: block; margin-bottom: .5em; font-weight: bold;">Weekly Summaries Per Page:</label>
+								<input type="number" id="per_page_summary_week" name="per_page_summary_week" class="form-control" 
+									   value="{{ settings_data.per_page_summary_week }}" min="1" required
+									   style="width: 100%; padding: .5em; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+								<small class="form-text text-muted" style="display: block; margin-top: .5em; color: #6c757d;">Number of items on the weekly summary page.</small>
+							</div>
+
+							<div class="form-group" style="margin-bottom: 1em;">
+								<label for="per_page_summary_month" style="display: block; margin-bottom: .5em; font-weight: bold;">Monthly Summaries Per Page:</label>
+								<input type="number" id="per_page_summary_month" name="per_page_summary_month" class="form-control" 
+									   value="{{ settings_data.per_page_summary_month }}" min="1" required
+									   style="width: 100%; padding: .5em; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+								<small class="form-text text-muted" style="display: block; margin-top: .5em; color: #6c757d;">Number of items on the monthly summary page.</small>
+							</div>
+
+							<hr style="margin-top: 1.5em; margin-bottom: 1.5em;">
+							
+							<h3 style="margin-top: 1.5em; margin-bottom: 1em;">Equipment Totals Settings</h3>
+							<div class="form-group" style="margin-bottom: 1em;">
+								<label style="display: block; margin-bottom: .5em; font-weight: bold;">Include in Totals/Summaries:</label>
+								{% if equipment_types %}
+									{% for equip_type in equipment_types %}
+									<div style="margin-bottom: 0.5em;">
+										<input type="checkbox" id="equip_include_{{ equip_type.equipment_type_id }}" 
+											   name="equip_include_{{ equip_type.equipment_type_id }}"
+											   {% if equip_type.settings_include_in_totals %}checked{% endif %}
+											   style="margin-right: 0.5em; vertical-align: middle;">
+										<label for="equip_include_{{ equip_type.equipment_type_id }}" style="vertical-align: middle; font-weight: normal;">{{ equip_type.name }}</label>
+									</div>
+									{% endfor %}
+								{% else %}
+									<p>No equipment types found.</p>
+								{% endif %}
+								<small class="form-text text-muted" style="display: block; margin-top: .5em; color: #6c757d;">Check to include workouts from this equipment type in overall totals and summaries.</small>
 							</div>
 							
 							<hr style="margin-top: 1.5em; margin-bottom: 1.5em;">

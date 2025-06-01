@@ -3,7 +3,7 @@
 # ========================================================
 from flask import render_template, redirect, url_for, current_app
 from sqlalchemy import text
-from models import db 
+from models import db, UserSetting # Added UserSetting
 from utils import CustomPagination 
 from datetime import datetime
 import math # Import math for isnan and isfinite
@@ -14,7 +14,19 @@ import math # Import math for isnan and isfinite
 # Displays paginated monthly workout summaries from the mv_month_totals materialized view.
 def summary_month(page_num=1): # Renamed function
     # == Pagination Configuration ============================================
-    per_page_value = current_app.config.get('PER_PAGE', 10) 
+    # Fetch 'per_page_summary_month' from UserSetting table
+    per_page_setting = UserSetting.query.filter_by(key='per_page_summary_month').first()
+    if per_page_setting and per_page_setting.value and per_page_setting.value.isdigit():
+        per_page_value = int(per_page_setting.value)
+        if per_page_value <= 0: # Ensure positive value
+            per_page_value = 12 # Fallback to a sensible default (e.g., from DEFAULT_SETTINGS in settings.py)
+            current_app.logger.warning("per_page_summary_month setting is not positive, using default 12.")
+    else:
+        per_page_value = 12 # Default if setting not found or invalid
+        if per_page_setting: # Log if found but invalid
+            current_app.logger.warning(f"per_page_summary_month setting '{per_page_setting.value}' is invalid, using default 12.")
+        else: # Log if not found
+            current_app.logger.info("per_page_summary_month setting not found, using default 12.")
 
     # == Query Total Count for Pagination ============================================
     count_result = db.session.execute(text("SELECT COUNT(*) FROM mv_month_totals")).scalar()

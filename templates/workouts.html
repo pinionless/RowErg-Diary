@@ -105,38 +105,30 @@
 					<p></p>
 				{% endif %}
 
-				<!-- -- Pagination Section ------------------- -->
-				{% if workouts_pagination.pages > 1 %} <!-- Check if pagination is needed -->
-					<div class="pagination">
-						<!-- Previous Page Button -->
-						{% if workouts_pagination.has_prev %}
-							<a href="{{ url_for('workouts_paginated', page_num=workouts_pagination.prev_num) }}"
-							   class="button previous">Previous Page</a>
-						{% else %}
-							<span class="button previous disabled" aria-disabled="true">Previous Page</span>
-						{% endif %}
-						
-						<!-- Page Numbers -->
-						<div class="pages">
-							{% for page in workouts_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-								{% if page %}
-									<a href="{{ url_for('workouts_paginated', page_num=page) }}"
-									   class="{% if page == workouts_pagination.page %}active{% endif %}">{{ page }}</a>
-								{% else %}
-									<span>…</span> <!-- Ellipsis for skipped pages -->
-								{% endif %}
-							{% endfor %}
+					<!-- -- Pagination Section ------------------- -->
+					{% if workouts_pagination and workouts_pagination.pages > 1 %} <!-- Renamed variable -->
+						<div class="pagination">
+							{% if workouts_pagination.has_prev %} <!-- Renamed variable -->
+								<a href="{{ url_for('workouts_paginated', page_num=workouts_pagination.prev_num) }}" class="button previous">Previous Page</a>
+							{% else %}
+								<span class="button previous disabled" aria-disabled="true">Previous Page</span>
+							{% endif %}
+							<div class="pages">
+								{% for page in workouts_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %} <!-- Renamed variable -->
+									{% if page %}
+										<a href="{{ url_for('workouts_paginated', page_num=page) }}" class="{% if page == workouts_pagination.page %}active{% endif %}">{{ page }}</a> 
+									{% else %}
+										<span>…</span>
+									{% endif %}
+								{% endfor %}
+							</div>
+							{% if workouts_pagination.has_next %} <!-- Renamed variable -->
+								<a href="{{ url_for('workouts_paginated', page_num=workouts_pagination.next_num) }}" class="button next">Next Page</a>
+							{% else %}
+								<span class="button next disabled" aria-disabled="true">Next Page</span>
+							{% endif %}
 						</div>
-						
-						<!-- Next Page Button -->
-						{% if workouts_pagination.has_next %}
-							<a href="{{ url_for('workouts_paginated', page_num=workouts_pagination.next_num) }}"
-							   class="button next">Next Page</a>
-						{% else %}
-							<span class="button next disabled" aria-disabled="true">Next Page</span>
-						{% endif %}
-					</div>
-				{% endif %}
+					{% endif %}
 			</div>
 		</div>
 		<!-- == Sidebar Inclusion ============================================ -->

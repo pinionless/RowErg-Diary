@@ -2,7 +2,7 @@
 # = workouts.py - View for displaying paginated workouts
 # ========================================================
 from flask import render_template, redirect, url_for, current_app
-from models import Workout
+from models import Workout, UserSetting # Added UserSetting
 import datetime # Added for chart category formatting
 import math # Added for chart data sanitization
 
@@ -12,7 +12,20 @@ import math # Added for chart data sanitization
 # Displays a paginated list of workouts
 def workouts(page_num=1):
     # == Pagination Configuration ============================================
-    per_page_value = current_app.config.get('PER_PAGE', 10) # Get items per page from app config
+    # Fetch 'per_page_workouts' from UserSetting table
+    per_page_setting = UserSetting.query.filter_by(key='per_page_workouts').first()
+    if per_page_setting and per_page_setting.value and per_page_setting.value.isdigit():
+        per_page_value = int(per_page_setting.value)
+        if per_page_value <= 0: # Ensure positive value
+            per_page_value = 20 # Fallback to a sensible default
+            current_app.logger.warning("per_page_workouts setting is not positive, using default 20.")
+    else:
+        per_page_value = 20 # Default if setting not found or invalid
+        if per_page_setting: # Log if found but invalid
+            current_app.logger.warning(f"per_page_workouts setting '{per_page_setting.value}' is invalid, using default 20.")
+        else: # Log if not found
+            current_app.logger.info("per_page_workouts setting not found, using default 20.")
+
 
     # == Query Workouts ============================================
     # Fetch workouts, ordered by date and ID, paginated

@@ -2,15 +2,19 @@
 # = settings.py - View for managing application settings
 # ========================================================
 from flask import render_template, request, flash, redirect, url_for, current_app
-from models import db, UserSetting
+from models import db, UserSetting, EquipmentType # Added EquipmentType
 
 # --------------------------------------------------------
 # - Default Settings Values
 #---------------------------------------------------------
 # Define default values for settings if they are not found in the database.
 DEFAULT_SETTINGS = {
-    'items_per_page': 10,
-    'preferred_theme': 'light'
+    'per_page_workouts': '20',
+    'per_page_summary_day': '14',
+    'per_page_summary_week': '12',
+    'per_page_summary_month': '12'
+    # 'items_per_page' and 'preferred_theme' are removed as per new requirements
+    # or managed elsewhere/differently.
 }
 
 # --------------------------------------------------------
@@ -24,36 +28,41 @@ def show_settings():
     # == Handle POST Request (Save Settings) ============================================
     if request.method == 'POST':
         try:
-            # -- Items per Page Setting -------------------
-            items_per_page_val_str = request.form.get('items_per_page')
-            if not items_per_page_val_str or not items_per_page_val_str.isdigit():
-                flash('Items per page must be a valid positive integer.', 'danger')
-                return redirect(url_for('settings'))
-            
-            items_per_page_val = int(items_per_page_val_str)
-            if items_per_page_val <= 0:
-                flash('Items per page must be a positive integer.', 'danger')
-                return redirect(url_for('settings'))
+            # -- Handle Pagination Settings -------------------
+            settings_to_update = {
+                'per_page_workouts': request.form.get('per_page_workouts'),
+                'per_page_summary_day': request.form.get('per_page_summary_day'),
+                'per_page_summary_week': request.form.get('per_page_summary_week'),
+                'per_page_summary_month': request.form.get('per_page_summary_month')
+            }
 
-            setting_items_per_page = UserSetting.query.filter_by(key='items_per_page').first()
-            if not setting_items_per_page:
-                setting_items_per_page = UserSetting(key='items_per_page')
-                db.session.add(setting_items_per_page)
-            setting_items_per_page.value = str(items_per_page_val)
-            current_app.logger.debug(f"Attempting to save items_per_page: {items_per_page_val}")
+            for key, value_str in settings_to_update.items():
+                if not value_str or not value_str.isdigit():
+                    flash(f'{key.replace("_", " ").title()} must be a valid positive integer.', 'danger')
+                    return redirect(url_for('settings'))
+                
+                value_int = int(value_str)
+                if value_int <= 0:
+                    flash(f'{key.replace("_", " ").title()} must be a positive integer.', 'danger')
+                    return redirect(url_for('settings'))
 
-            # -- Preferred Theme Setting -------------------
-            preferred_theme_val = request.form.get('preferred_theme', DEFAULT_SETTINGS['preferred_theme'])
-            if preferred_theme_val not in ['light', 'dark']: # Basic validation
-                flash('Invalid theme selected. Please choose "light" or "dark".', 'danger')
-                return redirect(url_for('settings'))
+                setting_obj = UserSetting.query.filter_by(key=key).first()
+                if not setting_obj:
+                    setting_obj = UserSetting(key=key)
+                    db.session.add(setting_obj)
+                setting_obj.value = str(value_int)
+                current_app.logger.debug(f"Attempting to save {key}: {value_int}")
 
-            setting_preferred_theme = UserSetting.query.filter_by(key='preferred_theme').first()
-            if not setting_preferred_theme:
-                setting_preferred_theme = UserSetting(key='preferred_theme')
-                db.session.add(setting_preferred_theme)
-            setting_preferred_theme.value = preferred_theme_val
-            current_app.logger.debug(f"Attempting to save preferred_theme: {preferred_theme_val}")
+            # -- Handle EquipmentType 'settings_include_in_totals' -------------------
+            all_equipment_types = EquipmentType.query.all()
+            for equip_type in all_equipment_types:
+                checkbox_name = f"equip_include_{equip_type.equipment_type_id}"
+                # If checkbox_name is in request.form, it means it was checked.
+                # HTML checkboxes only send a value if they are checked.
+                is_included = checkbox_name in request.form
+                if equip_type.settings_include_in_totals != is_included:
+                    equip_type.settings_include_in_totals = is_included
+                    current_app.logger.debug(f"Updating {equip_type.name} 'settings_include_in_totals' to {is_included}")
             
             # -- Commit Changes to Database -------------------
             db.session.commit()
@@ -74,32 +83,31 @@ def show_settings():
     # == Handle GET Request (Display Settings) ============================================
     # Fetch current settings from the database or use defaults.
     settings_data = {}
+    equipment_types_data = []
     try:
-        s_items_per_page = UserSetting.query.filter_by(key='items_per_page').first()
-        if s_items_per_page and s_items_per_page.value and s_items_per_page.value.isdigit():
-            settings_data['items_per_page'] = int(s_items_per_page.value)
-        else:
-            settings_data['items_per_page'] = DEFAULT_SETTINGS['items_per_page']
-            if s_items_per_page and (not s_items_per_page.value or not s_items_per_page.value.isdigit()):
-                current_app.logger.warning(f"Invalid 'items_per_page' value '{s_items_per_page.value}' in DB, using default.")
-        
-        s_preferred_theme = UserSetting.query.filter_by(key='preferred_theme').first()
-        if s_preferred_theme and s_preferred_theme.value in ['light', 'dark']:
-            settings_data['preferred_theme'] = s_preferred_theme.value
-        else:
-            settings_data['preferred_theme'] = DEFAULT_SETTINGS['preferred_theme']
-            if s_preferred_theme and s_preferred_theme.value not in ['light', 'dark']:
-                 current_app.logger.warning(f"Invalid 'preferred_theme' value '{s_preferred_theme.value}' in DB, using default.")
+        for key, default_value in DEFAULT_SETTINGS.items():
+            setting_obj = UserSetting.query.filter_by(key=key).first()
+            if setting_obj and setting_obj.value and setting_obj.value.isdigit():
+                settings_data[key] = int(setting_obj.value)
+            else:
+                settings_data[key] = int(default_value) # Use default if not found or invalid
+                if setting_obj and (not setting_obj.value or not setting_obj.value.isdigit()):
+                    current_app.logger.warning(f"Invalid '{key}' value '{setting_obj.value}' in DB, using default.")
+                elif not setting_obj:
+                     current_app.logger.info(f"Setting '{key}' not found in DB, using default '{default_value}'.")
+
+        equipment_types_data = EquipmentType.query.order_by(EquipmentType.name).all()
 
     except Exception as e:
         current_app.logger.error(f"Error fetching settings for display: {e}", exc_info=True)
         flash("Could not retrieve current settings. Displaying defaults.", "warning")
         # Fallback to defaults in case of any error during fetch
-        settings_data['items_per_page'] = DEFAULT_SETTINGS['items_per_page']
-        settings_data['preferred_theme'] = DEFAULT_SETTINGS['preferred_theme']
+        for key, default_value in DEFAULT_SETTINGS.items():
+            settings_data[key] = int(default_value)
+        equipment_types_data = [] # Ensure it's an empty list on error
     
     # == Render Template ============================================
-    return render_template('settings.html', settings_data=settings_data)
+    return render_template('settings.html', settings_data=settings_data, equipment_types=equipment_types_data)
 
 # --------------------------------------------------------
 # - Route Registration

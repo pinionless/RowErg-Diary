@@ -101,33 +101,30 @@
 						</div>
 					</article>
 				{% endif %}
-
-				<!-- -- Pagination Section ------------------- -->
-				{% if summary_week_pagination and summary_week_pagination.pages > 1 %} <!-- Renamed variable -->
-					<div class="pagination">
-						{% if summary_week_pagination.has_prev %} <!-- Renamed variable -->
-							<a href="{{ url_for('summary_week_paginated', page_num=summary_week_pagination.prev_num) }}" class="button previous">Previous Page</a> <!-- Renamed variable and endpoint -->
-						{% else %}
-							<span class="button previous disabled" aria-disabled="true">Previous Page</span>
-						{% endif %}
-						
-						<div class="pages">
-							{% for page in summary_week_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %} <!-- Renamed variable -->
-								{% if page %}
-									<a href="{{ url_for('summary_week_paginated', page_num=page) }}" class="{% if page == summary_week_pagination.page %}active{% endif %}">{{ page }}</a> <!-- Renamed variable and endpoint -->
-								{% else %}
-									<span>…</span>
-								{% endif %}
-							{% endfor %}
+					<!-- -- Pagination Section ------------------- -->
+					{% if summary_week_pagination and summary_week_pagination.pages > 1 %} <!-- Renamed variable -->
+						<div class="pagination">
+							{% if summary_week_pagination.has_prev %} <!-- Renamed variable -->
+								<a href="{{ url_for('summary_week_paginated', page_num=summary_week_pagination.prev_num) }}" class="button previous">Previous Page</a>
+							{% else %}
+								<span class="button previous disabled" aria-disabled="true">Previous Page</span>
+							{% endif %}
+							<div class="pages">
+								{% for page in summary_week_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %} <!-- Renamed variable -->
+									{% if page %}
+										<a href="{{ url_for('summary_week_paginated', page_num=page) }}" class="{% if page == summary_week_pagination.page %}active{% endif %}">{{ page }}</a> 
+									{% else %}
+										<span>…</span>
+									{% endif %}
+								{% endfor %}
+							</div>
+							{% if summary_week_pagination.has_next %} <!-- Renamed variable -->
+								<a href="{{ url_for('summary_week_paginated', page_num=summary_week_pagination.next_num) }}" class="button next">Next Page</a>
+							{% else %}
+								<span class="button next disabled" aria-disabled="true">Next Page</span>
+							{% endif %}
 						</div>
-						
-						{% if summary_week_pagination.has_next %} <!-- Renamed variable -->
-							<a href="{{ url_for('summary_week_paginated', page_num=summary_week_pagination.next_num) }}" class="button next">Next Page</a> <!-- Renamed variable and endpoint -->
-						{% else %}
-							<span class="button next disabled" aria-disabled="true">Next Page</span>
-						{% endif %}
-					</div>
-				{% endif %}
+					{% endif %}
 			</div>
 		</div>
 		<!-- == Sidebar Inclusion ============================================ -->

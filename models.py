@@ -17,6 +17,7 @@ class EquipmentType(db.Model):
     __tablename__ = 'equipment_types'
     equipment_type_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=False, unique=True)
+    settings_include_in_totals = db.Column(db.Boolean, nullable=False, default=True, server_default=db.true()) # Renamed column
     # -- Relationships -------------------
     workouts = db.relationship('Workout', backref='equipment_type_ref', lazy=True)
 
