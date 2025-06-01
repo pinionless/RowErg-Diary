@@ -1,10 +1,10 @@
 <!-- ======================================================== -->
-<!-- = dailysummary.html - Template for displaying daily workout summaries -->
+<!-- = summary_week.html - Template for displaying weekly workout summaries -->
 <!-- ======================================================== -->
 <!DOCTYPE HTML>
 <html>
 	<head>
-		<title>{{ page_title | default('Daily Workout Totals') }}</title>
+		<title>{{ page_title | default('Weekly Workout Totals') }}</title>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
 		<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
@@ -17,7 +17,7 @@
 		<div id="content" class="custom-fullwidth">
 			<div class="inner">
 				<!-- -- Page Header ------------------- -->
-				<h1 class="extra_h1">{{ page_title | default('Daily Summary') }}</h1>
+				<h1 class="extra_h1">{{ page_title | default('Weekly Summary') }}</h1>
 				<hr class="extra_title_line">
 
 				<!-- -- Flash Messages Section ------------------- -->
@@ -33,13 +33,13 @@
 					{% endif %}
 				{% endwith %}
 					
-				<!-- -- Daily Summary Chart Section ------------------- -->
+				<!-- -- Weekly Summary Chart Section ------------------- -->
 				{% if has_chart_data %}
 				<article class="box post post-excerpt">
 					<!-- Wrapper for Chart to control max-width -->
 					<div style="max-width: 800px;" class="type01">
 						<!-- Combined Chart for Distance, Duration, Pace, and Reps -->
-						<div id="summaryTrendsChart" style="width:100%; min-height:350px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0 15px 0;">
+						<div id="summaryWeekChart" style="width:100%; min-height:350px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0 15px 0;"> <!-- Changed ID -->
 							{% if not series_data_meters and not series_data_seconds and not series_data_pace and not series_data_reps %}
 							<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:350px;">
 								<span style="color:#6a8fd7; font-size:1.2em;">[ No chart data available ]</span>
@@ -51,14 +51,14 @@
 				<hr class="extra_article"> <!-- Separator line -->
 				{% endif %}
 
-				<!-- -- Daily Totals Table Section ------------------- -->
-				{% if dailysummary_display_data %}
+				<!-- -- Weekly Totals Table Section ------------------- -->
+				{% if summary_week_display_data %} <!-- Renamed variable -->
 					<article class="box post post-excerpt">
 						<div class="table-wrapper">
 							<table class="type01">
 								<thead>
 									<tr>
-										<th>Date</th>
+										<th>Week<span class="showhide"> (WW-YYYY)</span></th>
 										<th>Dist<span class="showhide">ance </span>(m)</th>
 										<th>Duration</th>
 										<th>Pace</th>
@@ -70,9 +70,9 @@
 									</tr>
 								</thead>
 								<tbody>
-									{% for summary in dailysummary_display_data %}
+									{% for summary in summary_week_display_data %} <!-- Renamed variable -->
 									<tr>
-										<td>{{ summary.day_date.strftime('%Y-%m-%d') }}</td>
+										<td>W{{ "{:02d}".format(summary.week_number) }} - {{ summary.year }}</td>
 										<td>{{ '{:,.0f}'.format(summary.meters) if summary.meters is not none else '0' }}</td>
 										<td>
 											{{ summary.seconds | format_seconds_to_hms if summary.seconds is not none else 'N/A' }}
@@ -84,7 +84,7 @@
 											{{ '{:,.0f}'.format(summary.isoreps) if summary.isoreps is not none else '0' }}
 										</td>
 										<td>
-											<a href="{{ url_for('workouts_by_date', date_str=summary.day_date.strftime('%Y-%m-%d')) }}">
+											<a href="{{ url_for('workouts_by_week_detail', year_week_str=summary.year~'-W'~'{:02d}'.format(summary.week_number)) }}">
 												<i class="fas fa-eye hideshow"></i><span class="showhide"> Details</span>
 											</a>
 										</td>
@@ -97,35 +97,32 @@
 				{% else %}							
 					<article class="box post post-excerpt">
 						<div class="box alert-info" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
-							No daily totals found.
+							No weekly totals found.
 						</div>
 					</article>
 				{% endif %}
 
 				<!-- -- Pagination Section ------------------- -->
-				{% if dailysummary_pagination and dailysummary_pagination.pages > 1 %}
+				{% if summary_week_pagination and summary_week_pagination.pages > 1 %} <!-- Renamed variable -->
 					<div class="pagination">
-						{% if dailysummary_pagination.has_prev %}
-							<a href="{{ url_for('summary_day_paginated', page_num=dailysummary_pagination.prev_num) }}"
-							   class="button previous">Previous Page</a>
+						{% if summary_week_pagination.has_prev %} <!-- Renamed variable -->
+							<a href="{{ url_for('summary_week_paginated', page_num=summary_week_pagination.prev_num) }}" class="button previous">Previous Page</a> <!-- Renamed variable and endpoint -->
 						{% else %}
 							<span class="button previous disabled" aria-disabled="true">Previous Page</span>
 						{% endif %}
 						
 						<div class="pages">
-							{% for page in dailysummary_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+							{% for page in summary_week_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %} <!-- Renamed variable -->
 								{% if page %}
-									<a href="{{ url_for('summary_day_paginated', page_num=page) }}"
-									   class="{% if page == dailysummary_pagination.page %}active{% endif %}">{{ page }}</a>
+									<a href="{{ url_for('summary_week_paginated', page_num=page) }}" class="{% if page == summary_week_pagination.page %}active{% endif %}">{{ page }}</a> <!-- Renamed variable and endpoint -->
 								{% else %}
 									<span>…</span>
 								{% endif %}
 							{% endfor %}
 						</div>
 						
-						{% if dailysummary_pagination.has_next %}
-							<a href="{{ url_for('summary_day_paginated', page_num=dailysummary_pagination.next_num) }}"
-							   class="button next">Next Page</a>
+						{% if summary_week_pagination.has_next %} <!-- Renamed variable -->
+							<a href="{{ url_for('summary_week_paginated', page_num=summary_week_pagination.next_num) }}" class="button next">Next Page</a> <!-- Renamed variable and endpoint -->
 						{% else %}
 							<span class="button next disabled" aria-disabled="true">Next Page</span>
 						{% endif %}
@@ -148,7 +145,8 @@
 		<script src="{{ url_for('static', filename='js/chart_summary.js') }}"></script>
 		<script>
 			document.addEventListener("DOMContentLoaded", function() {
-				const categoriesDataValues = Array.isArray({{ chart_categories_dates | tojson | safe }}) ? {{ chart_categories_dates | tojson | safe }} : [];
+				// Ensure data are arrays, defaulting to empty if null/undefined
+				const categoriesDataValues = Array.isArray({{ chart_categories_weeks | tojson | safe }}) ? {{ chart_categories_weeks | tojson | safe }} : [];
 				const metersSeriesDataValues = Array.isArray({{ series_data_meters | tojson | safe }}) ? {{ series_data_meters | tojson | safe }} : [];
 				const secondsSeriesDataValues = Array.isArray({{ series_data_seconds | tojson | safe }}) ? {{ series_data_seconds | tojson | safe }} : [];
 				const paceSeriesDataValues = Array.isArray({{ series_data_pace | tojson | safe }}) ? {{ series_data_pace | tojson | safe }} : [];
@@ -156,13 +154,13 @@
 
 				if (typeof initializeSummaryChart === "function") {
 					initializeSummaryChart(
-						"summaryTrendsChart", // Ensure this ID matches the div id="summaryTrendsChart"
+						"summaryWeekChart", // Pass the chart ID for this page // Changed ID
 						categoriesDataValues,
 						metersSeriesDataValues,
 						secondsSeriesDataValues,
 						paceSeriesDataValues,
 						repsSeriesDataValues,
-						"Date"
+						"Week Starting" // Appropriate X-axis title
 					);
 				} else {
 					console.error("Error: initializeSummaryChart function not found. Check js/chart_summary.js.");

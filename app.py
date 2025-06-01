@@ -8,7 +8,7 @@ from models import db
 # - View and Utility Imports
 #---------------------------------------------------------
 # Import application views
-from views import home, submit_json_workout, workouts, details, database_management, dailysummary, weeklysummary, monthlysummary, yearlysummary, workouts_by_date, submit_manual_workout, workouts_by_week, workouts_by_month, workouts_by_year, export_restore
+from views import home, submit_json_workout, workouts, details, database_management, summary_day, summary_week, summary_month, summary_year, workouts_by_date, submit_manual_workout, workouts_by_week, workouts_by_month, workouts_by_year, export_restore, settings # Changed dailysummary, weeklysummary, monthlysummary, yearlysummary
 # Import utility functions and context processors
 from utils import sidebar_stats_processor, format_total_seconds_human_readable, format_split_short, format_duration_ms, nl2br_filter, format_seconds_to_hms # Changed format_duration_hms_tenths
 
@@ -67,16 +67,17 @@ def create_app(config_object=None):
         workouts.register_routes(app) # Registers routes for displaying workouts list
         details.register_routes(app) # Registers routes for workout details page
         database_management.register_routes(app) # Registers routes for database management tasks
-        dailysummary.register_routes(app) # Registers routes for daily summary page
-        weeklysummary.register_routes(app) # Registers routes for weekly summary page
-        monthlysummary.register_routes(app) # Registers routes for monthly summary page
-        yearlysummary.register_routes(app) # Registers routes for yearly summary page
+        summary_day.register_routes(app) # Registers routes for daily summary page
+        summary_week.register_routes(app) # Registers routes for weekly summary page
+        summary_month.register_routes(app) # Registers routes for monthly summary page
+        summary_year.register_routes(app) # Registers routes for yearly summary page
         workouts_by_date.register_routes(app) # Registers routes for viewing workouts by specific date
         workouts_by_week.register_routes(app) # Registers routes for viewing workouts by specific week
         workouts_by_month.register_routes(app) # Registers routes for viewing workouts by specific month
         workouts_by_year.register_routes(app) # Registers routes for viewing workouts by specific year
         submit_manual_workout.register_routes(app) # Registers routes for submitting manual workouts
         export_restore.register_routes(app) # Registers routes for export and restore
+        settings.register_routes(app)       # Registers routes for settings page
 
     return app
 

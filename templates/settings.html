@@ -1,0 +1,79 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>RowErg Diary - Settings</title> <!-- Page Title -->
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}"> <!-- Favicon Link -->
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" /> <!-- Main Stylesheet -->
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/mystyles.css') }}" /> <!-- Custom Stylesheet -->
+	</head>
+	<body class="is-preload">
+
+		<!-- == Main Content Area ============================================ -->
+		<div id="content" class="custom-fullwidth">
+			<div class="inner">
+				<!-- -- Flash Messages Section ------------------- -->
+				{% with messages = get_flashed_messages(with_categories=true) %}
+					{% if messages %}
+						<article class="box post post-excerpt">
+						{% for category, message in messages %}
+							<div class="box alert-{{ category }}" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
+								{{ message }} <!-- Display flash message -->
+							</div>
+						{% endfor %}
+						</article>
+					{% endif %}
+				{% endwith %}
+					
+				<section class="box">
+					<header>
+						<h2>Application Settings</h2>
+					</header>
+					<div class="content">
+						<form method="POST" action="{{ url_for('settings') }}">
+							<div class="form-group" style="margin-bottom: 1em;">
+								<label for="items_per_page" style="display: block; margin-bottom: .5em; font-weight: bold;">Items per Page:</label>
+								<input type="number" id="items_per_page" name="items_per_page" class="form-control" 
+									   value="{{ settings_data.items_per_page }}" min="1" required
+									   style="width: 100%; padding: .5em; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+								<small class="form-text text-muted" style="display: block; margin-top: .5em; color: #6c757d;">Number of items to display on paginated lists.</small>
+							</div>
+				
+							<div class="form-group" style="margin-bottom: 1em;">
+								<label for="preferred_theme" style="display: block; margin-bottom: .5em; font-weight: bold;">Preferred Theme:</label>
+								<select id="preferred_theme" name="preferred_theme" class="form-control"
+										style="width: 100%; padding: .5em; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; height: auto;">
+									<option value="light" {% if settings_data.preferred_theme == 'light' %}selected{% endif %}>Light</option>
+									<option value="dark" {% if settings_data.preferred_theme == 'dark' %}selected{% endif %}>Dark</option>
+								</select>
+								<small class="form-text text-muted" style="display: block; margin-top: .5em; color: #6c757d;">Choose your preferred application theme.</small>
+							</div>
+							
+							<hr style="margin-top: 1.5em; margin-bottom: 1.5em;">
+							
+							<button type="submit" class="button primary">Save Settings</button>
+						</form>
+					</div>
+				</section>
+
+				<!-- -- Back Link Section (Optional, can be removed if not needed for settings) --- -->
+				<div class="back-link-container" style="text-align: center; margin-top: 30px;">
+					<a href="{{ url_for('home') }}" class="back-link" style="display: inline-block; padding: 8px 22px; background: #f3f3f3; border-radius: 6px; color: #333; text-decoration: none; font-weight: 500; transition: background 0.15s; border: 1px solid #e0e0e0;">
+						← Back to Home
+					</a>
+				</div>
+
+			</div>
+		</div>
+		<!-- == Sidebar Inclusion ============================================ -->
+		{% include '_sidebar.html' %} <!-- Include the sidebar template -->
+
+		<!-- == Scripts ============================================ -->
+		<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/browser.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/util.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+	</body>
+</html>

@@ -33,6 +33,22 @@
 					{% endif %}
 				{% endwith %}
 				
+				<!-- -- Workouts Chart Section ------------------- -->
+				{% if has_chart_data %}
+				<article class="box post post-excerpt">
+					<div style="max-width: 800px;" class="type01"> <!-- Wrapper for Chart -->
+						<div id="workoutsTrendChart" style="width:100%; min-height:350px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0 15px 0;">
+							{% if not series_data_meters and not series_data_seconds and not series_data_pace and not series_data_reps %}
+							<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:350px;">
+								<span style="color:#6a8fd7; font-size:1.2em;">[ No chart data available for these workouts ]</span>
+							</div>
+							{% endif %}
+						</div>
+					</div>
+				</article>
+				<hr class="extra_article"> <!-- Separator line -->
+				{% endif %}
+
 				<!-- -- Workouts Table Section ------------------- -->
 				{% if workouts_display_data %} <!-- Check if there are workouts to display -->
 					<article class="box post post-excerpt">
@@ -132,5 +148,33 @@
 		<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/util.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+		<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+		{% if has_chart_data %}
+		<script src="{{ url_for('static', filename='js/chart_summary.js') }}"></script>
+		<script>
+			document.addEventListener("DOMContentLoaded", function() {
+				const categoriesDataValues = Array.isArray({{ chart_categories_dates | tojson | safe }}) ? {{ chart_categories_dates | tojson | safe }} : [];
+				const metersSeriesDataValues = Array.isArray({{ series_data_meters | tojson | safe }}) ? {{ series_data_meters | tojson | safe }} : [];
+				const secondsSeriesDataValues = Array.isArray({{ series_data_seconds | tojson | safe }}) ? {{ series_data_seconds | tojson | safe }} : [];
+				const paceSeriesDataValues = Array.isArray({{ series_data_pace | tojson | safe }}) ? {{ series_data_pace | tojson | safe }} : [];
+				const repsSeriesDataValues = Array.isArray({{ series_data_reps | tojson | safe }}) ? {{ series_data_reps | tojson | safe }} : [];
+
+				if (typeof initializeSummaryChart === "function") {
+					initializeSummaryChart(
+						"workoutsTrendChart", // Ensure this ID matches the div id="workoutsTrendChart"
+						categoriesDataValues,
+						metersSeriesDataValues,
+						secondsSeriesDataValues,
+						paceSeriesDataValues,
+						repsSeriesDataValues,
+						"Workout (ID)"
+					);
+				} else {
+					console.error("Error: initializeSummaryChart function not found. Check js/chart_summary.js.");
+				}
+			});
+		</script>
+		{% endif %}
 	</body>
 </html>

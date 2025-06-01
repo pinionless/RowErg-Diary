@@ -39,7 +39,7 @@
 					<!-- Wrapper for Chart to control max-width -->
 					<div style="max-width: 800px;" class="type01">
 						<!-- Combined Chart for Distance, Duration, Pace, and Reps -->
-						<div id="summaryTrendsChart" style="width:100%; min-height:350px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0 15px 0;">
+						<div id="weeklySummaryChart" style="width:100%; min-height:350px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0 15px 0;">
 							{% if not series_data_meters and not series_data_seconds and not series_data_pace and not series_data_reps %}
 							<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:350px;">
 								<span style="color:#6a8fd7; font-size:1.2em;">[ No chart data available ]</span>
@@ -106,7 +106,8 @@
 				{% if weeklysummary_pagination and weeklysummary_pagination.pages > 1 %}
 					<div class="pagination">
 						{% if weeklysummary_pagination.has_prev %}
-							<a href="{{ url_for('weeklysummary_paginated', page_num=weeklysummary_pagination.prev_num) }}" class="button previous">Previous Page</a>
+							<a href="{{ url_for('summary_week_paginated', page_num=weeklysummary_pagination.prev_num) }}"
+							   class="button previous">Previous Page</a>
 						{% else %}
 							<span class="button previous disabled" aria-disabled="true">Previous Page</span>
 						{% endif %}
@@ -114,7 +115,8 @@
 						<div class="pages">
 							{% for page in weeklysummary_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
 								{% if page %}
-									<a href="{{ url_for('weeklysummary_paginated', page_num=page) }}" class="{% if page == weeklysummary_pagination.page %}active{% endif %}">{{ page }}</a>
+									<a href="{{ url_for('summary_week_paginated', page_num=page) }}"
+									   class="{% if page == weeklysummary_pagination.page %}active{% endif %}">{{ page }}</a>
 								{% else %}
 									<span>…</span>
 								{% endif %}
@@ -122,7 +124,8 @@
 						</div>
 						
 						{% if weeklysummary_pagination.has_next %}
-							<a href="{{ url_for('weeklysummary_paginated', page_num=weeklysummary_pagination.next_num) }}" class="button next">Next Page</a>
+							<a href="{{ url_for('summary_week_paginated', page_num=weeklysummary_pagination.next_num) }}"
+							   class="button next">Next Page</a>
 						{% else %}
 							<span class="button next disabled" aria-disabled="true">Next Page</span>
 						{% endif %}
@@ -152,15 +155,15 @@
 				const paceSeriesDataValues = Array.isArray({{ series_data_pace | tojson | safe }}) ? {{ series_data_pace | tojson | safe }} : [];
 				const repsSeriesDataValues = Array.isArray({{ series_data_reps | tojson | safe }}) ? {{ series_data_reps | tojson | safe }} : [];
 
-				// Check if the function from the external script is available
 				if (typeof initializeSummaryChart === "function") {
 					initializeSummaryChart(
+						"weeklySummaryChart", // Pass the chart ID for this page
 						categoriesDataValues,
 						metersSeriesDataValues,
 						secondsSeriesDataValues,
 						paceSeriesDataValues,
 						repsSeriesDataValues,
-						"Week" // xAxisTitle for weekly chart
+						"Week Starting" // Appropriate X-axis title
 					);
 				} else {
 					console.error("Error: initializeSummaryChart function not found. Check js/chart_summary.js.");

@@ -12,7 +12,7 @@ import math # Added for chart data sanitization
 # - Daily Summary View Function
 #---------------------------------------------------------
 # Displays paginated daily workout summaries from the mv_day_totals materialized view.
-def dailysummary(page_num=1):
+def summary_day(page_num=1):
     # == Pagination Configuration ============================================
     per_page_value = current_app.config.get('PER_PAGE', 10) # Get items per page from app config
 
@@ -26,9 +26,9 @@ def dailysummary(page_num=1):
     if page_num < 1:
         page_num = 1 # Default to page 1 if page_num is less than 1
     elif page_num > total_pages and total_pages > 0: # If requested page is beyond the last page with data
-        return redirect(url_for('dailysummary_paginated', page_num=total_pages))
+        return redirect(url_for('summary_day_paginated', page_num=total_pages))
     elif page_num > total_pages and total_pages == 0: # If no data, redirect to page 1
-        return redirect(url_for('dailysummary_paginated', page_num=1))
+        return redirect(url_for('summary_day_paginated', page_num=1))
 
     # == Calculate Offset for SQL Query ============================================
     offset = (page_num - 1) * per_page_value # Calculate the starting point for records on the current page
@@ -117,5 +117,5 @@ def dailysummary(page_num=1):
 #---------------------------------------------------------
 # Registers the daily summary view routes with the Flask application.
 def register_routes(app):
-    app.add_url_rule('/dailysummary/', endpoint='dailysummary', view_func=lambda: dailysummary(1), methods=['GET']) # Route for the first page
-    app.add_url_rule('/dailysummary/page/<int:page_num>', endpoint='dailysummary_paginated', view_func=dailysummary, methods=['GET']) # Route for subsequent pages
+    app.add_url_rule('/summary_day/', endpoint='summary_day', view_func=lambda: summary_day(1), methods=['GET']) # Route for the first page
+    app.add_url_rule('/summary_day/page/<int:page_num>', endpoint='summary_day_paginated', view_func=summary_day, methods=['GET']) # Route for subsequent pages
