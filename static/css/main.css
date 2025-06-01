@@ -678,7 +678,7 @@ input, select, textarea {
 				margin: 0 0 0 0;
 				padding: 0 0 0 0;
 				margin-left: -5em;
-				margin-right: -5em;
+				margin-right: 0em;
 			}
 			.row {
 				display: flex;
@@ -2579,7 +2579,7 @@ input, select, textarea {
 								whatever you like (or remove it entirely).
 							*/
 
-					max-width: 1038px;
+					max-width: 830px;
 				}
 
 		/* Copyright */

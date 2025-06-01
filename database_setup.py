@@ -1,9 +1,9 @@
 # ========================================================
-# = database_management.py - View for database setup and maintenance
+# = database_setup.py - Functions for database setup and maintenance
 # ========================================================
-from flask import redirect, url_for, flash, current_app
-from models import db, UserSetting # Added UserSetting import
+from flask import current_app # current_app is still needed for logger and db operations
 from sqlalchemy import text
+from models import db, UserSetting
 
 # --------------------------------------------------------
 # - Database Components Creation Function
@@ -14,12 +14,13 @@ def create_db_components():
     try:
         # == Create SQLAlchemy Model Tables ============================================
         # Ensures all tables defined in models.py exist in the database.
-        db.create_all()
-        flash("Database tables created (or ensured to exist) successfully!", "success")
+        # This requires an app context.
+        with current_app.app_context():
+            db.create_all()
+        current_app.logger.info("Database tables created (or ensured to exist) successfully!")
 
         # == SQL Definitions for Materialized Views and Triggers ============================================
         # -- SQL for Dropping Materialized Views (for idempotency) -------------------
-        # This ensures that views are recreated cleanly if they already exist.
         drop_mvs_sql = """
         DROP MATERIALIZED VIEW IF EXISTS mv_sum_totals;
         DROP MATERIALIZED VIEW IF EXISTS mv_year_totals;
@@ -29,7 +30,6 @@ def create_db_components():
         """
 
         # -- SQL for Creating Materialized Views -------------------
-        # These views pre-calculate aggregate statistics for performance.
         create_mvs_sql = f"""
         CREATE MATERIALIZED VIEW mv_sum_totals AS
         SELECT
@@ -140,7 +140,6 @@ def create_db_components():
         """
 
         # -- SQL for Creating/Replacing Trigger Function -------------------
-        # This PostgreSQL function refreshes all materialized views.
         create_function_sql = """
         CREATE OR REPLACE FUNCTION refresh_rowing_summary_mvs()
         RETURNS TRIGGER AS $$
@@ -156,7 +155,6 @@ def create_db_components():
         """
 
         # -- SQL for Dropping and Creating Triggers -------------------
-        # This trigger calls the refresh function after any DML operation on the workouts table.
         drop_and_create_triggers_sql = """
         DROP TRIGGER IF EXISTS trg_refresh_rowing_summary_on_workout ON workouts;
 
@@ -168,42 +166,33 @@ def create_db_components():
 
         # == Execute SQL Statements ============================================
         # Use a single transaction for all DDL operations.
-        with db.engine.connect() as connection:
-            with connection.begin(): # Start a transaction
-                current_app.logger.info("Executing DDL for materialized views and triggers...")
-                connection.execute(text(drop_mvs_sql)) # Drop existing MVs
-                connection.execute(text(create_mvs_sql)) # Create new MVs
-                connection.execute(text(create_function_sql)) # Create/replace refresh function
-                connection.execute(text(drop_and_create_triggers_sql)) # Create trigger
-                current_app.logger.info("Materialized views and triggers setup complete.")
+        # This requires an app context for db.engine.
+        with current_app.app_context():
+            with db.engine.connect() as connection:
+                with connection.begin(): # Start a transaction
+                    current_app.logger.info("Executing DDL for materialized views and triggers...")
+                    connection.execute(text(drop_mvs_sql))
+                    connection.execute(text(create_mvs_sql))
+                    connection.execute(text(create_function_sql))
+                    connection.execute(text(drop_and_create_triggers_sql))
+                    current_app.logger.info("Materialized views and triggers setup complete.")
 
-                # == Initialize Default Settings ============================================
-                current_app.logger.info("Initializing default settings...")
-                # Check if db_schema_ver setting exists
-                db_schema_ver_setting = db.session.query(UserSetting).filter_by(key='db_schema_ver').first()
-                if not db_schema_ver_setting:
-                    # Define the initial DB schema version
-                    initial_db_schema_version = "0.13"
-                    new_setting = UserSetting(key='db_schema_ver', value=initial_db_schema_version)
-                    db.session.add(new_setting)
-                    db.session.commit() # Commit the new setting
-                    current_app.logger.info(f"Initialized 'db_schema_ver' to '{initial_db_schema_version}'.")
-                else:
-                    current_app.logger.info(f"'db_schema_ver' already exists with value '{db_schema_ver_setting.value}'. No changes made.")
-                
+                    # == Initialize Default Settings ============================================
+                    current_app.logger.info("Initializing default settings...")
+                    db_schema_ver_setting = db.session.query(UserSetting).filter_by(key='db_schema_ver').first()
+                    if not db_schema_ver_setting:
+                        initial_db_schema_version = "0.13" # Or your current version
+                        new_setting = UserSetting(key='db_schema_ver', value=initial_db_schema_version)
+                        db.session.add(new_setting)
+                        db.session.commit()
+                        current_app.logger.info(f"Initialized 'db_schema_ver' to '{initial_db_schema_version}'.")
+                    else:
+                        current_app.logger.info(f"'db_schema_ver' already exists with value '{db_schema_ver_setting.value}'. No changes made.")
             # Transaction for DDL is committed here if no exceptions
+        
+        current_app.logger.info("Database components and default settings set up successfully!")
+        return True
 
-        flash("Materialized views, triggers, and default settings set up successfully!", "success")
-
-    except Exception as e: # Catch any errors during the setup process
+    except Exception as e:
         current_app.logger.error(f"Error setting up database components: {e}", exc_info=True)
-        flash(f"Error setting up database components: {str(e)}", "danger")
-
-    return redirect(url_for('home')) # Redirect to home page after completion or error
-
-# --------------------------------------------------------
-# - Route Registration
-#---------------------------------------------------------
-# Registers the database setup route with the Flask application
-def register_routes(app):
-    app.add_url_rule('/database/create', endpoint='create_db', view_func=create_db_components, methods=['GET'])
+        return False
