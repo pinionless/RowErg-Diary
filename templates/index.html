@@ -13,9 +13,15 @@
 	</head>
 	<body class="is-preload">
 
+
+
+
+
+
 		<!-- == Main Content Area ============================================ -->
-		<div id="content" class="custom-calendar">
+		<div id="content" class="custom-fullwidth">
 			<div class="inner">
+
 				<!-- -- Flash Messages Section ------------------- -->
 				{% with messages = get_flashed_messages(with_categories=true) %}
 					{% if messages %}
@@ -101,52 +107,9 @@
 						</div>
 					</div>
 				</article>
-						
-				<!-- -- Recent Workouts List Section ------------------- -->
-				{% if workouts_display_data %} <!-- Check if there are recent workouts to display -->
-					{% for item_data in workouts_display_data %} <!-- Loop through each recent workout -->
-						<hr class="extra_article"> <!-- Separator line -->
-						<article class="box post post-excerpt">
-							<header style="margin-bottom: 0px; padding-top: 0px;">
-								<h2 style="margin-bottom: 5px;"><a href="{{ url_for('details', workout_id=item_data.workout_obj.workout_id) }}">{{ item_data.name | default('Unnamed Workout') }}</a></h2> <!-- Workout Name (link to details) -->
-							</header>
-							<div class="info">
-								<!-- Workout Date (formatted) -->
-								<span class="date"><span class="month">{{ item_data.workout_obj.workout_date.strftime('%b') if item_data.workout_obj.workout_date else 'N/A' }}<span>{{ (item_data.workout_obj.workout_date.strftime('%B'))[3:] if item_data.workout_obj.workout_date else 'N/A' }}</span></span> <span class="day">{{ item_data.workout_obj.workout_date.strftime('%d') if item_data.workout_obj.workout_date else 'N/A' }}</span><span class="year">, {{ item_data.workout_obj.workout_date.strftime('%Y') if item_data.workout_obj.workout_date else 'N/A' }}</span></span>
-								<!-- Workout Stats -->
-								<ul class="stats">
-									<li><a href="#" class="icon distance">{{ '{:,.0f}'.format(item_data.workout_obj.total_distance_meters) if item_data.workout_obj.total_distance_meters is not none else 'N/A' }} m</a></li> <!-- Total Distance -->
-									<li><a href="#" class="icon time">{{ item_data.workout_obj.duration_seconds | format_total_seconds_human_readable }}</a></li> <!-- Duration -->
-									<li><a href="#" class="icon split">{{ item_data.workout_obj.average_split_seconds_500m | format_split_ms }}</a></li> <!-- Average Split -->
-									
-									<li><a href="{{ url_for('details', workout_id=item_data.workout_obj.workout_id) }}" class="icon details" style="color:green">Details</a></li> <!-- Link to Details Page -->
-									<li><a href="#" class="icon brands fa-facebook-f"></a></li> <!-- Placeholder Social Media Icon -->
-								</ul>
-							</div>
-							<!-- Pace Chart for each workout -->
-							{% if item_data.chart_time_categories and item_data.pace_series_data and item_data.pace_series_data != 'null' %}
-								<div id="paceChart-{{ item_data.workout_obj.workout_id }}" style="width:100%; min-height:250px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 10px 0;">
-									<!-- Chart will be rendered here by JavaScript -->
-								</div>
-							{% else %}
-							<!-- Fallback placeholder if no chart data -->
-							<div style="width:100%; height:250px; background:#f4f7fb; border:1px dashed #b3c6e7; display:flex; align-items:center; justify-content:center; margin: 10px 0;">
-								<span style="color:#6a8fd7; font-size:1.2em;">[ No pace data available for {{ item_data.name | default('this workout') }} ]</span>
-							</div>
-							{% endif %}
-						</article>
-					{% endfor %}
-				{% else %} <!-- If no recent workouts are found -->							
-					<article class="box post post-excerpt">
-						<div class="box alert-info" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
-							No workouts found. <!-- Message indicating no workouts -->
-						</div>
-					</article>
-					<p></p>
-				{% endif %}
-					
 			</div>
 		</div>
+
 		<!-- == Sidebar Inclusion ============================================ -->
 		{% include '_sidebar.html' %} <!-- Include the sidebar template -->
 
