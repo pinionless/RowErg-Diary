@@ -49,7 +49,7 @@ def format_duration_ms(total_seconds):
     remaining_seconds_component = total_seconds_float % 60
     seconds = int(remaining_seconds_component)
     centiseconds = int((remaining_seconds_component - seconds) * 100) # Calculate centiseconds
-    return f"{minutes:02d}:{seconds:02d}.{centiseconds:02d}"
+    return f"{minutes}:{seconds:02d}.{centiseconds:02d}"
 
 # Formats total seconds into a human-readable string (Xd XXh:XXm:XXs)
 def format_total_seconds_human_readable(total_seconds):

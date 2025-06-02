@@ -2,10 +2,11 @@
 # = workouts_by_date.py - View for displaying workouts for a specific date
 # ========================================================
 from flask import render_template, abort, flash, redirect, url_for, current_app
-from models import db, Workout, WorkoutSample, MetricDescriptor # Added WorkoutSample, MetricDescriptor
+from models import db, Workout 
 from sqlalchemy import text
 from datetime import datetime
-import json # To pass data to JavaScript
+import math # Added for chart data sanitization
+# import json # Removed json import as it's no longer needed for chart data
 
 # --------------------------------------------------------
 # - Show Workouts for Date View Function
@@ -60,84 +61,38 @@ def show_workouts_for_date(date_str):
         Workout.workout_date == selected_date # Filter workouts by the selected date
     ).order_by(Workout.workout_id.asc()).all() # Order by ID for consistency
 
-    # == Prepare Workout Data for Template, including chart data =================================
+    # == Prepare Workout Data for Template =================================
     workouts_display_data = []
     
-    pace_metric_descriptor = MetricDescriptor.query.filter_by(metric_name='RowingSplit').first()
-    pace_metric_id = pace_metric_descriptor.metric_descriptor_id if pace_metric_descriptor else None
-
-    power_metric_descriptor = MetricDescriptor.query.filter_by(metric_name='Power').first() # Assuming 'Power' is the metric name
-    power_metric_id = power_metric_descriptor.metric_descriptor_id if power_metric_descriptor else None
-
-    spm_metric_descriptor = MetricDescriptor.query.filter_by(metric_name='Spm').first() # Assuming 'Spm' is the metric name for Strokes Per Minute
-    spm_metric_id = spm_metric_descriptor.metric_descriptor_id if spm_metric_descriptor else None
-
     for workout_item in workouts_on_date:
-        time_categories_json = None
-        pace_series_json = None
-        power_series_json = None
-        spm_series_json = None
-
-        if workout_item.duration_seconds is not None and workout_item.duration_seconds > 0:
-            workout_duration_int = int(float(workout_item.duration_seconds))
-            categories = list(range(workout_duration_int + 1))
-            time_categories_json = json.dumps(categories)
-
-            # Helper function to get series data for a given metric_id
-            def get_series_data_for_metric(metric_id, metric_name_for_validation="Unknown"): # Added metric_name for clarity
-                if not metric_id:
-                    return None
-                
-                samples_query = WorkoutSample.query.filter_by(
-                    workout_id=workout_item.workout_id,
-                    metric_descriptor_id=metric_id
-                ).order_by(WorkoutSample.time_offset_seconds.asc()).all()
-
-                metric_samples_dict = {}
-                for sample in samples_query:
-                    try:
-                        value_float = float(sample.value)
-                        
-                        # For Pace, value must be > 0.
-                        # For Power and SPM, treat 0 as a gap (None).
-                        if metric_name_for_validation == 'RowingSplit':
-                            if value_float > 0:
-                                metric_samples_dict[sample.time_offset_seconds] = value_float
-                            else:
-                                metric_samples_dict[sample.time_offset_seconds] = None
-                        elif metric_name_for_validation in ['Power', 'Spm']:
-                            if value_float > 0: # Changed from >= 0 to > 0
-                                metric_samples_dict[sample.time_offset_seconds] = value_float
-                            else: # This will now catch 0 and negative values
-                                metric_samples_dict[sample.time_offset_seconds] = None
-                        else: # Default for other metrics if any
-                            if value_float >= 0:
-                                metric_samples_dict[sample.time_offset_seconds] = value_float
-                            else:
-                                metric_samples_dict[sample.time_offset_seconds] = None
-                    except (ValueError, TypeError):
-                        metric_samples_dict[sample.time_offset_seconds] = None
-                
-                series_list = [metric_samples_dict.get(t_offset, None) for t_offset in categories]
-                return json.dumps(series_list)
-
-            if pace_metric_id:
-                pace_series_json = get_series_data_for_metric(pace_metric_id, 'RowingSplit')
-            
-            if power_metric_id:
-                power_series_json = get_series_data_for_metric(power_metric_id, 'Power')
-
-            if spm_metric_id:
-                spm_series_json = get_series_data_for_metric(spm_metric_id, 'Spm')
-        
         workouts_display_data.append({
-            'workout_obj': workout_item, 
-            'name': workout_item.workout_name, 
-            'chart_time_categories': time_categories_json,
-            'pace_series_data': pace_series_json,
-            'power_series_data': power_series_json,
-            'spm_series_data': spm_series_json
+            'workout_obj': workout_item
+            # Removed redundant 'name': workout_item.workout_name
         })
+
+    # == Prepare Data for Chart (from workouts_on_date) ============================================
+    chart_categories_labels = []
+    chart_series_data_meters = []
+    chart_series_data_seconds = []
+    chart_series_data_pace = []
+    chart_series_data_reps = []
+
+    if workouts_on_date:
+        for workout_item in workouts_on_date: # workouts_on_date is already ordered chronologically by ID
+            label = f"{workout_item.workout_name or 'Workout'} (ID:{workout_item.workout_id})"
+            chart_categories_labels.append(label)
+
+            meters = float(workout_item.total_distance_meters) if workout_item.total_distance_meters is not None else None
+            seconds = float(workout_item.duration_seconds) if workout_item.duration_seconds is not None else None
+            split = float(workout_item.average_split_seconds_500m) if workout_item.average_split_seconds_500m is not None else None
+            reps = float(workout_item.total_isoreps) if workout_item.total_isoreps is not None else None
+
+            chart_series_data_meters.append(meters if isinstance(meters, (int, float)) and math.isfinite(meters) else None)
+            chart_series_data_seconds.append(seconds if isinstance(seconds, (int, float)) and math.isfinite(seconds) else None)
+            chart_series_data_pace.append(split if isinstance(split, (int, float)) and math.isfinite(split) and split > 0 else None)
+            chart_series_data_reps.append(reps if isinstance(reps, (int, float)) and math.isfinite(reps) and reps >= 0 else None)
+    
+    has_chart_data = bool(workouts_on_date)
 
     # == Render Template ============================================
     return render_template(
@@ -145,7 +100,14 @@ def show_workouts_for_date(date_str):
         selected_date=selected_date, # Pass the date object
         selected_date_str=selected_date.strftime('%A, %B %d, %Y'), # Pass formatted date string
         daily_summary_data=daily_summary_data, # Pass daily summary statistics
-        workouts_display_data=workouts_display_data # Pass list of workouts for the day
+        workouts_display_data=workouts_display_data, # Pass list of workouts for the day
+        # Chart data
+        chart_categories_labels=chart_categories_labels, # Changed from chart_categories_dates
+        series_data_meters=chart_series_data_meters,
+        series_data_seconds=chart_series_data_seconds,
+        series_data_pace=chart_series_data_pace,
+        series_data_reps=chart_series_data_reps,
+        has_chart_data=has_chart_data
     )
 
 # --------------------------------------------------------

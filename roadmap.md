@@ -1,6 +1,6 @@
 # Roadmap
 - Database
-    - The current templates (e.g., index.html, workouts.html, details.html, _sidebar.html, dailysummary.html, workouts_by_date.html) do not yet display the total_isoreps value
+    - The current templates (e.g., index.html, workouts.html, _sidebar.html, dailysummary.html, workouts_by_date.html) do not yet display the total_isoreps value. `details.html` now includes this information for individual workouts.
 - Adding backend functionality for the "Manual Workout Input" form.
 - Move Inline CSS from details.html
 - Enhanced Statistics & Dashboard Page

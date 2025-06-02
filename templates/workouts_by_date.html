@@ -34,317 +34,104 @@
 					{% endif %}
 				{% endwith %}
 
-				<!-- -- Daily Summary for Selected Date Section ------------------- -->
-				{% if daily_summary_data %} <!-- Check if daily summary data is available -->
-					<article class="box post post-excerpt">
-						<header style="margin-bottom: 10px; padding-top: 0px;">
-							<h3 style="margin-bottom: 5px; color: #555;">Summary for {{ selected_date_str }}</h3> <!-- Summary Sub-header -->
-						</header>
-						<table style="width: 100%; margin-bottom: 20px;">
-							<thead>
-								<tr>
-									<th style="text-align: left; padding: 8px; background-color: #f4f7fb;">Metric</th>
-									<th style="text-align: right; padding: 8px; background-color: #f4f7fb;">Total</th>
-								</tr>
-							</thead>
-							<tbody>
-								<tr>
-									<td style="padding: 8px; border-bottom: 1px solid #eee;">Total Distance:</td>
-									<td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">
-										{{ '{:,.0f}'.format(daily_summary_data.meters) if daily_summary_data.meters is not none else '0' }} m <!-- Formatted Total Distance -->
-									</td>
-								</tr>
-								<tr>
-									<td style="padding: 8px; border-bottom: 1px solid #eee;">Total Duration:</td>
-									<td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">
-										{{ daily_summary_data.seconds | format_total_seconds_human_readable if daily_summary_data.seconds is not none else 'N/A' }} <!-- Formatted Total Duration -->
-									</td>
-								</tr>
-								<tr>
-									<td style="padding: 8px; border-bottom: 1px solid #eee;">Average Split (/500m):</td>
-									<td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">
-										{{ daily_summary_data.split | format_split_short if daily_summary_data.split is not none and daily_summary_data.split > 0 else 'N/A' }} <!-- Formatted Average Split -->
-									</td>
-								</tr>
-								{% if daily_summary_data.isoreps and daily_summary_data.isoreps > 0 %}
-								<tr>
-									<td style="padding: 8px;">Total Reps:</td> <!-- Changed from Total IsoReps: -->
-									<td style="padding: 8px; text-align: right;">
-										{{ '{:,.0f}'.format(daily_summary_data.isoreps) }}
-									</td>
-								</tr>
-								{% endif %}
-							</tbody>
-						</table>
-					</article>
-					<hr class="extra_article"> <!-- Separator line -->
+				<!-- -- Daily Summary for Selected Date Section is removed as totals are in the table footer -- -->
+
+				<!-- -- Workouts Chart Section ------------------- -->
+				{% if has_chart_data %}
+				<article class="box post post-excerpt">
+					<header style="margin-bottom: 10px; padding-top: 0px;">
+						<h3 style="margin-bottom: 5px; color: #555;">Workout Trends for {{ selected_date_str }}</h3>
+					</header>
+					<div style="max-width: 800px;" class="type01"> <!-- Wrapper for Chart -->
+						<div id="workoutsByDateTrendChart" style="width:100%; min-height:350px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0 15px 0;">
+							{% if not series_data_meters and not series_data_seconds and not series_data_pace and not series_data_reps %}
+							<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:350px;">
+								<span style="color:#6a8fd7; font-size:1.2em;">[ No chart data available for these workouts ]</span>
+							</div>
+							{% endif %}
+						</div>
+					</div>
+				</article>
+				<hr class="extra_article"> <!-- Separator line -->
 				{% endif %}
 
-				<!-- -- Individual Workouts List Section ------------------- -->
-				{% if workouts_display_data %} <!-- Check if there are workouts to display for the date -->
-					{% for item_data in workouts_display_data %} <!-- Loop through each workout -->
-						{% if not loop.first %}<hr class="extra_article">{% endif %} <!-- Add separator between workouts -->
-						<article class="box post post-excerpt">
-							<header style="margin-bottom: 0px; padding-top: 0px;">
-								<h2 style="margin-bottom: 5px;"><a href="{{ url_for('details', workout_id=item_data.workout_obj.workout_id) }}">{{ item_data.name | default('Unnamed Workout') }}</a></h2> <!-- Workout Name (link to details) -->
-							</header>
-							<!-- Workout Stats Table -->
-							<table class="workout-stats-table" style="width:auto; margin-bottom: 0.5em;">
-								<tr>
-									<th>Distance</th>
-									<th>Time</th>
-									<th>Split</th>
-									<th>Level</th> <!-- Added Level Header -->
-								</tr>
-								<tr>
-									<td>
-										<span class="icon distance"></span> <!-- Distance Icon (assuming CSS handles this) -->
-										{{ '{:,.0f}'.format(item_data.workout_obj.total_distance_meters) if item_data.workout_obj.total_distance_meters is not none else 'N/A' }} m <!-- Formatted Distance -->
-									</td>
-									<td>
-										<span class="icon time"></span> <!-- Time Icon -->
-										{{ item_data.workout_obj.duration_seconds | format_total_seconds_human_readable }} <!-- Formatted Duration -->
-									</td>
-									<td>
-										<span class="icon split"></span> <!-- Split Icon -->
-										{{ item_data.workout_obj.average_split_seconds_500m | format_split_ms }} <!-- Formatted Split -->
-									</td>
-									<td> <!-- Added Level Data -->
-										{% if item_data.workout_obj.level is not none %}
-											<span class="icon level"></span> <!-- Assuming you might add a level icon -->
-											{{ item_data.workout_obj.level }}
-										{% else %}
-											N/A
-										{% endif %}
-									</td>
-								</tr>
-							</table>
-
-							<!-- Additional Workout Information -->
-							<div class="workout-additional-info" style="margin-bottom: 1em; padding: 10px; background-color: #f9f9f9; border: 1px solid #eee; border-radius: 4px;">
-								{% if item_data.workout_obj.equipment_type_ref %}
-									<p style="margin-bottom: 0.5em;"><strong>Equipment:</strong> {{ item_data.workout_obj.equipment_type_ref.name }}</p>
-								{% endif %}
-								{% if item_data.workout_obj.notes %}
-									<p style="margin-bottom: 0;"><strong>Notes:</strong> {{ item_data.workout_obj.notes | nl2br }}</p>
-								{% endif %}
-								{% if not item_data.workout_obj.equipment_type_ref and not item_data.workout_obj.notes %}
-									<p style="margin-bottom: 0; font-style: italic;">No additional details (equipment or notes) recorded for this workout.</p>
-								{% endif %}
-							</div>
-
-							<!-- Container for Workout Graph - This div always exists -->
-							{% if item_data.chart_time_categories %}
-								<!-- Pace Chart -->
-								<div id="paceChart-{{ item_data.workout_obj.workout_id }}" style="width:100%; min-height:300px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0 15px 0;">
-									{% if not item_data.pace_series_data %}
-									<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:300px;">
-										<span style="color:#6a8fd7; font-size:1.2em;">[ No Pace data available ]</span>
-									</div>
-									{% endif %}
-								</div>
-
-								<!-- Power Chart -->
-								<div id="powerChart-{{ item_data.workout_obj.workout_id }}" style="width:100%; min-height:300px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0 15px 0;">
-									{% if not item_data.power_series_data %}
-									<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:300px;">
-										<span style="color:#6a8fd7; font-size:1.2em;">[ No Power data available ]</span>
-									</div>
-									{% endif %}
-								</div>
-
-								<!-- SPM Chart -->
-								<div id="spmChart-{{ item_data.workout_obj.workout_id }}" style="width:100%; min-height:300px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0;">
-									{% if not item_data.spm_series_data %}
-									<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:300px;">
-										<span style="color:#6a8fd7; font-size:1.2em;">[ No SPM data available ]</span>
-									</div>
-									{% endif %}
-								</div>
-							{% else %}
-								<!-- Message if no chart data at all (no time categories) -->
-								<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:300px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0;">
-									<span style="color:#6a8fd7; font-size:1.2em;">[ No chart data available for {{ item_data.workout_obj.workout_name | default('Workout') }} (ID: {{ item_data.workout_obj.workout_id }}) ]</span>
-								</div>
-							{% endif %}
-							
-							{% if item_data.chart_time_categories %}
-							<script>
-								document.addEventListener("DOMContentLoaded", function() {
-									// Common X-axis formatter
-									function formatXAxisTime(value) {
-										if (typeof value !== 'number' || isNaN(value)) {
-											return value; 
-										}
-										const totalSeconds = Math.floor(value); 
-										const minutes = Math.floor(totalSeconds / 60);
-										const seconds = totalSeconds % 60;
-										return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-									}
-
-									// Pace specific formatter
-									function formatPaceTooltip(seconds) {
-										if (seconds === null || typeof seconds === 'undefined' || seconds <= 0) {
-											return null; 
-										}
-										const totalSecondsFloat = parseFloat(seconds);
-										const minutes = Math.floor(totalSecondsFloat / 60);
-										const remainingSeconds = totalSecondsFloat % 60;
-										const secs = Math.floor(remainingSeconds);
-										const tenths = Math.floor((remainingSeconds - secs) * 10);
-										return `${minutes}:${secs.toString().padStart(2, '0')}.${tenths}`;
-									}
-
-									// Power specific formatter
-									function formatPowerTooltip(watts) {
-										if (watts === null || typeof watts === 'undefined' || watts <= 0) { // Changed from < 0 to <= 0
-											return null;
-										}
-										return Math.round(parseFloat(watts)) + " W";
-									}
-
-									// SPM specific formatter
-									function formatSpmTooltip(spm) {
-										if (spm === null || typeof spm === 'undefined' || spm <= 0) { // Changed from < 0 to <= 0
-											return null;
-										}
-										return Math.round(parseFloat(spm)) + " SPM";
-									}
-									
-									const commonXAxisOptions = {
-										categories: {{ item_data.chart_time_categories | safe }},
-										min: 0,
-										title: { text: 'Time (M:SS)' },
-										type: 'numeric',
-										labels: { formatter: formatXAxisTime }
-									};
-
-									// Define a unique group ID for this workout's charts
-									const chartGroupId = "workoutSync-{{ item_data.workout_obj.workout_id }}";
-
-									// Base options that are truly common and don't have nested objects that need careful merging
-									const baseChartSettings = {
-										stroke: { curve: 'straight', width: 2 },
-										dataLabels: { enabled: false },
-										markers: { size: 0 },
-										xaxis: commonXAxisOptions, // Common X-axis for all
-										tooltip: {
-											shared: true, // Enable shared tooltip for synchronized charts
-											intersect: false, // Show tooltip even if not directly hovering over a point
-											// x: { formatter: formatXAxisTime } // Optional: format x-axis in tooltip if needed
-										}
-									};
-
-									// Pace Chart
-									{% if item_data.pace_series_data %}
-									var optionsPaceChart_{{ item_data.workout_obj.workout_id }} = {
-										...baseChartSettings, // Spread base settings
-										chart: { 
-											id: "paceChartInstance-{{ item_data.workout_obj.workout_id }}", // Unique ID for this chart instance
-											group: chartGroupId, // Synchronization group
-											type: 'line',
-											height: 300, 
-											zoom: { enabled: true }, 
-											toolbar: { show: true }
-										},
-										series: [{
-											name: 'Pace (s/500m)',
-											data: {{ item_data.pace_series_data | safe }}.map(val => val === "N/A" ? null : val)
-										}],
-										yaxis: {
-											title: { text: 'Pace (s/500m)' },
-											reversed: true, 
-											labels: { formatter: function(val) { const f = formatPaceTooltip(val); return f !== null ? f : '';} }
-										},
-										tooltip: { // Override specific tooltip parts if necessary, inherits shared/intersect
-											...baseChartSettings.tooltip, // Inherit shared, intersect
-											y: { formatter: function(val) { const f = formatPaceTooltip(val); return f !== null ? f + " /500m" : null; } }
-										}
-									};
-									var chartPace_{{ item_data.workout_obj.workout_id }} = new ApexCharts(document.querySelector("#paceChart-{{ item_data.workout_obj.workout_id }}"), optionsPaceChart_{{ item_data.workout_obj.workout_id }});
-									chartPace_{{ item_data.workout_obj.workout_id }}.render();
-									{% endif %}
-
-									// Power Chart
-									{% if item_data.power_series_data %}
-									var optionsPowerChart_{{ item_data.workout_obj.workout_id }} = {
-										...baseChartSettings, // Spread base settings
-										chart: {
-											id: "powerChartInstance-{{ item_data.workout_obj.workout_id }}", // Unique ID
-											group: chartGroupId, // Synchronization group
-											type: 'area', 
-											height: 300, 
-											zoom: { enabled: true }, 
-											toolbar: { show: true }
-										},
-										series: [{
-											name: 'Power (Watts)',
-											data: {{ item_data.power_series_data | safe }}.map(val => val === "N/A" ? null : val)
-										}],
-										xaxis: commonXAxisOptions,
-										yaxis: {
-											title: { text: 'Power (Watts)' },
-											reversed: false,
-											min: 0, 
-											labels: { formatter: function(val) { return val !== null && val > 0 ? Math.round(val) : ''; } } // Changed from >=0 to >0
-										},
-										tooltip: { // Override specific tooltip parts
-											...baseChartSettings.tooltip, // Inherit shared, intersect
-											y: { formatter: formatPowerTooltip } 
-										},
-										fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.7, opacityTo: 0.3, stops: [0, 90, 100]}},
-									};
-									var chartPower_{{ item_data.workout_obj.workout_id }} = new ApexCharts(document.querySelector("#powerChart-{{ item_data.workout_obj.workout_id }}"), optionsPowerChart_{{ item_data.workout_obj.workout_id }});
-									chartPower_{{ item_data.workout_obj.workout_id }}.render();
-									{% endif %}
-
-									// SPM Chart
-									{% if item_data.spm_series_data %}
-									var optionsSpmChart_{{ item_data.workout_obj.workout_id }} = {
-										...baseChartSettings, // Spread base settings
-										chart: {
-											id: "spmChartInstance-{{ item_data.workout_obj.workout_id }}", // Unique ID
-											group: chartGroupId, // Synchronization group
-											type: 'line',
-											height: 300, 
-											zoom: { enabled: true }, 
-											toolbar: { show: true }
-										},
-										series: [{
-											name: 'SPM',
-											data: {{ item_data.spm_series_data | safe }}.map(val => val === "N/A" ? null : val)
-										}],
-										xaxis: commonXAxisOptions,
-										yaxis: {
-											title: { text: 'Strokes Per Minute (SPM)' },
-											reversed: false,
-											min: 0, 
-											labels: { formatter: function(val) { return val !== null && val > 0 ? Math.round(val) : ''; } } // Changed from >=0 to >0
-										},
-										tooltip: { // Override specific tooltip parts
-											...baseChartSettings.tooltip, // Inherit shared, intersect
-											y: { formatter: formatSpmTooltip }
-										}
-									};
-									var chartSpm_{{ item_data.workout_obj.workout_id }} = new ApexCharts(document.querySelector("#spmChart-{{ item_data.workout_obj.workout_id }}"), optionsSpmChart_{{ item_data.workout_obj.workout_id }});
-									chartSpm_{{ item_data.workout_obj.workout_id }}.render();
-									{% endif %}
-								});
-							</script>
-							{% endif %}
-						</article>
-					{% endfor %}
-				{% else %} <!-- If no workouts are found for this date -->							
+				<!-- -- Workouts Table Section ------------------- -->
+				{% if workouts_display_data or daily_summary_data %} <!-- Check if there are workouts or summary data to display in the table -->
 					<article class="box post post-excerpt">
-						<div class="box alert-info" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
-							No workouts found for this date. <!-- Message indicating no workouts -->
+						<div class="table-wrapper">
+							<table class="type01">
+								<thead>
+									<tr>
+										<th>Date</th>
+										<th class="showhide">Name</th>
+										<th class="showhide">Notes</th>
+										<th>Dist<span class="showhide">ance </span>(m)</th>
+										<th>Duration</th>
+										<th>Pace</th>
+										<th class="showhide">Level</th>
+										<th class="showhide">Reps</th>
+										<th class="hideshow">
+											<span class="showhide">Actions</span>
+											<span class="hideshow"><i class="fas fa-eye"></i></span>
+										</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for item_data in workouts_display_data %} <!-- Loop through each workout item -->
+									<tr>
+										<td>{{ item_data.workout_obj.workout_date.strftime('%d-%m-%Y') if item_data.workout_obj.workout_date else 'N/A' }}</td> <!-- Workout Date -->
+										<td class="showhide">
+											<a href="{{ url_for('details', workout_id=item_data.workout_obj.workout_id) }}">
+												{{ item_data.workout_obj.workout_name | default('Unnamed Workout') }} <!-- Workout Name (link to details) -->
+											</a>
+										</td>
+										<td class="showhide">{% if item_data.workout_obj.notes != None %}{{ item_data.workout_obj.notes | default(' ') |truncate(10, True,'') }}{% endif %}</td>
+										<td>{{ '{:,.0f}'.format(item_data.workout_obj.total_distance_meters) if item_data.workout_obj.total_distance_meters is not none else 'N/A' }}</td>
+										<td>{{ item_data.workout_obj.duration_seconds | format_total_seconds_human_readable if item_data.workout_obj.duration_seconds is not none else 'N/A' }}</td>
+										<td>{{ item_data.workout_obj.average_split_seconds_500m | format_split_ms if item_data.workout_obj.average_split_seconds_500m is not none else 'N/A' }}</td> 
+										<td class="showhide">{% if item_data.workout_obj.level != None %}{{ item_data.workout_obj.level }}{% endif %}</td>
+										<td class="showhide">{{ '{:,.0f}'.format(item_data.workout_obj.total_isoreps) if item_data.workout_obj.total_isoreps is not none and item_data.workout_obj.total_isoreps > 0 else '' }}</td>
+										<td class="hideshow">
+											<a href="{{ url_for('details', workout_id=item_data.workout_obj.workout_id) }}">
+												<i class="fas fa-eye hideshow"></i><span class="showhide"> Details</span>
+											</a>
+										</td>
+									</tr>
+									{% endfor %}
+								</tbody>
+								{% if daily_summary_data %}
+								<tfoot>
+									<tr style="font-weight: bold;">
+										<td class="showhide"></td>
+										<td class="hideshow">Totals:</td>
+										<td colspan="2" class="showhide" style="text-align: right;">Totals:</td>
+										<td>{{ '{:,.0f}'.format(daily_summary_data.meters) if daily_summary_data.meters is not none else '0' }}</td>
+										<td>{{ daily_summary_data.seconds | format_total_seconds_human_readable if daily_summary_data.seconds is not none else 'N/A' }}</td>
+										<td>{{ daily_summary_data.split | format_split_ms if daily_summary_data.split is not none and daily_summary_data.split > 0 else 'N/A' }}</td>
+										<td class="showhide"></td> <!-- Empty cell for Level column -->
+										<td class="showhide">{% if daily_summary_data.isoreps and daily_summary_data.isoreps > 0 %}{{ '{:,.0f}'.format(daily_summary_data.isoreps) }}{% endif %}</td>
+										<td class="hideshow"></td> <!-- Empty cell for Actions column -->
+									</tr>
+								</tfoot>
+								{% endif %}
+							</table>
 						</div>
 					</article>
+
+				{% else %} <!-- If no workouts_display_data AND no daily_summary_data -->
+					<article class="box post post-excerpt">
+						<div class="box alert-info" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
+							No workouts found. <!-- Message indicating no workouts -->
+						</div>
+					</article>
+					<p></p>
 				{% endif %}
+
+
 
 				<!-- -- Back Link Section ------------------- -->
 				<div style="text-align: center; margin-top: 30px;">
-					<a href="{{ url_for('dailysummary') }}" class="button">
+					<a href="{{ url_for('summary_day') }}" class="button">
 						← Back to Daily Summary <!-- Link to return to the main daily summary page -->
 					</a>
 				</div>
@@ -359,6 +146,33 @@
 		<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/util.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/main.js') }}"></script>
-		<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script> <!-- ApexCharts Library Moved Here -->
+		<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script> <!-- ApexCharts Library -->
+		<script src="{{ url_for('static', filename='js/chart_summary.js') }}"></script> <!-- Summary Chart Logic -->
+
+		{% if has_chart_data %}
+		<script>
+			document.addEventListener("DOMContentLoaded", function() {
+				const categoriesDataValues = Array.isArray({{ chart_categories_labels | tojson | safe }}) ? {{ chart_categories_labels | tojson | safe }} : [];
+				const metersSeriesDataValues = Array.isArray({{ series_data_meters | tojson | safe }}) ? {{ series_data_meters | tojson | safe }} : [];
+				const secondsSeriesDataValues = Array.isArray({{ series_data_seconds | tojson | safe }}) ? {{ series_data_seconds | tojson | safe }} : [];
+				const paceSeriesDataValues = Array.isArray({{ series_data_pace | tojson | safe }}) ? {{ series_data_pace | tojson | safe }} : [];
+				const repsSeriesDataValues = Array.isArray({{ series_data_reps | tojson | safe }}) ? {{ series_data_reps | tojson | safe }} : [];
+
+				if (typeof initializeSummaryChart === "function") {
+					initializeSummaryChart(
+						"workoutsByDateTrendChart", // Unique ID for this page's chart
+						categoriesDataValues,
+						metersSeriesDataValues,
+						secondsSeriesDataValues,
+						paceSeriesDataValues,
+						repsSeriesDataValues,
+						"Workout Sequence on Day" // X-axis title
+					);
+				} else {
+					console.error("Error: initializeSummaryChart function not found. Check js/chart_summary.js.");
+				}
+			});
+		</script>
+		{% endif %}
 	</body>
 </html>
