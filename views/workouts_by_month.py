@@ -80,6 +80,30 @@ def show_workouts_for_month(year_month_str):
         all_overlapping_week_starts.append(current_week_iter_start)
         current_week_iter_start += timedelta(days=7)
 
+    # == Fetch all daily summaries for the full span of overlapping weeks (for adjustments) ========
+    all_daily_data_for_adjustment_map = {}
+    if all_overlapping_week_starts:
+        min_adj_date = all_overlapping_week_starts[0]
+        max_adj_date = all_overlapping_week_starts[-1] + timedelta(days=6)
+        try:
+            adj_daily_results = db.session.execute(
+                text("""
+                    SELECT day_date, total_meters_rowed, total_seconds_rowed, total_isoreps_sum
+                    FROM mv_day_totals
+                    WHERE day_date >= :min_date AND day_date <= :max_date
+                """),
+                {'min_date': min_adj_date, 'max_date': max_adj_date}
+            ).fetchall()
+            for row in adj_daily_results:
+                all_daily_data_for_adjustment_map[row.day_date] = {
+                    'meters': float(row.total_meters_rowed) if row.total_meters_rowed is not None else 0,
+                    'seconds': float(row.total_seconds_rowed) if row.total_seconds_rowed is not None else 0,
+                    'isoreps': float(row.total_isoreps_sum) if row.total_isoreps_sum is not None else 0
+                }
+        except Exception as e:
+            current_app.logger.error(f"Error fetching daily data for adjustments for month {year}-{month}: {e}", exc_info=True)
+            # Continue without adjustments if this fails, data might be slightly off for boundary weeks
+
     # == Fetch Weekly Summaries from mv_week_totals for these weeks =================================
     weekly_summaries_in_month = []
     db_weekly_data_map = {} # To store data fetched from mv_week_totals
@@ -119,32 +143,76 @@ def show_workouts_for_month(year_month_str):
         iso_cal = week_start_date_loop.isocalendar()
         week_end_date_loop = week_start_date_loop + timedelta(days=6)
 
+        original_meters, original_seconds, original_split, original_isoreps = 0, 0, 0, 0
+        has_original_week_data = False
+
         if week_start_date_loop in db_weekly_data_map:
             row_data = db_weekly_data_map[week_start_date_loop]
-            weekly_summaries_in_month.append({
-                'week_start_date': row_data.week_start_date,
-                'week_end_date_display': week_end_date_loop,
-                'year': iso_cal[0],
-                'week_number': iso_cal[1],
-                'meters': float(row_data.total_meters_rowed) if row_data.total_meters_rowed is not None else 0,
-                'seconds': float(row_data.total_seconds_rowed) if row_data.total_seconds_rowed is not None else 0,
-                'split': float(row_data.split) if row_data.split is not None else 0,
-                'isoreps': float(row_data.total_isoreps_sum) if row_data.total_isoreps_sum is not None else 0,
-                'has_workouts': True 
-            })
-        else:
-            # This week had no workouts in mv_week_totals, create a placeholder
-            weekly_summaries_in_month.append({
-                'week_start_date': week_start_date_loop,
-                'week_end_date_display': week_end_date_loop,
-                'year': iso_cal[0],
-                'week_number': iso_cal[1],
-                'meters': 0,
-                'seconds': 0,
-                'split': 0,
-                'isoreps': 0,
-                'has_workouts': False 
-            })
+            original_meters = float(row_data.total_meters_rowed) if row_data.total_meters_rowed is not None else 0
+            original_seconds = float(row_data.total_seconds_rowed) if row.total_seconds_rowed is not None else 0
+            original_split = float(row_data.split) if row_data.split is not None else 0
+            original_isoreps = float(row_data.total_isoreps_sum) if row_data.total_isoreps_sum is not None else 0
+            has_original_week_data = True
+        
+        adjusted_meters = original_meters
+        adjusted_seconds = original_seconds
+        adjusted_isoreps = original_isoreps
+        adjusted_split = original_split # Will be nullified if partial
+        is_partial_week = False
+
+        # Subtract days before the current month
+        current_adj_day = week_start_date_loop
+        while current_adj_day < month_start_date:
+            is_partial_week = True
+            daily_data_to_subtract = all_daily_data_for_adjustment_map.get(current_adj_day)
+            if daily_data_to_subtract:
+                adjusted_meters -= daily_data_to_subtract['meters']
+                adjusted_seconds -= daily_data_to_subtract['seconds']
+                adjusted_isoreps -= daily_data_to_subtract['isoreps']
+            current_adj_day += timedelta(days=1)
+
+        # Subtract days after the current month
+        current_adj_day = month_end_date + timedelta(days=1)
+        while current_adj_day <= week_end_date_loop:
+            is_partial_week = True
+            daily_data_to_subtract = all_daily_data_for_adjustment_map.get(current_adj_day)
+            if daily_data_to_subtract:
+                adjusted_meters -= daily_data_to_subtract['meters']
+                adjusted_seconds -= daily_data_to_subtract['seconds']
+                adjusted_isoreps -= daily_data_to_subtract['isoreps']
+            current_adj_day += timedelta(days=1)
+        
+        adjusted_meters = max(0, adjusted_meters)
+        adjusted_seconds = max(0, adjusted_seconds)
+        adjusted_isoreps = max(0, adjusted_isoreps)
+
+        final_split = None # Default to None
+        if is_partial_week:
+            if adjusted_meters > 0 and adjusted_seconds > 0:
+                try:
+                    final_split = (adjusted_seconds / adjusted_meters) * 500
+                except ZeroDivisionError:
+                    final_split = None # Should not happen if adjusted_meters > 0
+            else:
+                final_split = None # No activity in the partial week within the month
+        elif has_original_week_data: # It's a full week, use original split if available
+            final_split = original_split if original_split > 0 else None
+        
+        # Determine if the adjusted week still has workouts
+        has_adjusted_workouts = (adjusted_meters > 0 or adjusted_seconds > 0 or adjusted_isoreps > 0)
+
+
+        weekly_summaries_in_month.append({
+            'week_start_date': week_start_date_loop,
+            'week_end_date_display': week_end_date_loop,
+            'year': iso_cal[0],
+            'week_number': iso_cal[1],
+            'meters': adjusted_meters,
+            'seconds': adjusted_seconds,
+            'split': final_split, # Use the (potentially nullified) split
+            'isoreps': adjusted_isoreps,
+            'has_workouts': has_adjusted_workouts # Based on adjusted values
+        })
 
     # == Fetch Daily Summaries for each day in the Selected Month ============================================
     daily_summaries_in_month = []
@@ -207,13 +275,13 @@ def show_workouts_for_month(year_month_str):
 
     if weekly_summaries_in_month:
         has_chart_data_weekly_trends_month = True
-        for weekly_summary in weekly_summaries_in_month:
+        for weekly_summary in weekly_summaries_in_month: # weekly_summary now contains adjusted data
             chart_categories_labels_weekly_month.append(f"W{weekly_summary['week_number']:02d} '{str(weekly_summary['year'])[2:]}") # Format: W35 '23
             
-            meters = weekly_summary.get('meters')
-            seconds = weekly_summary.get('seconds')
-            split = weekly_summary.get('split')
-            reps = weekly_summary.get('isoreps')
+            meters = weekly_summary.get('meters') # Already adjusted
+            seconds = weekly_summary.get('seconds') # Already adjusted
+            split = weekly_summary.get('split') # Already adjusted (possibly None)
+            reps = weekly_summary.get('isoreps') # Already adjusted
 
             series_data_meters_weekly_month.append(meters if isinstance(meters, (int, float)) and math.isfinite(meters) else None)
             series_data_seconds_weekly_month.append(seconds if isinstance(seconds, (int, float)) and math.isfinite(seconds) else None)
