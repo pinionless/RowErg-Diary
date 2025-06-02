@@ -17,7 +17,7 @@ from sqlalchemy.exc import ProgrammingError # To catch errors like "table not fo
 # --------------------------------------------------------
 # - Application Version
 #---------------------------------------------------------
-__version__ = "0.15" 
+__version__ = "0.16" 
 TARGET_DB_SCHEMA_VERSION = "0.15" # Target schema version for this change
 
 # --------------------------------------------------------
