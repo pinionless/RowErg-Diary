@@ -19,6 +19,6 @@ jobs:
           package-name: 'rowerg-diary'
           package-type: 'container'
           owner: ${{ github.repository_owner }} 
-          min-versions-to-keep: 2 # Keep the 5 most recently pushed versions. Adjust as needed.
+          min-versions-to-keep: 1 # Keep the 5 most recently pushed versions. Adjust as needed.
           token: ${{ secrets.GHCR_TOKEN }} 
           delete-only-untagged-versions: "true"

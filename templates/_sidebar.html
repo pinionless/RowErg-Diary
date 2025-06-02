@@ -15,7 +15,6 @@
             <li class="{{ 'current' if request.path == url_for('summary_month') else '' }}"><a href="{{ url_for('summary_month') }}">Monthly Summary</a></li>
             <li class="{{ 'current' if request.path == url_for('summary_year') else '' }}"><a href="{{ url_for('summary_year') }}">Yearly Summary</a></li>
             <li class=""><a href="#">Ranking</a></li> <!-- Daily Summary Link -->
-            <li class="{{ 'current' if request.path == url_for('backup_management.index') else '' }}"><a href="{{ url_for('backup_management.index') }}">Backup</a></li>
             <li class="{{ 'current' if request.path == url_for('settings') else '' }}"><a href="{{ url_for('settings') }}">Settings</a></li>
 
 
