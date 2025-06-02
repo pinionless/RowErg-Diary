@@ -65,7 +65,7 @@
 									{% if workout.level is not none %}
 									<tr>
 										<td>Level:</td>
-										<td>{{ workout.level }}</td>
+										<td>{{ workout.level | round(1) }}</td>
 									</tr>
 									{% endif %}
 									{% if workout.notes %}

@@ -9,6 +9,9 @@ from models import db, EquipmentType, Workout, MetricDescriptor, WorkoutSample, 
 from utils import format_duration_ms # Retained as it might be used for debugging or future display logic, though not directly in current processing
 import os # Add os import for path operations
 
+# List of metric names to ignore for MetricDescriptor and WorkoutSample creation
+IGNORED_METRIC_NAMES = ["MetsMin", "Calories", "Level", "IsoReps", "Duration"]
+
 # --------------------------------------------------------
 # - JSON Workout Submission View Function
 #---------------------------------------------------------
@@ -81,8 +84,8 @@ def submit_json_workout():
         descriptors_json = workout_main_container.get('analitics', {}).get('descriptor', [])
         metric_descriptor_map_for_samples = {} # Maps JSON index 'i' to MetricDescriptor object
         
-        isoreps_descriptor_id = None # To identify IsoReps metric for summary
-        level_metric_json_index = None # To identify Level metric for averaging
+        isoreps_metric_json_index = None # To identify IsoReps metric JSON index for summary
+        level_metric_json_index = None # To identify Level metric JSON index for averaging
 
         for desc_data_from_json in descriptors_json:
             json_i = desc_data_from_json.get('i') # Index from JSON used to map samples
@@ -91,6 +94,17 @@ def submit_json_workout():
 
             if metric_name_from_json is None: # Skip if essential data is missing
                 current_app.logger.warning(f"Skipping descriptor due to missing name: {desc_data_from_json}")
+                continue
+
+            # Identify Level and IsoReps JSON indices even if they are ignored for DB storage
+            if metric_name_from_json == 'Level' and unit_of_measure_from_json == 'Number':
+                level_metric_json_index = json_i
+            elif metric_name_from_json == 'IsoReps' and unit_of_measure_from_json == 'Number':
+                isoreps_metric_json_index = json_i
+
+            # Skip creating MetricDescriptor and WorkoutSample for ignored metrics
+            if metric_name_from_json in IGNORED_METRIC_NAMES:
+                current_app.logger.info(f"Ignoring metric descriptor: {metric_name_from_json} ({unit_of_measure_from_json})")
                 continue
 
             # -- Find or Create MetricDescriptor in DB -------------------
@@ -119,10 +133,8 @@ def submit_json_workout():
             # -- Populate Map and Identify IsoReps -------------------
             if json_i is not None and metric_descriptor_entry:
                 metric_descriptor_map_for_samples[json_i] = metric_descriptor_entry
-                if metric_name_from_json == 'IsoReps' and unit_of_measure_from_json == 'Number':
-                    isoreps_descriptor_id = metric_descriptor_entry.metric_descriptor_id
-                elif metric_name_from_json == 'Level' and unit_of_measure_from_json == 'Number': # Identify Level metric index
-                    level_metric_json_index = json_i
+                # The specific isoreps_descriptor_id is no longer needed here for sample tracking if IsoReps is ignored.
+                # We use isoreps_metric_json_index for direct value extraction later.
         
         # == Workout Sample Processing ============================================
         samples_json = workout_main_container.get('analitics', {}).get('samples', [])
@@ -143,10 +155,14 @@ def submit_json_workout():
                 except (ValueError, TypeError):
                     current_app.logger.warning(f"Could not parse level value or time for averaging: time={time_offset}, value={values_from_json[level_metric_json_index]}")
 
-
+            # Process non-ignored samples and track last IsoReps value
             for original_json_index, value in enumerate(values_from_json):
+                # Track Last IsoReps Value directly from samples using its identified JSON index
+                if isoreps_metric_json_index is not None and original_json_index == isoreps_metric_json_index:
+                    last_isoreps_value = value
+
                 descriptor_obj = metric_descriptor_map_for_samples.get(original_json_index) # Get corresponding MetricDescriptor
-                if descriptor_obj: # If a descriptor exists for this sample index
+                if descriptor_obj: # If a descriptor exists for this sample index (i.e., not ignored)
                     workout_sample = WorkoutSample(
                         workout_id=new_workout.workout_id,
                         metric_descriptor_id=descriptor_obj.metric_descriptor_id,
@@ -156,8 +172,10 @@ def submit_json_workout():
                     db.session.add(workout_sample)
                     
                     # -- Track Last IsoReps Value -------------------
-                    if descriptor_obj.metric_descriptor_id == isoreps_descriptor_id:
-                        last_isoreps_value = value
+                    # This part is removed as IsoReps descriptor_id might not exist if ignored.
+                    # last_isoreps_value is now tracked above, before checking descriptor_obj.
+                    # if descriptor_obj.metric_descriptor_id == isoreps_descriptor_id:
+                    #     last_isoreps_value = value
 
         # == Workout Summary Data Population ============================================
         # -- Initialize Summary Variables -------------------

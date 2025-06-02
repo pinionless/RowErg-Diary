@@ -6,6 +6,7 @@ from models import db
 from sqlalchemy import text
 from datetime import datetime, timedelta
 import calendar
+import math # Add math for chart data sanitization
 
 # --------------------------------------------------------
 # - Show Workouts for Specific Month View Function
@@ -28,7 +29,7 @@ def show_workouts_for_month(year_month_str):
 
     except ValueError:
         flash(f'Invalid month format: {year_month_str}. Expected YYYY-MM (e.g., 2023-08).', 'danger')
-        return redirect(url_for('monthlysummary'))
+        return redirect(url_for('summary_month'))
 
     # == Fetch Overall Monthly Summary from Materialized View ============================================
     month_summary_data = None
@@ -196,6 +197,53 @@ def show_workouts_for_month(year_month_str):
             })
             current_day += timedelta(days=1)
 
+    # == Prepare Data for Weekly Trends Chart (from weekly_summaries_in_month) ========================
+    chart_categories_labels_weekly_month = []
+    series_data_meters_weekly_month = []
+    series_data_seconds_weekly_month = []
+    series_data_pace_weekly_month = []
+    series_data_reps_weekly_month = []
+    has_chart_data_weekly_trends_month = False
+
+    if weekly_summaries_in_month:
+        has_chart_data_weekly_trends_month = True
+        for weekly_summary in weekly_summaries_in_month:
+            chart_categories_labels_weekly_month.append(f"W{weekly_summary['week_number']:02d} '{str(weekly_summary['year'])[2:]}") # Format: W35 '23
+            
+            meters = weekly_summary.get('meters')
+            seconds = weekly_summary.get('seconds')
+            split = weekly_summary.get('split')
+            reps = weekly_summary.get('isoreps')
+
+            series_data_meters_weekly_month.append(meters if isinstance(meters, (int, float)) and math.isfinite(meters) else None)
+            series_data_seconds_weekly_month.append(seconds if isinstance(seconds, (int, float)) and math.isfinite(seconds) else None)
+            series_data_pace_weekly_month.append(split if isinstance(split, (int, float)) and math.isfinite(split) and split > 0 else None)
+            series_data_reps_weekly_month.append(reps if isinstance(reps, (int, float)) and math.isfinite(reps) and reps >= 0 else None)
+
+    # == Prepare Data for Daily Trends Chart (from daily_summaries_in_month) ==========================
+    chart_categories_labels_daily_month = []
+    series_data_meters_daily_month = []
+    series_data_seconds_daily_month = []
+    series_data_pace_daily_month = []
+    series_data_reps_daily_month = []
+    has_chart_data_daily_trends_month = False
+
+    if daily_summaries_in_month:
+        has_chart_data_daily_trends_month = True
+        for daily_summary in daily_summaries_in_month:
+            chart_categories_labels_daily_month.append(daily_summary['day_date'].strftime('%d %a')) # Format: 01 Mon
+            
+            meters = daily_summary.get('meters')
+            seconds = daily_summary.get('seconds')
+            split = daily_summary.get('split')
+            reps = daily_summary.get('isoreps')
+
+            series_data_meters_daily_month.append(meters if isinstance(meters, (int, float)) and math.isfinite(meters) else None)
+            series_data_seconds_daily_month.append(seconds if isinstance(seconds, (int, float)) and math.isfinite(seconds) else None)
+            series_data_pace_daily_month.append(split if isinstance(split, (int, float)) and math.isfinite(split) and split > 0 else None)
+            series_data_reps_daily_month.append(reps if isinstance(reps, (int, float)) and math.isfinite(reps) and reps >= 0 else None)
+
+
     # == Render Template ============================================
     return render_template(
         'workouts_by_month.html',
@@ -204,7 +252,21 @@ def show_workouts_for_month(year_month_str):
         selected_month_str=month_start_date.strftime('%B %Y'),
         month_summary_data=month_summary_data,
         weekly_summaries_in_month=weekly_summaries_in_month,
-        daily_summaries_in_month=daily_summaries_in_month
+        daily_summaries_in_month=daily_summaries_in_month,
+        # Weekly trends chart data
+        has_chart_data_weekly_trends_month=has_chart_data_weekly_trends_month,
+        chart_categories_labels_weekly_month=chart_categories_labels_weekly_month,
+        series_data_meters_weekly_month=series_data_meters_weekly_month,
+        series_data_seconds_weekly_month=series_data_seconds_weekly_month,
+        series_data_pace_weekly_month=series_data_pace_weekly_month,
+        series_data_reps_weekly_month=series_data_reps_weekly_month,
+        # Daily trends chart data for the month
+        has_chart_data_daily_trends_month=has_chart_data_daily_trends_month,
+        chart_categories_labels_daily_month=chart_categories_labels_daily_month,
+        series_data_meters_daily_month=series_data_meters_daily_month,
+        series_data_seconds_daily_month=series_data_seconds_daily_month,
+        series_data_pace_daily_month=series_data_pace_daily_month,
+        series_data_reps_daily_month=series_data_reps_daily_month
     )
 
 # --------------------------------------------------------

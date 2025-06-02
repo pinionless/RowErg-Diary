@@ -5,6 +5,7 @@ from flask import render_template, flash, redirect, url_for, current_app
 from models import db, Workout # Workout model might not be directly needed here anymore
 from sqlalchemy import text
 from datetime import datetime, timedelta
+import math # Added for chart data sanitization
 
 # --------------------------------------------------------
 # - Show Workouts for Specific Week View Function
@@ -24,7 +25,7 @@ def show_workouts_for_week(year_week_str):
         week_end_date = week_start_date + timedelta(days=6) # Sunday
     except ValueError:
         flash(f'Invalid week format: {year_week_str}. Expected YYYY-Www (e.g., 2023-W35).', 'danger')
-        return redirect(url_for('weeklysummary')) 
+        return redirect(url_for('summary_week')) 
 
     # == Fetch Overall Weekly Summary from Materialized View ============================================
     week_summary_data = None
@@ -120,6 +121,28 @@ def show_workouts_for_week(year_week_str):
             })
             current_day += timedelta(days=1)
 
+    # == Prepare Data for Chart (from daily_summaries_in_week) ============================================
+    chart_categories_labels_week = []
+    series_data_meters_week = []
+    series_data_seconds_week = []
+    series_data_pace_week = []
+    series_data_reps_week = []
+    has_chart_data_week = False
+
+    if daily_summaries_in_week:
+        has_chart_data_week = True
+        for daily_summary in daily_summaries_in_week:
+            chart_categories_labels_week.append(daily_summary['day_date'].strftime('%a, %b %d')) # Format: Mon, Jan 01
+            
+            meters = daily_summary.get('meters')
+            seconds = daily_summary.get('seconds')
+            split = daily_summary.get('split')
+            reps = daily_summary.get('isoreps')
+
+            series_data_meters_week.append(meters if isinstance(meters, (int, float)) and math.isfinite(meters) else None)
+            series_data_seconds_week.append(seconds if isinstance(seconds, (int, float)) and math.isfinite(seconds) else None)
+            series_data_pace_week.append(split if isinstance(split, (int, float)) and math.isfinite(split) and split > 0 else None)
+            series_data_reps_week.append(reps if isinstance(reps, (int, float)) and math.isfinite(reps) and reps >= 0 else None)
 
     # == Render Template ============================================
     return render_template(
@@ -130,7 +153,14 @@ def show_workouts_for_week(year_week_str):
         week_end_date_obj=week_end_date,     # Pass date objects for potential use
         selected_week_str=f"Week {week_number}, {year} ({week_start_date.strftime('%b %d')} - {week_end_date.strftime('%b %d, %Y')})",
         week_summary_data=week_summary_data,
-        daily_summaries_in_week=daily_summaries_in_week # Pass the list of daily summaries
+        daily_summaries_in_week=daily_summaries_in_week, # Pass the list of daily summaries
+        # Chart data for the week
+        has_chart_data_week=has_chart_data_week,
+        chart_categories_labels_week=chart_categories_labels_week,
+        series_data_meters_week=series_data_meters_week,
+        series_data_seconds_week=series_data_seconds_week,
+        series_data_pace_week=series_data_pace_week,
+        series_data_reps_week=series_data_reps_week
     )
 
 # --------------------------------------------------------
