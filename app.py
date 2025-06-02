@@ -8,7 +8,7 @@ from models import db
 # - View and Utility Imports
 #---------------------------------------------------------
 # Import application views
-from views import home, submit_json_workout, workouts, details, summary_day, summary_week, summary_month, summary_year, workouts_by_date, submit_manual_workout, workouts_by_week, workouts_by_month, workouts_by_year, backup_management, settings # Changed export_restore to backup_management
+from views import home, submit_json_workout, workouts, details, summary_day, summary_week, summary_month, summary_year, workouts_by_date, submit_manual_workout, workouts_by_week, workouts_by_month, workouts_by_year, settings 
 # Import utility functions and context processors
 from utils import sidebar_stats_processor, format_total_seconds_human_readable, format_split_short, format_duration_ms, nl2br_filter, format_seconds_to_hms # Changed format_duration_hms_tenths
 from database_setup import create_db_components, update_db_schema # Import database setup functions
@@ -115,7 +115,6 @@ def create_app(config_object=None):
         workouts_by_month.register_routes(app) # Registers routes for viewing workouts by specific month
         workouts_by_year.register_routes(app) # Registers routes for viewing workouts by specific year
         submit_manual_workout.register_routes(app) # Registers routes for submitting manual workouts
-        backup_management.register_routes(app) # Changed export_restore to backup_management
         settings.register_routes(app)       # Registers routes for settings page
 
     return app
