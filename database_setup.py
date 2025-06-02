@@ -214,8 +214,8 @@ def update_db_schema(current_version, target_version):
     current_app.logger.info(f"Attempting to update database schema from {current_version} to {target_version}.")
     
     with current_app.app_context():
-        if current_version == "0.13" and target_version == "0.14":
-            current_app.logger.info("Applying schema migration for version 0.14.")
+        if current_version == "0.13" and target_version == "0.15":
+            current_app.logger.info("Applying schema migration for version 0.15.")
             try:
                 # 1. Add 'settings_include_in_totals' column
                 current_app.logger.info("Adding 'settings_include_in_totals' to 'equipment_types'.")
@@ -251,14 +251,14 @@ def update_db_schema(current_version, target_version):
                     current_app.logger.info(f"Updated 'db_schema_ver' to '{target_version}'.")
                 else:
                     # This case should ideally not happen if create_db_components ran before or db_schema_ver was '0.13'
-                    current_app.logger.error("Could not find 'db_schema_ver' to update during migration to 0.14. Creating it.")
+                    current_app.logger.error("Could not find 'db_schema_ver' to update during migration to 0.15. Creating it.")
                     new_schema_ver_setting = UserSetting(key='db_schema_ver', value=target_version)
                     db.session.add(new_schema_ver_setting)
 
-                db.session.commit() # Commit all changes for 0.14 migration (settings and schema version)
+                db.session.commit() # Commit all changes for 0.15 migration (settings and schema version)
                 current_app.logger.info(f"Database schema migration to {target_version} completed successfully.")
                         
             except Exception as e:
                 db.session.rollback()
-                current_app.logger.error(f"Error migrating schema to 0.14: {e}", exc_info=True)
+                current_app.logger.error(f"Error migrating schema to 0.15: {e}", exc_info=True)
                 # Depending on policy, you might re-raise or prevent app

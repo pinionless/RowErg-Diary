@@ -78,7 +78,7 @@
 							</table>
 						</div>
 						<div class="flex-box">
-							<h3>Workout Rank</h3>
+							<h3>Workout Rank #todo DEV</h3>
 							<table>
 								<tbody>
 									<tr>
@@ -98,6 +98,23 @@
 						</div>
 					</div>
 				</article>
+
+				<!-- -- Metric Charts Section ------------------- -->
+				{% if charts_data_list %}
+				<article class="box post post-excerpt">
+					<header>
+						<h2 style="text-align: center;">Workout Graphs</h2>
+					</header>
+					{% for chart_info in charts_data_list %}
+					<!-- Wrapper for Chart - similar to workouts.html -->
+					<div style="max-width: 800px; margin-left: auto; margin-right: auto; margin-bottom: 30px;" class="type01"> 
+						<div id="{{ chart_info.element_id }}" style="width:100%; min-height:350px; background:#f4f7fb; border:1px solid #e0e0e0;">
+							<!-- Chart will be rendered here by ApexCharts -->
+						</div>
+					</div>
+					{% endfor %}
+				</article>
+				{% endif %}
 
 					<!-- -- Back Link Section ------------------- -->
 				<div style="text-align: center; margin-top: 30px;">
@@ -120,5 +137,177 @@
 		<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/util.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+		<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script> <!-- REMOVED ApexCharts CDN -->
+
+		{% if charts_data_list %}
+		<script>
+		document.addEventListener("DOMContentLoaded", function() {
+			const chartsToRender = {{ charts_data_list | tojson | safe }};
+			// console.log("--- Debug JS: chartsToRender received from server:", chartsToRender);
+
+			function formatSecondsToMMSS(totalSeconds) {
+				if (totalSeconds === null || typeof totalSeconds === 'undefined') return 'N/A';
+				const roundedTotalSeconds = Math.round(parseFloat(totalSeconds)); // Round to nearest whole second
+				const minutes = Math.floor(roundedTotalSeconds / 60);
+				const seconds = roundedTotalSeconds % 60;
+				return minutes + ":" + (seconds < 10 ? '0' : '') + seconds;
+			}
+
+			chartsToRender.forEach(chartInfo => {
+				// console.log("--- Debug JS: Processing chartInfo:", chartInfo);
+				// const categories = JSON.parse(chartInfo.categories_json); // No longer using separate categories
+				const seriesDataWithXY = JSON.parse(chartInfo.series_data_json); // This is now an array of {x, y}
+
+				// Check if there's any non-null y-value data
+				if (seriesDataWithXY && seriesDataWithXY.some(point => point.y !== null)) { 
+					const options = {
+						chart: {
+							type: 'line',
+							height: 350,
+							zoom: { enabled: true },
+							animations: { enabled: false },
+							background: 'transparent', 
+							toolbar: {
+								show: true,
+								tools: {
+									download: true,
+									selection: true,
+									zoom: true,
+									zoomin: true,
+									zoomout: true,
+									pan: true,
+									reset: true
+								}
+							}
+						},
+						series: [{
+							name: chartInfo.title,
+							data: seriesDataWithXY // Use the {x,y} data directly
+						}],
+						xaxis: {
+							// categories: categories, // Removed, x-values are in series data
+							type: 'numeric', // X-axis is numeric
+							title: { text: 'Duration (seconds)' },
+							labels: {
+								formatter: function (value) { // value is the numeric x-value
+									return formatSecondsToMMSS(value); // Keep formatting as mm:ss
+								}
+							}
+						},
+						yaxis: {
+							title: { text: chartInfo.title },
+							labels: {
+								formatter: function (value) {
+									if (value === null || typeof value === 'undefined') return '';
+									if (chartInfo.metric_key === 'Pace') {
+										const minutes = Math.floor(value / 60);
+										const seconds = (value % 60);
+										const formattedSeconds = Number.isInteger(seconds) ? seconds.toFixed(0) : seconds.toFixed(1);
+										return minutes + ":" + (seconds < 10 ? '0' : '') + formattedSeconds;
+									}
+									return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
+								}
+							},
+							// Conditionally set min to 0 for Power chart only
+							min: (chartInfo.metric_key === 'Power') ? 0 : undefined
+						},
+						title: {
+							text: chartInfo.title,
+							align: 'left'
+						},
+						stroke: {
+							curve: 'smooth', // or 'straight' if data has many nulls
+							width: 1
+						},
+						grid: {
+							show: true,
+							borderColor: '#e0e0e0', // Grid line color to match border
+							strokeDashArray: 4, // Dashed grid lines
+							xaxis: {
+								lines: {
+									show: true // Show vertical grid lines
+								}
+							},
+							yaxis: {
+								lines: {
+									show: true // Show horizontal grid lines
+								}
+							}
+						},
+						tooltip: {
+							x: {
+								formatter: function (val, { series, seriesIndex, dataPointIndex, w }) {
+									// val is the x-value of the hovered point
+									return "Time: " + formatSecondsToMMSS(val);
+								}
+							},
+							y: {
+								formatter: function (value) {
+									if (value === null || typeof value === 'undefined') return 'N/A';
+									if (chartInfo.metric_key === 'Pace') {
+										const minutes = Math.floor(value / 60);
+										const seconds = (value % 60);
+										const formattedSeconds = Number.isInteger(seconds) ? seconds.toFixed(0) : seconds.toFixed(1);
+										// Use chartInfo.unit for pace if available, otherwise default to /500m
+										const unitString = chartInfo.unit ? " " + chartInfo.unit : " /500m";
+										return minutes + ":" + (seconds < 10 ? '0' : '') + formattedSeconds + unitString;
+									}
+									// For other metrics, use the unit from chartInfo if available
+									const unit = chartInfo.unit ? " " + chartInfo.unit : "";
+									return (Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1)) + unit;
+								}
+							}
+						},
+						noData: {
+							text: 'No data available for this chart.',
+							align: 'center',
+							verticalAlign: 'middle',
+							style: { 
+								fontSize: '14px',
+								color: '#6a8fd7' // Matching the style of no-data message in workouts.html
+							}
+						}
+						// Add annotations if they exist in chartInfo
+					};
+
+					if (chartInfo.annotations_json) {
+						try {
+							const annotations = JSON.parse(chartInfo.annotations_json);
+							if (annotations) {
+								options.annotations = annotations;
+								// console.log("--- Debug JS: Added annotations for " + chartInfo.element_id + ":", annotations);
+							}
+						} catch (e) {
+							console.error("--- Debug JS: Error parsing annotations_json for " + chartInfo.element_id + ":", e);
+						}
+					}
+					
+					// console.log("--- Debug JS: ApexCharts options for " + chartInfo.element_id + ":", options);
+
+					const chartElementContainer = document.getElementById(chartInfo.element_id); // Get the inner div
+					if (chartElementContainer) {
+						// Clear previous content if any (e.g., no data message)
+						chartElementContainer.innerHTML = ''; 
+						const chart = new ApexCharts(chartElementContainer, options);
+						chart.render();
+						// console.log("--- Debug JS: Chart rendered for " + chartInfo.element_id);
+					} else {
+						// console.error("--- Debug JS: Chart element NOT FOUND for #" + chartInfo.element_id);
+					}
+				} else {
+					// console.warn("--- Debug JS: No series_data or empty series_data for chartInfo:", chartInfo.element_id, chartInfo.title);
+					const chartDiv = document.querySelector("#" + chartInfo.element_id);
+					if (chartDiv) {
+						chartDiv.innerHTML = `<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:350px;">
+												<span style="color:#6a8fd7; font-size:1.2em;">[ No data available for ${chartInfo.title} ]</span>
+											 </div>`;
+					} else {
+						// console.error("--- Debug JS: Chart element NOT FOUND for #" + chartInfo.element_id + " (when attempting to show no data message)");
+					}
+				}
+			});
+		});
+		</script>
+		{% endif %}
 	</body>
 </html>

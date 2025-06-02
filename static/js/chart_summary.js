@@ -216,7 +216,8 @@
                         title: {
                             text: "Distance (m)",
                             style: { color: baseChartSettings.colors[0] }
-                        }
+                        },
+                        min: 0
                     },
                     { 
                         seriesName: 'Duration (s)',
@@ -233,7 +234,8 @@
                         title: {
                             text: "Duration (s)",
                             style: { color: baseChartSettings.colors[1] }
-                        }
+                        },
+                        min: 0
                     },
                     { 
                         seriesName: 'Pace (s/500m)',
@@ -271,7 +273,8 @@
                         title: {
                             text: "Reps", 
                             style: { color: baseChartSettings.colors[3] }
-                        }
+                        },
+                        min: 0
                     }
                 ],
                 tooltip: {
