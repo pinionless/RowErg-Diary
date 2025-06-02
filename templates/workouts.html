@@ -33,6 +33,22 @@
 					{% endif %}
 				{% endwith %}
 				
+				<!-- -- Workouts Chart Section ------------------- -->
+				{% if has_chart_data %}
+				<article class="box post post-excerpt">
+					<div style="max-width: 800px;" class="type01"> <!-- Wrapper for Chart -->
+						<div id="workoutsTrendChart" style="width:100%; min-height:350px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0 15px 0;">
+							{% if not series_data_meters and not series_data_seconds and not series_data_pace and not series_data_reps %}
+							<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:350px;">
+								<span style="color:#6a8fd7; font-size:1.2em;">[ No chart data available for these workouts ]</span>
+							</div>
+							{% endif %}
+						</div>
+					</div>
+				</article>
+				<hr class="extra_article"> <!-- Separator line -->
+				{% endif %}
+
 				<!-- -- Workouts Table Section ------------------- -->
 				{% if workouts_display_data %} <!-- Check if there are workouts to display -->
 					<article class="box post post-excerpt">
@@ -65,7 +81,7 @@
 										<td>{{ item_data.workout_obj.duration_seconds | format_total_seconds_human_readable if item_data.workout_obj.duration_seconds is not none else 'N/A' }}</td> <!-- Formatted Duration -->
 										<td>{{ item_data.workout_obj.average_split_seconds_500m | format_split_ms if item_data.workout_obj.average_split_seconds_500m is not none else 'N/A' }}</td> <!-- Formatted Split -->
 										<td class="showhide">
-											{{ '{:,.0f}'.format(item_data.workout_obj.total_isoreps) if item_data.workout_obj.total_isoreps is not none and item_data.workout_obj.total_isoreps > 0 else '-' }}
+											{{ '{:,.0f}'.format(item_data.workout_obj.total_isoreps) if item_data.workout_obj.total_isoreps is not none and item_data.workout_obj.total_isoreps > 0 else '' }}
 										</td>
 										<td class="hideshow">
 											<!-- Link to view detailed information for this workout -->
@@ -89,38 +105,30 @@
 					<p></p>
 				{% endif %}
 
-				<!-- -- Pagination Section ------------------- -->
-				{% if workouts_pagination.pages > 1 %} <!-- Check if pagination is needed -->
-					<div class="pagination">
-						<!-- Previous Page Button -->
-						{% if workouts_pagination.has_prev %}
-							<a href="{{ url_for('workouts_paginated', page_num=workouts_pagination.prev_num) }}"
-							   class="button previous">Previous Page</a>
-						{% else %}
-							<span class="button previous disabled" aria-disabled="true">Previous Page</span>
-						{% endif %}
-						
-						<!-- Page Numbers -->
-						<div class="pages">
-							{% for page in workouts_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-								{% if page %}
-									<a href="{{ url_for('workouts_paginated', page_num=page) }}"
-									   class="{% if page == workouts_pagination.page %}active{% endif %}">{{ page }}</a>
-								{% else %}
-									<span>…</span> <!-- Ellipsis for skipped pages -->
-								{% endif %}
-							{% endfor %}
+					<!-- -- Pagination Section ------------------- -->
+					{% if workouts_pagination and workouts_pagination.pages > 1 %} <!-- Renamed variable -->
+						<div class="pagination">
+							{% if workouts_pagination.has_prev %} <!-- Renamed variable -->
+								<a href="{{ url_for('workouts_paginated', page_num=workouts_pagination.prev_num) }}" class="button previous">Previous Page</a>
+							{% else %}
+								<span class="button previous disabled" aria-disabled="true">Previous Page</span>
+							{% endif %}
+							<div class="pages">
+								{% for page in workouts_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %} <!-- Renamed variable -->
+									{% if page %}
+										<a href="{{ url_for('workouts_paginated', page_num=page) }}" class="{% if page == workouts_pagination.page %}active{% endif %}">{{ page }}</a> 
+									{% else %}
+										<span>…</span>
+									{% endif %}
+								{% endfor %}
+							</div>
+							{% if workouts_pagination.has_next %} <!-- Renamed variable -->
+								<a href="{{ url_for('workouts_paginated', page_num=workouts_pagination.next_num) }}" class="button next">Next Page</a>
+							{% else %}
+								<span class="button next disabled" aria-disabled="true">Next Page</span>
+							{% endif %}
 						</div>
-						
-						<!-- Next Page Button -->
-						{% if workouts_pagination.has_next %}
-							<a href="{{ url_for('workouts_paginated', page_num=workouts_pagination.next_num) }}"
-							   class="button next">Next Page</a>
-						{% else %}
-							<span class="button next disabled" aria-disabled="true">Next Page</span>
-						{% endif %}
-					</div>
-				{% endif %}
+					{% endif %}
 			</div>
 		</div>
 		<!-- == Sidebar Inclusion ============================================ -->
@@ -132,5 +140,33 @@
 		<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/util.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+		<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+		{% if has_chart_data %}
+		<script src="{{ url_for('static', filename='js/chart_summary.js') }}"></script>
+		<script>
+			document.addEventListener("DOMContentLoaded", function() {
+				const categoriesDataValues = Array.isArray({{ chart_categories_dates | tojson | safe }}) ? {{ chart_categories_dates | tojson | safe }} : [];
+				const metersSeriesDataValues = Array.isArray({{ series_data_meters | tojson | safe }}) ? {{ series_data_meters | tojson | safe }} : [];
+				const secondsSeriesDataValues = Array.isArray({{ series_data_seconds | tojson | safe }}) ? {{ series_data_seconds | tojson | safe }} : [];
+				const paceSeriesDataValues = Array.isArray({{ series_data_pace | tojson | safe }}) ? {{ series_data_pace | tojson | safe }} : [];
+				const repsSeriesDataValues = Array.isArray({{ series_data_reps | tojson | safe }}) ? {{ series_data_reps | tojson | safe }} : [];
+
+				if (typeof initializeSummaryChart === "function") {
+					initializeSummaryChart(
+						"workoutsTrendChart", // Ensure this ID matches the div id="workoutsTrendChart"
+						categoriesDataValues,
+						metersSeriesDataValues,
+						secondsSeriesDataValues,
+						paceSeriesDataValues,
+						repsSeriesDataValues,
+						"Workout (ID)"
+					);
+				} else {
+					console.error("Error: initializeSummaryChart function not found. Check js/chart_summary.js.");
+				}
+			});
+		</script>
+		{% endif %}
 	</body>
 </html>

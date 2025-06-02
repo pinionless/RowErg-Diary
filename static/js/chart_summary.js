@@ -1,5 +1,6 @@
 // Wrap all your chart logic in a function that accepts the data
     function initializeSummaryChart( // Renamed from initializeYearlyChart
+        chartElementId, // Added: ID of the chart container element
         categoriesData, // Renamed from yearsCategories
         metersSeriesData, 
         secondsSeriesData, 
@@ -174,6 +175,17 @@
                         (paceSeriesData && paceSeriesData.length > 0) ||
                         (repsSeriesData && repsSeriesData.length > 0);
 
+        // IMPORTANT: Select the chart element using the passed ID
+        const chartContainer = document.querySelector("#" + chartElementId);
+
+        if (!chartContainer) {
+            console.error("Error: Chart container element with ID '" + chartElementId + "' not found in the DOM.");
+            // Optionally, display a message in a fallback location or do nothing if the element is critical
+            // For example, if you have a general error display area:
+            // document.getElementById('general-error-area').textContent = "Chart could not be loaded: container missing.";
+            return; // Stop execution if the container is not found
+        }
+
         if (hasData) {
             var optionsCombined = {
                 ...baseChartSettings,
@@ -204,7 +216,8 @@
                         title: {
                             text: "Distance (m)",
                             style: { color: baseChartSettings.colors[0] }
-                        }
+                        },
+                        min: 0
                     },
                     { 
                         seriesName: 'Duration (s)',
@@ -221,7 +234,8 @@
                         title: {
                             text: "Duration (s)",
                             style: { color: baseChartSettings.colors[1] }
-                        }
+                        },
+                        min: 0
                     },
                     { 
                         seriesName: 'Pace (s/500m)',
@@ -259,7 +273,8 @@
                         title: {
                             text: "Reps", 
                             style: { color: baseChartSettings.colors[3] }
-                        }
+                        },
+                        min: 0
                     }
                 ],
                 tooltip: {
@@ -310,7 +325,7 @@
                     }
                 }
             };
-            var combinedChart = new ApexCharts(document.querySelector("#summaryTrendsChart"), optionsCombined); // Use generic ID selector
+            var combinedChart = new ApexCharts(chartContainer, optionsCombined); // Use generic ID selector
             combinedChart.render().then(() => {
                 const seriesToHideByDefault = ['Duration (s)', 'Pace (s/500m)', 'Reps'];
                 
@@ -321,13 +336,18 @@
                         combinedChart.showSeries(seriesObj.name);
                     }
                 });
+            }).catch(function(error) {
+                console.error("ApexCharts render error:", error);
+                if (chartContainer) {
+                    chartContainer.innerHTML = `<div style="text-align:center; padding:20px; color:red;">Error rendering chart: ${error.message}</div>`;
+                }
             });
         } else {
-            // Optional: Handle case where #summaryTrendsChart exists but there's no data to plot
-            // You might want to display a message inside the chart div if it's empty
-            const chartDiv = document.querySelector("#summaryTrendsChart"); // Use generic ID selector
-            if (chartDiv && !chartDiv.innerHTML.includes("No chart data available")) { // Avoid duplicate messages
-                 // The HTML already has a conditional message, so this might not be needed
+            // Handle case where chartContainer exists but there's no data
+            if (chartContainer) { // Check again, though it should exist if we passed the first check
+                // The HTML templates already have a conditional message for no chart data,
+                // so this might be redundant or you can refine it.
+                // Example: chartContainer.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:350px;"><span style="color:#6a8fd7; font-size:1.2em;">[ No data to display in chart ]</span></div>';
             }
         }
     }

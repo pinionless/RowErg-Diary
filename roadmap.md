@@ -1,8 +1,4 @@
 # Roadmap
-- Database
-    - The current templates (e.g., index.html, workouts.html, details.html, _sidebar.html, dailysummary.html, workouts_by_date.html) do not yet display the total_isoreps value
-- Adding backend functionality for the "Manual Workout Input" form.
-- Move Inline CSS from details.html
 - Enhanced Statistics & Dashboard Page
     - Create a new route (e.g., /dashboard) that displays more comprehensive statistics.
     - Utilize mv_year_totals, mv_month_totals, mv_week_totals to show trends.

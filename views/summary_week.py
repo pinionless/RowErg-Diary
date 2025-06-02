@@ -1,9 +1,9 @@
 # ========================================================
-# = weeklysummary.py - View for displaying paginated weekly workout summaries
+# = summary_week.py - View for displaying paginated weekly workout summaries
 # ========================================================
 from flask import render_template, redirect, url_for, current_app
 from sqlalchemy import text
-from models import db # Assuming db is initialized and available
+from models import db, UserSetting # Assuming db is initialized and available, Added UserSetting
 from utils import CustomPagination # Import CustomPagination
 from datetime import datetime # Added for chart category formatting
 import math # Added for chart data sanitization
@@ -12,9 +12,21 @@ import math # Added for chart data sanitization
 # - Weekly Summary View Function
 #---------------------------------------------------------
 # Displays paginated weekly workout summaries from the mv_week_totals materialized view.
-def weeklysummary(page_num=1):
+def summary_week(page_num=1): # Renamed function
     # == Pagination Configuration ============================================
-    per_page_value = current_app.config.get('PER_PAGE', 10) # Get items per page from app config
+    # Fetch 'per_page_summary_week' from UserSetting table
+    per_page_setting = UserSetting.query.filter_by(key='per_page_summary_week').first()
+    if per_page_setting and per_page_setting.value and per_page_setting.value.isdigit():
+        per_page_value = int(per_page_setting.value)
+        if per_page_value <= 0: # Ensure positive value
+            per_page_value = 12 # Fallback to a sensible default (e.g., from DEFAULT_SETTINGS in settings.py)
+            current_app.logger.warning("per_page_summary_week setting is not positive, using default 12.")
+    else:
+        per_page_value = 12 # Default if setting not found or invalid
+        if per_page_setting: # Log if found but invalid
+            current_app.logger.warning(f"per_page_summary_week setting '{per_page_setting.value}' is invalid, using default 12.")
+        else: # Log if not found
+            current_app.logger.info("per_page_summary_week setting not found, using default 12.")
 
     # == Query Total Count for Pagination ============================================
     count_result = db.session.execute(text("SELECT COUNT(*) FROM mv_week_totals")).scalar()
@@ -24,17 +36,16 @@ def weeklysummary(page_num=1):
     if page_num < 1:
         page_num = 1
     elif page_num > total_pages and total_pages > 0:
-        return redirect(url_for('weeklysummary_paginated', page_num=total_pages))
+        return redirect(url_for('summary_week_paginated', page_num=total_pages)) # Updated url_for
     elif page_num > total_pages and total_pages == 0: # If no data, redirect to page 1
-        return redirect(url_for('weeklysummary_paginated', page_num=1))
-
+        return redirect(url_for('summary_week_paginated', page_num=1)) # Updated url_for
 
     # == Calculate Offset for SQL Query ============================================
     offset = (page_num - 1) * per_page_value
 
     # == Query Data for Current Page ============================================
     # Data is fetched DESC for table display. A reversed copy will be used for the chart.
-    weeklysummary_raw_results_desc = db.session.execute(text(f"""
+    summary_week_raw_results_desc = db.session.execute(text(f"""
         SELECT
             week_start_date,
             total_meters_rowed,
@@ -49,10 +60,10 @@ def weeklysummary(page_num=1):
     """), {'limit': per_page_value, 'offset': offset}).fetchall()
 
     # == Prepare Data for Template ============================================
-    weeklysummary_display_data = []
-    for row in weeklysummary_raw_results_desc:
+    summary_week_display_data = [] # Renamed variable
+    for row in summary_week_raw_results_desc:
         iso_calendar = row.week_start_date.isocalendar()
-        weeklysummary_display_data.append({
+        summary_week_display_data.append({ # Renamed variable
             'year': iso_calendar[0],
             'week_number': iso_calendar[1],
             'meters': float(row.total_meters_rowed) if row.total_meters_rowed is not None else 0,
@@ -62,11 +73,11 @@ def weeklysummary(page_num=1):
         })
 
     # == Custom Pagination Object ============================================
-    weeklysummary_pagination = CustomPagination(page_num, per_page_value, count_result, weeklysummary_display_data)
+    summary_week_pagination = CustomPagination(page_num, per_page_value, count_result, summary_week_display_data) # Renamed variable
 
     # == Prepare Data for Chart ============================================
     # Use the paginated data (reversed for chronological order) for the chart.
-    chart_data_source = list(reversed(weeklysummary_raw_results_desc))
+    chart_data_source = list(reversed(summary_week_raw_results_desc))
 
     chart_categories_weeks = []
     chart_series_data_meters = []
@@ -96,9 +107,9 @@ def weeklysummary(page_num=1):
 
     # == Render Template ============================================
     return render_template(
-        'weeklysummary.html',
-        weeklysummary_pagination=weeklysummary_pagination,
-        weeklysummary_display_data=weeklysummary_display_data,
+        'summary_week.html', # Updated template name
+        summary_week_pagination=summary_week_pagination, # Renamed variable
+        summary_week_display_data=summary_week_display_data, # Renamed variable
         page_title="Weekly Workout Summaries",
         # Chart data
         chart_categories_weeks=chart_categories_weeks,
@@ -114,5 +125,5 @@ def weeklysummary(page_num=1):
 #---------------------------------------------------------
 # Registers the weekly summary view routes with the Flask application.
 def register_routes(app):
-    app.add_url_rule('/weeklysummary/', endpoint='weeklysummary', view_func=lambda: weeklysummary(1), methods=['GET'])
-    app.add_url_rule('/weeklysummary/page/<int:page_num>', endpoint='weeklysummary_paginated', view_func=weeklysummary, methods=['GET'])
+    app.add_url_rule('/summary_week/', endpoint='summary_week', view_func=lambda: summary_week(1), methods=['GET']) # Updated endpoint and view_func
+    app.add_url_rule('/summary_week/page/<int:page_num>', endpoint='summary_week_paginated', view_func=summary_week, methods=['GET']) # Updated endpoint and view_func

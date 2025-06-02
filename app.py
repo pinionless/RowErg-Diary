@@ -8,14 +8,17 @@ from models import db
 # - View and Utility Imports
 #---------------------------------------------------------
 # Import application views
-from views import home, submit_json_workout, workouts, details, database_management, dailysummary, weeklysummary, monthlysummary, yearlysummary, workouts_by_date, submit_manual_workout, workouts_by_week, workouts_by_month, workouts_by_year
+from views import home, submit_json_workout, workouts, details, summary_day, summary_week, summary_month, summary_year, workouts_by_date, submit_manual_workout, workouts_by_week, workouts_by_month, workouts_by_year, backup_management, settings # Changed export_restore to backup_management
 # Import utility functions and context processors
 from utils import sidebar_stats_processor, format_total_seconds_human_readable, format_split_short, format_duration_ms, nl2br_filter, format_seconds_to_hms # Changed format_duration_hms_tenths
+from database_setup import create_db_components, update_db_schema # Import database setup functions
+from sqlalchemy.exc import ProgrammingError # To catch errors like "table not found"
 
 # --------------------------------------------------------
 # - Application Version
 #---------------------------------------------------------
-__version__ = "0.14" # Assuming version remains or will be updated separately
+__version__ = "0.15" 
+TARGET_DB_SCHEMA_VERSION = "0.15" # Target schema version for this change
 
 # --------------------------------------------------------
 # - Application Factory Function
@@ -29,6 +32,7 @@ def create_app(config_object=None):
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # Max content length for uploads
     app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'your_default_secret_key') # Secret key for session management
     app.config['PER_PAGE'] = int(os.environ.get('PER_PAGE', '10')) # Items per page for pagination
+    app.config['TARGET_DB_SCHEMA_VERSION'] = TARGET_DB_SCHEMA_VERSION # Store in app config
 
     # -- Database Configuration -------------------
     DB_USER = os.environ.get('POSTGRES_USER') # PostgreSQL username
@@ -41,6 +45,42 @@ def create_app(config_object=None):
     
     # == Database Initialization ============================================
     db.init_app(app) # Initialize SQLAlchemy with the Flask app
+
+    # == Database Schema Check and Initialization/Update =====================
+    with app.app_context():
+        from models import UserSetting # Import UserSetting model here to avoid circular dependency at module level
+
+        try:
+            # Attempt to get the current DB schema version
+            db_schema_ver_setting = db.session.query(UserSetting).filter_by(key='db_schema_ver').first()
+            
+            if db_schema_ver_setting is None:
+                # Key 'db_schema_ver' not found in an existing user_settings table,
+                # or table might be empty. Run full setup.
+                app.logger.info("'db_schema_ver' key not found. Running initial database setup.")
+                create_db_components() # This will create tables if needed and set the schema version.
+            else:
+                current_db_schema_ver = db_schema_ver_setting.value
+                target_schema_ver_from_config = app.config['TARGET_DB_SCHEMA_VERSION']
+                if current_db_schema_ver != target_schema_ver_from_config:
+                    app.logger.info(f"DB schema version mismatch. Current: {current_db_schema_ver}, Target: {target_schema_ver_from_config}. Running update.")
+                    update_db_schema(current_db_schema_ver, target_schema_ver_from_config)
+                else:
+                    app.logger.info(f"DB schema version {current_db_schema_ver} is up to date.")
+
+        except ProgrammingError as e:
+            # This typically means the 'user_settings' table (or others) doesn't exist.
+            # Common error messages: "relation \"user_settings\" does not exist" (PostgreSQL)
+            # or "no such table: user_settings" (SQLite)
+            db.session.rollback() # Rollback any transaction from the failed query
+            app.logger.warning(f"ProgrammingError during DB schema check (likely tables missing): {e}. Running initial database setup.")
+            create_db_components() # Create all tables and set initial schema version.
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"An unexpected error occurred during DB schema check: {e}", exc_info=True)
+            # Depending on the severity, you might want to prevent the app from starting.
+            # For now, we'll log and continue, but this could be critical.
+            # raise # Uncomment to make this a fatal error
 
     # == Context Processors ============================================
     app.context_processor(sidebar_stats_processor) # Register sidebar stats processor
@@ -66,16 +106,17 @@ def create_app(config_object=None):
         submit_json_workout.register_routes(app) # Registers routes for submitting JSON workouts
         workouts.register_routes(app) # Registers routes for displaying workouts list
         details.register_routes(app) # Registers routes for workout details page
-        database_management.register_routes(app) # Registers routes for database management tasks
-        dailysummary.register_routes(app) # Registers routes for daily summary page
-        weeklysummary.register_routes(app) # Registers routes for weekly summary page
-        monthlysummary.register_routes(app) # Registers routes for monthly summary page
-        yearlysummary.register_routes(app) # Registers routes for yearly summary page
+        summary_day.register_routes(app) # Registers routes for daily summary page
+        summary_week.register_routes(app) # Registers routes for weekly summary page
+        summary_month.register_routes(app) # Registers routes for monthly summary page
+        summary_year.register_routes(app) # Registers routes for yearly summary page
         workouts_by_date.register_routes(app) # Registers routes for viewing workouts by specific date
         workouts_by_week.register_routes(app) # Registers routes for viewing workouts by specific week
         workouts_by_month.register_routes(app) # Registers routes for viewing workouts by specific month
         workouts_by_year.register_routes(app) # Registers routes for viewing workouts by specific year
         submit_manual_workout.register_routes(app) # Registers routes for submitting manual workouts
+        backup_management.register_routes(app) # Changed export_restore to backup_management
+        settings.register_routes(app)       # Registers routes for settings page
 
     return app
 

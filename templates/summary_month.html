@@ -1,5 +1,5 @@
 <!-- ======================================================== -->
-<!-- = monthlysummary.html - Template for displaying monthly workout summaries -->
+<!-- = summary_month.html - Template for displaying monthly workout summaries -->
 <!-- ======================================================== -->
 <!DOCTYPE HTML>
 <html>
@@ -39,7 +39,7 @@
 					<!-- Wrapper for Chart to control max-width -->
 					<div style="max-width: 800px;" class="type01">
 						<!-- Combined Chart for Distance, Duration, Pace, and Reps -->
-						<div id="summaryTrendsChart" style="width:100%; min-height:350px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0 15px 0;">
+						<div id="summaryMonthChart" style="width:100%; min-height:350px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0 15px 0;"> <!-- Changed ID -->
 							{% if not series_data_meters and not series_data_seconds and not series_data_pace and not series_data_reps %}
 							<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:350px;">
 								<span style="color:#6a8fd7; font-size:1.2em;">[ No chart data available ]</span>
@@ -52,7 +52,7 @@
 				{% endif %}
 
 				<!-- -- Monthly Totals Table Section ------------------- -->
-				{% if monthlysummary_display_data %}
+				{% if summary_month_display_data %} <!-- Renamed variable -->
 					<article class="box post post-excerpt">
 						<div class="table-wrapper">
 							<table class="type01">
@@ -70,7 +70,7 @@
 									</tr>
 								</thead>
 								<tbody>
-									{% for summary in monthlysummary_display_data %}
+									{% for summary in summary_month_display_data %} <!-- Renamed variable -->
 									<tr>
 										<td>{{ "{:02d}".format(summary.month) }} - {{ summary.year }}</td>
 										<td>{{ '{:,.0f}'.format(summary.meters) if summary.meters is not none else '0' }}</td>
@@ -101,36 +101,30 @@
 						</div>
 					</article>
 				{% endif %}
-
-				<!-- -- Pagination Section ------------------- -->
-				{% if monthlysummary_pagination and monthlysummary_pagination.pages > 1 %}
-					<div class="pagination">
-						{% if monthlysummary_pagination.has_prev %}
-							<a href="{{ url_for('monthlysummary_paginated', page_num=monthlysummary_pagination.prev_num) }}"
-							   class="button previous">Previous Page</a>
-						{% else %}
-							<span class="button previous disabled" aria-disabled="true">Previous Page</span>
-						{% endif %}
-						
-						<div class="pages">
-							{% for page in monthlysummary_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-								{% if page %}
-									<a href="{{ url_for('monthlysummary_paginated', page_num=page) }}"
-									   class="{% if page == monthlysummary_pagination.page %}active{% endif %}">{{ page }}</a>
-								{% else %}
-									<span>…</span>
-								{% endif %}
-							{% endfor %}
+					<!-- -- Pagination Section ------------------- -->
+					{% if summary_month_pagination and summary_month_pagination.pages > 1 %} <!-- Renamed variable -->
+						<div class="pagination">
+							{% if summary_month_pagination.has_prev %} <!-- Renamed variable -->
+								<a href="{{ url_for('summary_month_paginated', page_num=summary_month_pagination.prev_num) }}" class="button previous">Previous Page</a>
+							{% else %}
+								<span class="button previous disabled" aria-disabled="true">Previous Page</span>
+							{% endif %}
+							<div class="pages">
+								{% for page in summary_month_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %} <!-- Renamed variable -->
+									{% if page %}
+										<a href="{{ url_for('summary_month_paginated', page_num=page) }}" class="{% if page == summary_month_pagination.page %}active{% endif %}">{{ page }}</a> 
+									{% else %}
+										<span>…</span>
+									{% endif %}
+								{% endfor %}
+							</div>
+							{% if summary_month_pagination.has_next %} <!-- Renamed variable -->
+								<a href="{{ url_for('summary_month_paginated', page_num=summary_month_pagination.next_num) }}" class="button next">Next Page</a>
+							{% else %}
+								<span class="button next disabled" aria-disabled="true">Next Page</span>
+							{% endif %}
 						</div>
-						
-						{% if monthlysummary_pagination.has_next %}
-							<a href="{{ url_for('monthlysummary_paginated', page_num=monthlysummary_pagination.next_num) }}"
-							   class="button next">Next Page</a>
-						{% else %}
-							<span class="button next disabled" aria-disabled="true">Next Page</span>
-						{% endif %}
-					</div>
-				{% endif %}
+					{% endif %}
 			</div>
 		</div>
 		<!-- == Sidebar Inclusion ============================================ -->
@@ -155,15 +149,15 @@
 				const paceSeriesDataValues = Array.isArray({{ series_data_pace | tojson | safe }}) ? {{ series_data_pace | tojson | safe }} : [];
 				const repsSeriesDataValues = Array.isArray({{ series_data_reps | tojson | safe }}) ? {{ series_data_reps | tojson | safe }} : [];
 
-				// Check if the function from the external script is available
 				if (typeof initializeSummaryChart === "function") {
 					initializeSummaryChart(
+						"summaryMonthChart", // Pass the chart ID for this page // Changed ID
 						categoriesDataValues,
 						metersSeriesDataValues,
 						secondsSeriesDataValues,
 						paceSeriesDataValues,
 						repsSeriesDataValues,
-						"Month" // xAxisTitle for monthly chart
+						"Month" // Appropriate X-axis title
 					);
 				} else {
 					console.error("Error: initializeSummaryChart function not found. Check js/chart_summary.js.");

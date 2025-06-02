@@ -1,5 +1,5 @@
 <!-- ======================================================== -->
-<!-- = dailysummary.html - Template for displaying daily workout summaries -->
+<!-- = summary_day.html - Template for displaying daily workout summaries -->
 <!-- ======================================================== -->
 <!DOCTYPE HTML>
 <html>
@@ -39,7 +39,7 @@
 					<!-- Wrapper for Chart to control max-width -->
 					<div style="max-width: 800px;" class="type01">
 						<!-- Combined Chart for Distance, Duration, Pace, and Reps -->
-						<div id="summaryTrendsChart" style="width:100%; min-height:350px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0 15px 0;">
+						<div id="summaryDayChart" style="width:100%; min-height:350px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0 15px 0;"> <!-- Changed ID -->
 							{% if not series_data_meters and not series_data_seconds and not series_data_pace and not series_data_reps %}
 							<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:350px;">
 								<span style="color:#6a8fd7; font-size:1.2em;">[ No chart data available ]</span>
@@ -52,7 +52,7 @@
 				{% endif %}
 
 				<!-- -- Daily Totals Table Section ------------------- -->
-				{% if dailysummary_display_data %}
+				{% if summary_day_display_data %} <!-- Renamed variable -->
 					<article class="box post post-excerpt">
 						<div class="table-wrapper">
 							<table class="type01">
@@ -70,7 +70,7 @@
 									</tr>
 								</thead>
 								<tbody>
-									{% for summary in dailysummary_display_data %}
+									{% for summary in summary_day_display_data %} <!-- Renamed variable -->
 									<tr>
 										<td>{{ summary.day_date.strftime('%Y-%m-%d') }}</td>
 										<td>{{ '{:,.0f}'.format(summary.meters) if summary.meters is not none else '0' }}</td>
@@ -102,35 +102,35 @@
 					</article>
 				{% endif %}
 
-				<!-- -- Pagination Section ------------------- -->
-				{% if dailysummary_pagination and dailysummary_pagination.pages > 1 %}
-					<div class="pagination">
-						{% if dailysummary_pagination.has_prev %}
-							<a href="{{ url_for('dailysummary_paginated', page_num=dailysummary_pagination.prev_num) }}"
-							   class="button previous">Previous Page</a>
-						{% else %}
-							<span class="button previous disabled" aria-disabled="true">Previous Page</span>
-						{% endif %}
-						
-						<div class="pages">
-							{% for page in dailysummary_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-								{% if page %}
-									<a href="{{ url_for('dailysummary_paginated', page_num=page) }}"
-									   class="{% if page == dailysummary_pagination.page %}active{% endif %}">{{ page }}</a>
-								{% else %}
-									<span>…</span>
-								{% endif %}
-							{% endfor %}
+
+
+
+					<!-- -- Pagination Section ------------------- -->
+					{% if summary_day_pagination and summary_day_pagination.pages > 1 %} <!-- Renamed variable -->
+						<div class="pagination">
+							{% if summary_day_pagination.has_prev %} <!-- Renamed variable -->
+								<a href="{{ url_for('summary_day_paginated', page_num=summary_day_pagination.prev_num) }}" class="button previous">Previous Page</a>
+							{% else %}
+								<span class="button previous disabled" aria-disabled="true">Previous Page</span>
+							{% endif %}
+							<div class="pages">
+								{% for page in summary_day_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %} <!-- Renamed variable -->
+									{% if page %}
+										<a href="{{ url_for('summary_day_paginated', page_num=page) }}" class="{% if page == summary_day_pagination.page %}active{% endif %}">{{ page }}</a> 
+									{% else %}
+										<span>…</span>
+									{% endif %}
+								{% endfor %}
+							</div>
+							{% if summary_day_pagination.has_next %} <!-- Renamed variable -->
+								<a href="{{ url_for('summary_day_paginated', page_num=summary_day_pagination.next_num) }}" class="button next">Next Page</a>
+							{% else %}
+								<span class="button next disabled" aria-disabled="true">Next Page</span>
+							{% endif %}
 						</div>
-						
-						{% if dailysummary_pagination.has_next %}
-							<a href="{{ url_for('dailysummary_paginated', page_num=dailysummary_pagination.next_num) }}"
-							   class="button next">Next Page</a>
-						{% else %}
-							<span class="button next disabled" aria-disabled="true">Next Page</span>
-						{% endif %}
-					</div>
-				{% endif %}
+					{% endif %}
+					
+
 			</div>
 		</div>
 		<!-- == Sidebar Inclusion ============================================ -->
@@ -148,22 +148,21 @@
 		<script src="{{ url_for('static', filename='js/chart_summary.js') }}"></script>
 		<script>
 			document.addEventListener("DOMContentLoaded", function() {
-				// Ensure data are arrays, defaulting to empty if null/undefined
 				const categoriesDataValues = Array.isArray({{ chart_categories_dates | tojson | safe }}) ? {{ chart_categories_dates | tojson | safe }} : [];
 				const metersSeriesDataValues = Array.isArray({{ series_data_meters | tojson | safe }}) ? {{ series_data_meters | tojson | safe }} : [];
 				const secondsSeriesDataValues = Array.isArray({{ series_data_seconds | tojson | safe }}) ? {{ series_data_seconds | tojson | safe }} : [];
 				const paceSeriesDataValues = Array.isArray({{ series_data_pace | tojson | safe }}) ? {{ series_data_pace | tojson | safe }} : [];
 				const repsSeriesDataValues = Array.isArray({{ series_data_reps | tojson | safe }}) ? {{ series_data_reps | tojson | safe }} : [];
 
-				// Check if the function from the external script is available
 				if (typeof initializeSummaryChart === "function") {
 					initializeSummaryChart(
+						"summaryDayChart", // Ensure this ID matches the div id="summaryDayChart" // Changed ID
 						categoriesDataValues,
 						metersSeriesDataValues,
 						secondsSeriesDataValues,
 						paceSeriesDataValues,
 						repsSeriesDataValues,
-						"Date" // xAxisTitle for daily chart
+						"Date"
 					);
 				} else {
 					console.error("Error: initializeSummaryChart function not found. Check js/chart_summary.js.");

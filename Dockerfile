@@ -34,5 +34,6 @@ ENV FLASK_RUN_HOST=0.0.0.0
 ENV PYTHONUNBUFFERED=1
 
 # == Execution Command ============================================
-# Run app.py when the container launches
+# Run the Flask app (defined in the FLASK_APP environment variable, e.g., app.py)
+# using the Flask development server.
 CMD ["flask", "run"]

@@ -16,6 +16,11 @@
 		<!-- == Main Content Area ============================================ -->
 		<div id="content" class="custom-fullwidth">
 			<div class="inner">
+				<!-- -- Page Header ------------------- -->
+				<h1 class="extra_h1">{{ workout.workout_name | default('Unnamed Workout') }}</h1>
+				<p style="font-size: 1.2em; margin-top: 10px; color:#888">{{ workout.workout_date.strftime('%A, %B %d, %Y') if workout.workout_date else 'Date: N/A' }}</p>
+				<hr class="extra_title_line">
+
 				<!-- -- Flash Messages Section ------------------- -->
 				{% with messages = get_flashed_messages(with_categories=true) %}
 					{% if messages %}
@@ -29,227 +34,98 @@
 					{% endif %}
 				{% endwith %}
 					
-				<div class="workout-details-main">
-					<!-- -- Workout Header Section ------------------- -->
-					<div class="workout-header">
-						<h1>{{ workout.workout_name | default('Unnamed Workout') }}</h1> <!-- Workout Name -->
-						<p class="workout-date">
-							{{ workout.workout_date.strftime('%A, %B %d, %Y') if workout.workout_date else 'Date: N/A' }} <!-- Workout Date -->
-						</p>
-					</div>
-
-					<!-- -- General Information Card ------------------- -->
-					<div class="card info-card">
-						<h2>General Information</h2>
-						<div class="info-grid">
-							<div><span>ID (DB):</span> {{ workout.workout_id }}</div> <!-- Database ID -->
-							<div><span>Cardio Log ID:</span> {{ workout.cardio_log_id }}</div> <!-- External Log ID -->
-							<div><span>Equipment:</span> {{ workout.equipment_type_ref.name | default('N/A') }}</div> <!-- Equipment Used -->
-							<div><span>Target:</span> {{ workout.target_description | default('N/A') }}</div> <!-- Target Description -->
-							
-							<div><span>Total Distance:</span> {{ '{:,.0f}'.format(workout.total_distance_meters) if workout.total_distance_meters is not none else 'N/A' }} m</div> <!-- Total Distance -->
-							<div><span>Total Duration:</span> {{ workout.duration_seconds | format_total_seconds_human_readable }}</div> <!-- Total Duration -->
-							<div><span>Average Split (/500m):</span> {{ workout.average_split_seconds_500m | format_split_ms }}</div> <!-- Average Split -->
+				<article class="box post post-excerpt">
+					<div class="flex-container">
+						<div class="flex-box">
+							<h3>Workout Details</h3>
+							<table>
+								<tbody>
+									<tr>
+										<td>Equipment:</td>
+										<td>{{ workout.equipment_type_ref.name | default('N/A') }}</td>
+									</tr>
+									<tr>
+										<td>Distance:</td>
+										<td>{{ '{:,.0f}'.format(workout.total_distance_meters) if workout.total_distance_meters is not none else 'N/A' }} m</td>
+									</tr>
+									<tr>
+										<td>Duration:</td>
+										<td>{{ workout.duration_seconds | format_total_seconds_human_readable }}</td>
+									</tr>
+									<tr>
+										<td>Pace (/500m):</td>
+										<td>{{ workout.average_split_seconds_500m | format_split_ms }}</td>
+									</tr>
+									{% if workout.total_isoreps is not none and workout.total_isoreps > 0 %}
+									<tr>
+										<td>Reps:</td>
+										<td>{{ '{:,.0f}'.format(workout.total_isoreps) }}</td>
+									</tr>
+									{% endif %}
+									{% if workout.level is not none %}
+									<tr>
+										<td>Level:</td>
+										<td>{{ workout.level }}</td>
+									</tr>
+									{% endif %}
+									{% if workout.notes %}
+									<tr>
+										<td>Notes:</td>
+										<td>{{ workout.notes | nl2br }}</td>
+									</tr>
+									{% endif %}
+								</tbody>
+							</table>
+						</div>
+						<div class="flex-box">
+							<h3>Workout Rank #todo DEV</h3>
+							<table>
+								<tbody>
+									<tr>
+										<td>Overall:</td><!-- DEV. TO DO -->
+										<td>12.</td> <!-- DEV. TO DO -->
+									</tr>
+									<tr>
+										<td>This Year:</td><!-- DEV. TO DO -->
+										<td>3.</td><!-- DEV. TO DO -->
+									</tr>
+									<tr>
+										<td>This Month:</td><!-- DEV. TO DO -->
+										<td>1.</td><!-- DEV. TO DO -->
+									</tr>
+								</tbody>
+							</table>
 						</div>
 					</div>
+				</article>
 
-					<!-- -- Metric Descriptors Used Section ------------------- -->
-					{% if workout_metric_descriptors %} <!-- Check if metric descriptors are available -->
-					<div class="card">
-						<h2>Metric Descriptors Used</h2>
-						<table class="styled-table">
-							<thead>
-								<tr>
-									<th>Name</th>
-									<th>Unit</th>
-								</tr>
-							</thead>
-							<tbody>
-								{% for desc in workout_metric_descriptors %} <!-- Loop through each descriptor -->
-								<tr>
-									<td>{{ desc.metric_name }}</td> <!-- Metric Name -->
-									<td>{{ desc.unit_of_measure | default('N/A') }}</td> <!-- Unit of Measure -->
-								</tr>
-								{% endfor %}
-							</tbody>
-						</table>
+				<!-- -- Metric Charts Section ------------------- -->
+				{% if charts_data_list %}
+				<article class="box post post-excerpt">
+					<header>
+						<h2 style="text-align: center;">Workout Graphs</h2>
+					</header>
+					{% for chart_info in charts_data_list %}
+					<!-- Wrapper for Chart - similar to workouts.html -->
+					<div style="max-width: 800px; margin-left: auto; margin-right: auto; margin-bottom: 30px;" class="type01"> 
+						<div id="{{ chart_info.element_id }}" style="width:100%; min-height:350px; background:#f4f7fb; border:1px solid #e0e0e0;">
+							<!-- Chart will be rendered here by ApexCharts -->
+						</div>
 					</div>
-					{% endif %}
-
-					<!-- -- Workout Samples Section ------------------- -->
-					{% if first_10_workout_samples or last_10_workout_samples %} <!-- Check if workout samples are available -->
-					<div class="card">
-						<h2>Workout Samples
-							<small> <!-- Sub-heading for sample count -->
-								{% if total_workout_samples == 0 %} (No samples recorded)
-								{% elif total_workout_samples <= 10 %} (Showing all {{ total_workout_samples }})
-								{% elif total_workout_samples <= 20 %} (Showing all {{ total_workout_samples }})
-								{% else %} (First 10 & Last 10 of {{ total_workout_samples }})
-								{% endif %}
-							</small>
-						</h2>
-						{% if total_workout_samples > 0 %}
-						<table class="styled-table">
-							<thead>
-								<tr>
-									<th>Time Offset (s)</th>
-									<th>Metric Name</th>
-									<th>Value</th>
-									<th>Unit</th>
-								</tr>
-							</thead>
-							<tbody>
-								<!-- ---- First 10 Workout Samples ---- -->
-								{% for sample in first_10_workout_samples %}
-								<tr>
-									<td>{{ sample.time_offset_seconds }}</td> <!-- Time Offset -->
-									<td>{{ sample.metric_descriptor_ref.metric_name | default('N/A') }}</td> <!-- Metric Name from related descriptor -->
-									<td>{{ "%.2f"|format(sample.value) if sample.value is not none else 'N/A' }}</td> <!-- Sample Value (formatted) -->
-									<td>{{ sample.metric_descriptor_ref.unit_of_measure | default('') }}</td> <!-- Unit from related descriptor -->
-								</tr>
-								{% endfor %}
-								<!-- ---- Ellipsis if more than 20 samples ---- -->
-								{% if workout_samples_ellipsis_needed %}
-								<tr>
-									<td colspan="4" class="ellipsis">... {{ total_workout_samples - 20 }} more samples ...</td> <!-- Ellipsis row -->
-								</tr>
-								{% endif %}
-								<!-- ---- Last 10 Workout Samples (if applicable) ---- -->
-								{% if workout_samples_ellipsis_needed or (total_workout_samples > 10 and total_workout_samples <= 20) %}
-									{% for sample in last_10_workout_samples %}
-									<tr>
-										<td>{{ sample.time_offset_seconds }}</td>
-										<td>{{ sample.metric_descriptor_ref.metric_name | default('N/A') }}</td>
-										<td>{{ "%.2f"|format(sample.value) if sample.value is not none else 'N/A' }}</td>
-										<td>{{ sample.metric_descriptor_ref.unit_of_measure | default('') }}</td>
-									</tr>
-									{% endfor %}
-								{% endif %}
-							</tbody>
-						</table>
-						{% else %}
-						<p class="no-data">No workout samples available for this workout.</p> <!-- Message if no samples -->
-						{% endif %}
-					</div>
-					{% endif %}
-
-					<!-- -- Heart Rate Samples Section ------------------- -->
-					{% if first_10_hr_samples or last_10_hr_samples %} <!-- Check if HR samples are available -->
-					<div class="card">
-						<h2>Heart Rate Samples
-							<small> <!-- Sub-heading for HR sample count -->
-								{% if total_hr_samples == 0 %} (No HR samples recorded)
-								{% elif total_hr_samples <= 10 %} (Showing all {{ total_hr_samples }})
-								{% elif total_hr_samples <= 20 %} (Showing all {{ total_hr_samples }})
-								{% else %} (First 10 & Last 10 of {{ total_hr_samples }})
-								{% endif %}
-							</small>
-						</h2>
-						{% if total_hr_samples > 0 %}
-						<table class="styled-table">
-							<thead>
-								<tr>
-									<th>Time Offset (s)</th>
-									<th>Heart Rate (bpm)</th>
-								</tr>
-							</thead>
-							<tbody>
-								<!-- ---- First 10 HR Samples ---- -->
-								{% for sample in first_10_hr_samples %}
-								<tr>
-									<td>{{ sample.time_offset_seconds }}</td> <!-- Time Offset -->
-									<td>{{ sample.heart_rate_bpm if sample.heart_rate_bpm is not none else 'N/A' }}</td> <!-- Heart Rate Value -->
-								</tr>
-								{% endfor %}
-								<!-- ---- Ellipsis if more than 20 HR samples ---- -->
-								{% if hr_samples_ellipsis_needed %}
-								<tr>
-									<td colspan="2" class="ellipsis">... {{ total_hr_samples - 20 }} more samples ...</td> <!-- Ellipsis row -->
-								</tr>
-								{% endif %}
-								<!-- ---- Last 10 HR Samples (if applicable) ---- -->
-								{% if hr_samples_ellipsis_needed or (total_hr_samples > 10 and total_hr_samples <= 20) %}
-									{% for sample in last_10_hr_samples %}
-									<tr>
-										<td>{{ sample.time_offset_seconds }}</td>
-										<td>{{ sample.heart_rate_bpm if sample.heart_rate_bpm is not none else 'N/A' }}</td>
-									</tr>
-									{% endfor %}
-								{% endif %}
-							</tbody>
-						</table>
-						{% else %}
-						<p class="no-data">No heart rate samples available for this workout.</p> <!-- Message if no HR samples -->
-						{% endif %}
-					</div>
-					{% endif %}
-
-					<!-- -- Heart Rate Zones Section ------------------- -->
-					{% if workout.workout_hr_zones and workout.workout_hr_zones|length > 0 %} <!-- Check if HR zones are available -->
-					<div class="card">
-						<h2>Heart Rate Zones</h2>
-						<table class="styled-table">
-							<thead>
-								<tr>
-									<th>Zone Name</th>
-									<th>Color</th>
-									<th>Lower BPM</th>
-									<th>Upper BPM</th>
-									<th>Seconds in Zone</th>
-								</tr>
-							</thead>
-							<tbody>
-								{% for zone in workout.workout_hr_zones | sort(attribute='lower_bound_bpm') %} <!-- Loop through each zone, sorted -->
-								<tr>
-									<td>{{ zone.zone_name }}</td> <!-- Zone Name -->
-									<td>
-										<span class="zone-color" style="background:{{ zone.color_hex | default('transparent') }};"></span> <!-- Color indicator -->
-										{{ zone.color_hex | default('N/A') }} <!-- Color Hex Code -->
-									</td>
-									<td>{{ "%.1f"|format(zone.lower_bound_bpm) if zone.lower_bound_bpm is not none else 'N/A' }}</td> <!-- Lower BPM -->
-									<td>{{ "%.1f"|format(zone.upper_bound_bpm) if zone.upper_bound_bpm is not none else 'N/A' }}</td> <!-- Upper BPM -->
-									<td>{{ "%.1f"|format(zone.seconds_in_zone) if zone.seconds_in_zone is not none else 'N/A' }}</td> <!-- Time in Zone -->
-								</tr>
-								{% endfor %}
-							</tbody>
-						</table>
-					</div>
-					{% endif %}
+					{% endfor %}
+				</article>
+				{% endif %}
 
 					<!-- -- Back Link Section ------------------- -->
-					<div class="back-link-container">
-						<a href="javascript:window.history.back();" class="back-link">
+				<div style="text-align: center; margin-top: 30px;">
+						<a href="javascript:window.history.back();" class="button">
 							← Back <!-- Link to go back to the previous page -->
 						</a>
 					</div>
 				</div>
 
 				<!-- -- Inline Styles Section (Consider moving to CSS file) ------------------- -->
-				<style>
-                    /* Inline styles remain the same for now */
-                    .workout-details-main { max-width: 900px; margin: 0 auto 40px auto; padding: 20px 10px; }
-                    .workout-header { text-align: center; margin-bottom: 24px; }
-                    .workout-header h1 { font-size: 2.2em; margin-bottom: 0.2em; }
-                    .workout-date { color: #888; font-size: 1.1em; margin-top: 0; }
-                    .card { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 22px 24px 18px 24px; margin-bottom: 28px; }
-                    .info-card .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 24px; }
-                    .info-card .info-grid div { padding: 6px 0; font-size: 1.08em; }
-                    .info-card .info-grid span { font-weight: 600; color: #444; margin-right: 6px; }
-                    .styled-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                    .styled-table th, .styled-table td { padding: 8px 10px; border-bottom: 1px solid #e0e0e0; text-align: left; }
-                    .styled-table th { background: #f7f7f7; font-weight: 600; }
-                    .styled-table tr:nth-child(even) { background: #fafbfc; }
-                    .styled-table .ellipsis { text-align: center; font-style: italic; color: #888; background: #f9f9f9; }
-                    .no-data { color: #b00; text-align: center; font-style: italic; margin: 12px 0; }
-                    .zone-color { display: inline-block; width: 18px; height: 18px; border-radius: 4px; margin-right: 8px; vertical-align: middle; border: 1px solid #ccc; }
-                    .back-link-container { text-align: center; margin-top: 30px; }
-                    .back-link { display: inline-block; padding: 8px 22px; background: #f3f3f3; border-radius: 6px; color: #333; text-decoration: none; font-weight: 500; transition: background 0.15s; border: 1px solid #e0e0e0; }
-                    .back-link:hover { background: #e0e0e0; }
-                    @media (max-width: 700px) {
-                        .card { padding: 14px 6px 10px 6px; }
-                        .info-card .info-grid { grid-template-columns: 1fr; }
-                    }
-                </style>
+
 			</div>
 		</div>
 		<!-- == Sidebar Inclusion ============================================ -->
@@ -261,5 +137,177 @@
 		<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/util.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+		<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script> <!-- REMOVED ApexCharts CDN -->
+
+		{% if charts_data_list %}
+		<script>
+		document.addEventListener("DOMContentLoaded", function() {
+			const chartsToRender = {{ charts_data_list | tojson | safe }};
+			// console.log("--- Debug JS: chartsToRender received from server:", chartsToRender);
+
+			function formatSecondsToMMSS(totalSeconds) {
+				if (totalSeconds === null || typeof totalSeconds === 'undefined') return 'N/A';
+				const roundedTotalSeconds = Math.round(parseFloat(totalSeconds)); // Round to nearest whole second
+				const minutes = Math.floor(roundedTotalSeconds / 60);
+				const seconds = roundedTotalSeconds % 60;
+				return minutes + ":" + (seconds < 10 ? '0' : '') + seconds;
+			}
+
+			chartsToRender.forEach(chartInfo => {
+				// console.log("--- Debug JS: Processing chartInfo:", chartInfo);
+				// const categories = JSON.parse(chartInfo.categories_json); // No longer using separate categories
+				const seriesDataWithXY = JSON.parse(chartInfo.series_data_json); // This is now an array of {x, y}
+
+				// Check if there's any non-null y-value data
+				if (seriesDataWithXY && seriesDataWithXY.some(point => point.y !== null)) { 
+					const options = {
+						chart: {
+							type: 'line',
+							height: 350,
+							zoom: { enabled: true },
+							animations: { enabled: false },
+							background: 'transparent', 
+							toolbar: {
+								show: true,
+								tools: {
+									download: true,
+									selection: true,
+									zoom: true,
+									zoomin: true,
+									zoomout: true,
+									pan: true,
+									reset: true
+								}
+							}
+						},
+						series: [{
+							name: chartInfo.title,
+							data: seriesDataWithXY // Use the {x,y} data directly
+						}],
+						xaxis: {
+							// categories: categories, // Removed, x-values are in series data
+							type: 'numeric', // X-axis is numeric
+							title: { text: 'Duration (seconds)' },
+							labels: {
+								formatter: function (value) { // value is the numeric x-value
+									return formatSecondsToMMSS(value); // Keep formatting as mm:ss
+								}
+							}
+						},
+						yaxis: {
+							title: { text: chartInfo.title },
+							labels: {
+								formatter: function (value) {
+									if (value === null || typeof value === 'undefined') return '';
+									if (chartInfo.metric_key === 'Pace') {
+										const minutes = Math.floor(value / 60);
+										const seconds = (value % 60);
+										const formattedSeconds = Number.isInteger(seconds) ? seconds.toFixed(0) : seconds.toFixed(1);
+										return minutes + ":" + (seconds < 10 ? '0' : '') + formattedSeconds;
+									}
+									return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
+								}
+							},
+							// Conditionally set min to 0 for Power chart only
+							min: (chartInfo.metric_key === 'Power') ? 0 : undefined
+						},
+						title: {
+							text: chartInfo.title,
+							align: 'left'
+						},
+						stroke: {
+							curve: 'smooth', // or 'straight' if data has many nulls
+							width: 1
+						},
+						grid: {
+							show: true,
+							borderColor: '#e0e0e0', // Grid line color to match border
+							strokeDashArray: 4, // Dashed grid lines
+							xaxis: {
+								lines: {
+									show: true // Show vertical grid lines
+								}
+							},
+							yaxis: {
+								lines: {
+									show: true // Show horizontal grid lines
+								}
+							}
+						},
+						tooltip: {
+							x: {
+								formatter: function (val, { series, seriesIndex, dataPointIndex, w }) {
+									// val is the x-value of the hovered point
+									return "Time: " + formatSecondsToMMSS(val);
+								}
+							},
+							y: {
+								formatter: function (value) {
+									if (value === null || typeof value === 'undefined') return 'N/A';
+									if (chartInfo.metric_key === 'Pace') {
+										const minutes = Math.floor(value / 60);
+										const seconds = (value % 60);
+										const formattedSeconds = Number.isInteger(seconds) ? seconds.toFixed(0) : seconds.toFixed(1);
+										// Use chartInfo.unit for pace if available, otherwise default to /500m
+										const unitString = chartInfo.unit ? " " + chartInfo.unit : " /500m";
+										return minutes + ":" + (seconds < 10 ? '0' : '') + formattedSeconds + unitString;
+									}
+									// For other metrics, use the unit from chartInfo if available
+									const unit = chartInfo.unit ? " " + chartInfo.unit : "";
+									return (Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1)) + unit;
+								}
+							}
+						},
+						noData: {
+							text: 'No data available for this chart.',
+							align: 'center',
+							verticalAlign: 'middle',
+							style: { 
+								fontSize: '14px',
+								color: '#6a8fd7' // Matching the style of no-data message in workouts.html
+							}
+						}
+						// Add annotations if they exist in chartInfo
+					};
+
+					if (chartInfo.annotations_json) {
+						try {
+							const annotations = JSON.parse(chartInfo.annotations_json);
+							if (annotations) {
+								options.annotations = annotations;
+								// console.log("--- Debug JS: Added annotations for " + chartInfo.element_id + ":", annotations);
+							}
+						} catch (e) {
+							console.error("--- Debug JS: Error parsing annotations_json for " + chartInfo.element_id + ":", e);
+						}
+					}
+					
+					// console.log("--- Debug JS: ApexCharts options for " + chartInfo.element_id + ":", options);
+
+					const chartElementContainer = document.getElementById(chartInfo.element_id); // Get the inner div
+					if (chartElementContainer) {
+						// Clear previous content if any (e.g., no data message)
+						chartElementContainer.innerHTML = ''; 
+						const chart = new ApexCharts(chartElementContainer, options);
+						chart.render();
+						// console.log("--- Debug JS: Chart rendered for " + chartInfo.element_id);
+					} else {
+						// console.error("--- Debug JS: Chart element NOT FOUND for #" + chartInfo.element_id);
+					}
+				} else {
+					// console.warn("--- Debug JS: No series_data or empty series_data for chartInfo:", chartInfo.element_id, chartInfo.title);
+					const chartDiv = document.querySelector("#" + chartInfo.element_id);
+					if (chartDiv) {
+						chartDiv.innerHTML = `<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:350px;">
+												<span style="color:#6a8fd7; font-size:1.2em;">[ No data available for ${chartInfo.title} ]</span>
+											 </div>`;
+					} else {
+						// console.error("--- Debug JS: Chart element NOT FOUND for #" + chartInfo.element_id + " (when attempting to show no data message)");
+					}
+				}
+			});
+		});
+		</script>
+		{% endif %}
 	</body>
 </html>

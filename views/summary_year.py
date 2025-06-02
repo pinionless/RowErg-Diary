@@ -1,5 +1,5 @@
 # ========================================================
-# = yearlysummary.py - View for displaying yearly workout summaries
+# = summary_year.py - View for displaying yearly workout summaries
 # ========================================================
 from flask import render_template, redirect, url_for, current_app
 from sqlalchemy import text
@@ -11,9 +11,9 @@ import math # Import math for isnan and isfinite
 # - Yearly Summary View Function
 #---------------------------------------------------------
 # Displays paginated yearly workout summaries from the mv_year_totals materialized view.
-def yearlysummary():
+def summary_year(): # Renamed function
     # == Query Data for Current Page ============================================
-    yearlysummary_raw_results = db.session.execute(text("""
+    summary_year_raw_results = db.session.execute(text("""
         SELECT
             year,
             total_meters_rowed,
@@ -27,9 +27,9 @@ def yearlysummary():
     """)).fetchall()
 
     # == Prepare Data for Template ============================================
-    yearlysummary_display_data = []
-    for row in yearlysummary_raw_results:
-        yearlysummary_display_data.append({
+    summary_year_display_data = [] # Renamed variable
+    for row in summary_year_raw_results:
+        summary_year_display_data.append({ # Renamed variable
             'year': int(row.year),
             'meters': float(row.total_meters_rowed) if row.total_meters_rowed is not None else 0,
             'seconds': float(row.total_seconds_rowed) if row.total_seconds_rowed is not None else 0,
@@ -45,9 +45,9 @@ def yearlysummary():
     series_data_pace = []
     series_data_reps = [] # Renamed from series_data_isoreps
 
-    if yearlysummary_display_data:
+    if summary_year_display_data: # Renamed variable
         # Create a new list sorted by year ascending for the chart
-        chart_source_data = sorted(yearlysummary_display_data, key=lambda x: x['year'])
+        chart_source_data = sorted(summary_year_display_data, key=lambda x: x['year']) # Renamed variable
         chart_categories_years = [str(item['year']) for item in chart_source_data]
         
         # Sanitize series data: replace NaN/Infinity with None (JSON null)
@@ -70,8 +70,8 @@ def yearlysummary():
 
     # == Render Template ============================================
     return render_template(
-        'yearlysummary.html',
-        yearlysummary_display_data=yearlysummary_display_data,
+        'summary_year.html', # Updated template name
+        summary_year_display_data=summary_year_display_data, # Renamed variable
         page_title="Yearly Workout Summaries",
         # New chart data variables
         chart_categories_years=chart_categories_years,
@@ -79,7 +79,7 @@ def yearlysummary():
         series_data_seconds=series_data_seconds,
         series_data_pace=series_data_pace,
         series_data_reps=series_data_reps, # Renamed from series_data_isoreps
-        has_chart_data=bool(yearlysummary_display_data) # Keep this for conditional rendering
+        has_chart_data=bool(summary_year_display_data) # Keep this for conditional rendering (renamed variable)
     )
 
 # --------------------------------------------------------
@@ -87,4 +87,4 @@ def yearlysummary():
 #---------------------------------------------------------
 # Registers the yearly summary view routes with the Flask application.
 def register_routes(app):
-    app.add_url_rule('/yearlysummary/', endpoint='yearlysummary', view_func=yearlysummary, methods=['GET'])
+    app.add_url_rule('/summary_year/', endpoint='summary_year', view_func=summary_year, methods=['GET']) # Updated endpoint and view_func

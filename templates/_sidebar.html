@@ -10,10 +10,12 @@
         <ul>
             <li class="{{ 'current' if request.path == url_for('home') else '' }}"><a href="{{ url_for('home') }}">Home</a></li> <!-- Home Page Link -->
             <li class="{{ 'current' if request.path == url_for('workouts') else '' }}"><a href="{{ url_for('workouts') }}">Workouts</a></li> <!-- Workouts List Link -->
-            <li class="{{ 'current' if request.path == url_for('dailysummary') else '' }}"><a href="{{ url_for('dailysummary') }}">Daily Summary</a></li> <!-- Daily Summary Link -->
-            <li class="{{ 'current' if request.path == url_for('weeklysummary') else '' }}"><a href="{{ url_for('weeklysummary') }}">Weekly Summary</a></li>
-            <li class="{{ 'current' if request.path == url_for('monthlysummary') else '' }}"><a href="{{ url_for('monthlysummary') }}">Monthly Summary</a></li>
-            <li class="{{ 'current' if request.path == url_for('yearlysummary') else '' }}"><a href="{{ url_for('yearlysummary') }}">Yearly Summary</a></li>
+            <li class="{{ 'current' if request.path == url_for('summary_day') else '' }}"><a href="{{ url_for('summary_day') }}">Daily Summary</a></li> <!-- Daily Summary Link -->
+            <li class="{{ 'current' if request.path == url_for('summary_week') else '' }}"><a href="{{ url_for('summary_week') }}">Weekly Summary</a></li>
+            <li class="{{ 'current' if request.path == url_for('summary_month') else '' }}"><a href="{{ url_for('summary_month') }}">Monthly Summary</a></li>
+            <li class="{{ 'current' if request.path == url_for('summary_year') else '' }}"><a href="{{ url_for('summary_year') }}">Yearly Summary</a></li>
+            <li class="{{ 'current' if request.path == url_for('backup_management.index') else '' }}"><a href="{{ url_for('backup_management.index') }}">Backup</a></li>
+            <li class="{{ 'current' if request.path == url_for('settings') else '' }}"><a href="{{ url_for('settings') }}">Settings</a></li>
 
 
         </ul>
