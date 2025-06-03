@@ -14,7 +14,7 @@
             <li class="{{ 'current' if request.path == url_for('summary_week') else '' }}"><a href="{{ url_for('summary_week') }}">Weekly Summary</a></li>
             <li class="{{ 'current' if request.path == url_for('summary_month') else '' }}"><a href="{{ url_for('summary_month') }}">Monthly Summary</a></li>
             <li class="{{ 'current' if request.path == url_for('summary_year') else '' }}"><a href="{{ url_for('summary_year') }}">Yearly Summary</a></li>
-            <li class=""><a href="#">Ranking</a></li> <!-- Daily Summary Link -->
+            <li class="{{ 'current' if request.blueprint == 'ranking' else '' }}"><a href="{{ url_for('ranking.index') }}">Ranking</a></li> <!-- Updated Ranking Link -->
             <li class="{{ 'current' if request.path == url_for('settings') else '' }}"><a href="{{ url_for('settings') }}">Settings</a></li>
 
 
@@ -50,7 +50,7 @@
 
     <!-- == Copyright and Version Information ============================================ -->
     <ul id="copyright">
-        <li><a href="http://github.com">RowErg Diary</a></li> <!-- Project Link -->
+        <li><a href="https://github.com/pinionless/RowErg-Diary">RowErg Diary</a></li> <!-- Project Link -->
         <li>ver. {{ app_version }}</li> <!-- Application Version -->
     </ul>
 </div>

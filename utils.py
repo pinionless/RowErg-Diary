@@ -6,6 +6,7 @@ from models import db
 from sqlalchemy import text
 from decimal import Decimal
 from markupsafe import Markup # Import Markup for custom filters
+import datetime # Import the datetime module
 
 # --------------------------------------------------------
 # - Parsing Functions
@@ -139,20 +140,25 @@ def sidebar_stats_processor():
                 stats['overall_totals'] = {
                     'meters': float(overall_totals_result.total_meters_rowed) if overall_totals_result.total_meters_rowed is not None else 0,
                     'seconds': float(overall_totals_result.total_seconds_rowed) if overall_totals_result.total_seconds_rowed is not None else 0,
-                    'split': float(overall_totals_result.average_split_seconds_per_500m) if overall_totals_result.average_split_seconds_per_500m is not None else 0
+                    'split': float(overall_totals_result.average_split_seconds_per_500m) if overall_totals_result.average_split_seconds_per_500m is not None else 0,
+                    'isoreps': int(overall_totals_result.total_isoreps_sum) if overall_totals_result.total_isoreps_sum is not None else 0
                 }
             else: # Handle empty materialized view
-                stats['overall_totals'] = {'meters': 0, 'seconds': 0, 'split': 0}
+                stats['overall_totals'] = {'meters': 0, 'seconds': 0, 'split': 0, 'isoreps': 0}
 
 
     except Exception as e: # Catch potential database errors
         current_app.logger.error(f"Error fetching sidebar stats: {e}", exc_info=True)
         # Provide default stats on error
         stats = {
-            'overall_totals': {'meters': 0, 'seconds': 0, 'split': 0},
+            'overall_totals': {'meters': 0, 'seconds': 0, 'split': 0, 'isoreps': 0},
         }
     
     return dict(sidebar_stats=stats) # Make stats available to templates
+
+# Provides utility functions like 'now' to all templates
+def utility_processor():
+    return dict(now=datetime.datetime.now)
 
 # --------------------------------------------------------
 # - Custom Pagination Class

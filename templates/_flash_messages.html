@@ -1,0 +1,11 @@
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <article class="box post post-excerpt flash-message-container">
+                <div class="box alert-{{ category|default('info') }}" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
+                    {{ message }}
+                </div>
+            </article>
+        {% endfor %}
+    {% endif %}
+{% endwith %}

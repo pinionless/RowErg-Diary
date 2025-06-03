@@ -103,7 +103,7 @@
 									<tr style="font-weight: bold;">
 										<td>Totals:</td>
 										<td>{{ '{:,.0f}'.format(month_summary_data.meters) if month_summary_data.meters is not none else '0' }}</td>
-										<td>{{ month_summary_data.seconds | format_total_seconds_human_readable if month_summary_data.seconds is not none else 'N/A' }}</td>
+										<td>{{ month_summary_data.seconds | format_seconds_to_hms if month_summary_data.seconds is not none else 'N/A' }}</td>
 										<td>{{ month_summary_data.split | format_split_ms if month_summary_data.split is not none and month_summary_data.split > 0 else 'N/A' }}</td>
 										<td class="showhide">{% if month_summary_data.isoreps and month_summary_data.isoreps > 0 %}{{ '{:,.0f}'.format(month_summary_data.isoreps) }}{% endif %}</td>
 										<td></td> <!-- Empty cell for Actions column -->
@@ -112,7 +112,7 @@
 								{% endif %}
 							</table>
 						</div>
-					</article>
+					</article>duration
 				{% else %}							
 					<article class="box post post-excerpt">
 						<div class="box alert-info" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
@@ -193,7 +193,7 @@
 									<tr>
 										<td>{{ daily_summary.day_date.strftime('%d-%m-%y') }}</td>
 										<td>{{ '{:,.0f}'.format(daily_summary.meters) if daily_summary.meters > 0 else '' }}</td>
-										<td>{{ daily_summary.seconds | format_total_seconds_human_readable if daily_summary.seconds > 0 else '' }}</td>
+										<td>{{ daily_summary.seconds | format_seconds_to_hms if daily_summary.seconds > 0 else '' }}</td>
 										<td>{{ daily_summary.split | format_split_short if daily_summary.split > 0 else '' }}</td>
 										<td class="showhide">{{ '{:,.0f}'.format(daily_summary.isoreps) if daily_summary.isoreps > 0 else '' }}</td>
 										<td>
@@ -211,7 +211,7 @@
 									<tr style="font-weight: bold;">
 										<td>Totals:</td>
 										<td>{{ '{:,.0f}'.format(month_summary_data.meters) if month_summary_data.meters is not none else '0' }}</td>
-										<td>{{ month_summary_data.seconds | format_total_seconds_human_readable if month_summary_data.seconds is not none else 'N/A' }}</td>
+										<td>{{ month_summary_data.seconds | format_seconds_to_hms if month_summary_data.seconds is not none else 'N/A' }}</td>
 										<td>{{ month_summary_data.split | format_split_ms if month_summary_data.split is not none and month_summary_data.split > 0 else 'N/A' }}</td>
 										<td class="showhide">{% if month_summary_data.isoreps and month_summary_data.isoreps > 0 %}{{ '{:,.0f}'.format(month_summary_data.isoreps) }}{% endif %}</td>
 										<td></td> <!-- Empty cell for Actions column -->

@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>{% block title %}RowErg Diary{% endblock %}</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/mystyles.css') }}" />
+		{% block head_extra %}{% endblock %}
+	</head>
+	<body class="is-preload">
+
+		<!-- == Main Content Area ============================================ -->
+		<div id="content" class="custom-fullwidth">
+			<div class="inner">
+				{% block page_header %}
+				<!-- Default page header structure, can be overridden by child templates -->
+				<h1 class="extra_h1">{% block page_title_h1 %}{{ self.title() }}{% endblock %}</h1>
+				<hr class="extra_title_line">
+				{% endblock %}
+
+				{% include '_flash_messages.html' %} <!-- Flash messages now after the header block -->
+
+				{% block content %}{% endblock %}
+			</div>
+		</div>
+		
+		<!-- == Sidebar Inclusion ============================================ -->
+		{% include '_sidebar.html' %}
+
+		<!-- == Scripts ============================================ -->
+		<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/browser.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/util.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+		{% block scripts_extra %}{% endblock %}
+	</body>
+</html>

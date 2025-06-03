@@ -1,0 +1,74 @@
+<!-- ======================================================== -->
+<!-- = ranking.html - Template for displaying rankings      -->
+<!-- ======================================================== -->
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block page_title_h1 %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<div class="ranking-year-nav" style="margin-bottom: 20px; text-align: center;">
+    <a href="{{ url_for('ranking.index') }}" class="button {{ 'alt' if selected_year is none }}">Overall</a>
+    {% for year_item in available_years %}
+        <a href="{{ url_for('ranking.index', year_param=year_item) }}" class="button {{ 'alt' if selected_year == year_item }}">{{ year_item }}</a>
+    {% endfor %}
+</div>
+
+<article class="box post post-excerpt">
+    <div class="flex-container">
+        {% if all_rankings_data %}
+            {% for ranking_set in all_rankings_data %}
+            <div class="flex-box">
+                <h3>{{ ranking_set.label }}</h3>
+                {% if ranking_set.rankings %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            {% if ranking_set.type == 'distance' %}
+                                <th>Pace</th>
+                                <th>Time</th>
+                            {% elif ranking_set.type == 'time' %}
+                                <th>Dist (m)</th>
+                                <th>Pace</th>
+                            {% endif %}
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in ranking_set.rankings %}
+                        <tr>
+                            <td>{{ loop.index }}.</td>
+                            {% if ranking_set.type == 'distance' %}
+                                <td>{{ item.average_split_seconds_500m | format_split_short if item.average_split_seconds_500m else 'N/A' }}</td>
+                                <td>{{ item.duration_seconds | format_seconds_to_hms if item.duration_seconds else 'N/A' }}</td>
+                            {% elif ranking_set.type == 'time' %}
+                                <td>{{ '{:,.0f}'.format(item.total_distance_meters) if item.total_distance_meters is not none else 'N/A' }}</td>
+                                <td>{{ item.average_split_seconds_500m | format_split_short if item.average_split_seconds_500m else 'N/A' }}</td>
+                            {% endif %}
+                            <td>
+                                <a href="{{ url_for('details', workout_id=item.workout_id) }}">
+                                    {{ item.workout_date.strftime('%Y-%m-%d') if item.workout_date else 'N/A' }}
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p>No {{ ranking_set.label }} rankings available yet {% if selected_year %} for {{ selected_year }}{% endif %}.</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+        <p>No ranking categories defined or no data available.</p>
+        {% endif %}
+    </div>
+</article>
+{% endblock %}
+
+{% block scripts_extra %}
+<!-- Add any page-specific JavaScript here if needed -->
+{% endblock %}

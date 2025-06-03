@@ -6,6 +6,7 @@ from models import db
 from sqlalchemy import text
 from datetime import datetime, timedelta
 import calendar
+import math # Add math for chart data sanitization
 
 # --------------------------------------------------------
 # - Show Workouts for Specific Year View Function
@@ -104,6 +105,30 @@ def show_workouts_for_year(year_param):
                 'meters': 0, 'seconds': 0, 'split': 0, 'isoreps': 0, 'has_workouts': False
             })
 
+    # == Prepare Data for Monthly Trends Chart (from monthly_summaries_in_year) ========================
+    chart_categories_labels_monthly_year = []
+    series_data_meters_monthly_year = []
+    series_data_seconds_monthly_year = []
+    series_data_pace_monthly_year = []
+    series_data_reps_monthly_year = []
+    has_chart_data_monthly_trends_year = False
+
+    if monthly_summaries_in_year:
+        has_chart_data_monthly_trends_year = True
+        for monthly_summary in monthly_summaries_in_year:
+            chart_categories_labels_monthly_year.append(f"{monthly_summary['month_name'][:3]} '{str(year)[2:]}") # Format: Jan '23
+            
+            meters = monthly_summary.get('meters')
+            seconds = monthly_summary.get('seconds')
+            split = monthly_summary.get('split')
+            reps = monthly_summary.get('isoreps')
+
+            series_data_meters_monthly_year.append(meters if isinstance(meters, (int, float)) and math.isfinite(meters) else None)
+            series_data_seconds_monthly_year.append(seconds if isinstance(seconds, (int, float)) and math.isfinite(seconds) else None)
+            series_data_pace_monthly_year.append(split if isinstance(split, (int, float)) and math.isfinite(split) and split > 0 else None)
+            series_data_reps_monthly_year.append(reps if isinstance(reps, (int, float)) and math.isfinite(reps) and reps >= 0 else None)
+
+
     # == Fetch Weekly Summaries for the Selected Year ============================================
     # Identify all ISO weeks that overlap with the year
     all_overlapping_week_starts_for_year = []
@@ -177,13 +202,50 @@ def show_workouts_for_year(year_param):
                 'meters': 0, 'seconds': 0, 'split': 0, 'isoreps': 0, 'has_workouts': False
             })
             
+    # == Prepare Data for Weekly Trends Chart (from weekly_summaries_in_year) ========================
+    chart_categories_labels_weekly_year = []
+    series_data_meters_weekly_year = []
+    series_data_seconds_weekly_year = []
+    series_data_pace_weekly_year = []
+    series_data_reps_weekly_year = []
+    has_chart_data_weekly_trends_year = False
+
+    if weekly_summaries_in_year:
+        has_chart_data_weekly_trends_year = True
+        for weekly_summary in weekly_summaries_in_year:
+            chart_categories_labels_weekly_year.append(f"W{weekly_summary['week_number']:02d} '{str(weekly_summary['year'])[2:]}") # Format: W35 '23
+            
+            meters = weekly_summary.get('meters')
+            seconds = weekly_summary.get('seconds')
+            split = weekly_summary.get('split')
+            reps = weekly_summary.get('isoreps')
+
+            series_data_meters_weekly_year.append(meters if isinstance(meters, (int, float)) and math.isfinite(meters) else None)
+            series_data_seconds_weekly_year.append(seconds if isinstance(seconds, (int, float)) and math.isfinite(seconds) else None)
+            series_data_pace_weekly_year.append(split if isinstance(split, (int, float)) and math.isfinite(split) and split > 0 else None)
+            series_data_reps_weekly_year.append(reps if isinstance(reps, (int, float)) and math.isfinite(reps) and reps >= 0 else None)
+
     # == Render Template ============================================
     return render_template(
         'workouts_by_year.html',
         selected_year_str=str(year),
         year_summary_data=year_summary_data,
         monthly_summaries_in_year=monthly_summaries_in_year,
-        weekly_summaries_in_year=weekly_summaries_in_year
+        weekly_summaries_in_year=weekly_summaries_in_year,
+        # Monthly trends chart data for the year
+        has_chart_data_monthly_trends_year=has_chart_data_monthly_trends_year,
+        chart_categories_labels_monthly_year=chart_categories_labels_monthly_year,
+        series_data_meters_monthly_year=series_data_meters_monthly_year,
+        series_data_seconds_monthly_year=series_data_seconds_monthly_year,
+        series_data_pace_monthly_year=series_data_pace_monthly_year,
+        series_data_reps_monthly_year=series_data_reps_monthly_year,
+        # Weekly trends chart data for the year
+        has_chart_data_weekly_trends_year=has_chart_data_weekly_trends_year,
+        chart_categories_labels_weekly_year=chart_categories_labels_weekly_year,
+        series_data_meters_weekly_year=series_data_meters_weekly_year,
+        series_data_seconds_weekly_year=series_data_seconds_weekly_year,
+        series_data_pace_weekly_year=series_data_pace_weekly_year,
+        series_data_reps_weekly_year=series_data_reps_weekly_year
     )
 
 # --------------------------------------------------------

@@ -81,7 +81,7 @@
 											{{ summary.split | format_split_short if summary.split is not none and summary.split > 0 else 'N/A' }}
 										</td>
 										<td class="showhide">
-											{{ '{:,.0f}'.format(summary.isoreps) if summary.isoreps is not none else '0' }}
+											{{ '{:,.0f}'.format(summary.isoreps) if summary.isoreps is not none else '' }}
 										</td>
 										<td>
 											<a href="{{ url_for('workouts_by_year_detail', year_param=summary.year) }}">
@@ -91,6 +91,28 @@
 									</tr>
 									{% endfor %}
 								</tbody>
+
+
+
+								{% if sidebar_stats and sidebar_stats.overall_totals %} {# Use sidebar_stats directly #}
+								<tfoot>
+									<tr style="font-weight: bold;">
+										<td>Totals:</td>
+										<td>{{ '{:,.0f}'.format(sidebar_stats.overall_totals.meters) if sidebar_stats.overall_totals.meters is not none else '0' }}</td>
+										<td>{{ sidebar_stats.overall_totals.seconds | format_seconds_to_hms if sidebar_stats.overall_totals.seconds is not none else 'N/A' }}</td>
+										<td>{{ sidebar_stats.overall_totals.split | format_split_short if sidebar_stats.overall_totals.split is not none and sidebar_stats.overall_totals.split > 0 else 'N/A' }}</td>
+										<td class="showhide">{{ '{:,.0f}'.format(sidebar_stats.overall_totals.isoreps) if sidebar_stats.overall_totals.isoreps is not none else '' }}</td>
+										<td></td> <!-- Empty cell for Actions column -->
+									</tr>
+								</tfoot>
+								{% endif %}
+
+
+
+
+
+
+
 							</table>
 						</div>
 					</article>
