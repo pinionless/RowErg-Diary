@@ -8,9 +8,9 @@ from models import db
 # - View and Utility Imports
 #---------------------------------------------------------
 # Import application views
-from views import home, submit_json_workout, workouts, details, summary_day, summary_week, summary_month, summary_year, workouts_by_date, submit_manual_workout, workouts_by_week, workouts_by_month, workouts_by_year, settings, ranking # Added ranking
+from views import home, submit_json_workout, workouts, details, summary_day, summary_week, summary_month, summary_year, workouts_by_date, submit_manual_workout, workouts_by_week, workouts_by_month, workouts_by_year, settings, ranking
 # Import utility functions and context processors
-from utils import sidebar_stats_processor, format_total_seconds_human_readable, format_split_short, format_duration_ms, nl2br_filter, format_seconds_to_hms # Changed format_duration_hms_tenths
+from utils import nl2br_filter, sidebar_stats_processor, utility_processor, format_seconds_to_hms, format_split_short, format_duration_ms, format_total_seconds_human_readable # Added utility_processor
 from database_setup import create_db_components, update_db_schema # Import database setup functions
 from sqlalchemy.exc import ProgrammingError # To catch errors like "table not found"
 
@@ -82,26 +82,18 @@ def create_app(config_object=None):
             # For now, we'll log and continue, but this could be critical.
             # raise # Uncomment to make this a fatal error
 
-    # == Context Processors ============================================
-    app.context_processor(sidebar_stats_processor) # Register sidebar stats processor
+    # == Register Jinja Filters and Context Processors ============================================
+        app.jinja_env.filters['nl2br'] = nl2br_filter
+        app.jinja_env.filters['format_seconds_to_hms'] = format_seconds_to_hms
+        app.jinja_env.filters['format_split_short'] = format_split_short
+        app.jinja_env.filters['format_duration_ms'] = format_duration_ms
+        app.jinja_env.filters['format_total_seconds_human_readable'] = format_total_seconds_human_readable
+        
+        app.context_processor(sidebar_stats_processor) # For sidebar statistics
+        app.context_processor(utility_processor) # For utility functions like now()
 
-    # == Inject App Version into Templates ============================================
-    @app.context_processor
-    def inject_version():
-        # Makes app_version available in all templates
-        return dict(app_version=__version__)
-
-    # == Jinja Filters ============================================
-    # Register custom Jinja2 filters for template formatting
-    app.jinja_env.filters['format_total_seconds_human_readable'] = format_total_seconds_human_readable
-    app.jinja_env.filters['format_split_short'] = format_split_short
-    app.jinja_env.filters['format_split_ms'] = format_duration_ms 
-    app.jinja_env.filters['nl2br'] = nl2br_filter
-    app.jinja_env.filters['format_seconds_to_hms'] = format_seconds_to_hms # Changed from format_hms_tenths
-    
-    # == Route Registration ============================================
-    # Register blueprints and routes from view modules
-    with app.app_context():
+        # == Register Blueprints for different application modules ============================================
+        # Each blueprint corresponds to a feature or section of the application
         home.register_routes(app) # Registers routes for home page
         submit_json_workout.register_routes(app) # Registers routes for submitting JSON workouts
         workouts.register_routes(app) # Registers routes for displaying workouts list

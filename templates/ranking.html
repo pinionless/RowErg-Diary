@@ -3,11 +3,19 @@
 <!-- ======================================================== -->
 {% extends "base.html" %}
 
-{% block title %}{{ page_title | default('Rankings') }}{% endblock %}
+{% block title %}{{ page_title }}{% endblock %}
 
-{% block page_title_h1 %}{{ page_title | default('Rankings') }}{% endblock %}
+{% block page_title_h1 %}{{ page_title }}{% endblock %}
 
 {% block content %}
+
+<div class="ranking-year-nav" style="margin-bottom: 20px; text-align: center;">
+    <a href="{{ url_for('ranking.index') }}" class="button {{ 'alt' if selected_year is none }}">Overall</a>
+    {% for year_item in available_years %}
+        <a href="{{ url_for('ranking.index', year_param=year_item) }}" class="button {{ 'alt' if selected_year == year_item }}">{{ year_item }}</a>
+    {% endfor %}
+</div>
+
 <article class="box post post-excerpt">
     <div class="flex-container">
         {% if all_rankings_data %}
@@ -23,8 +31,8 @@
                                 <th>Pace</th>
                                 <th>Time</th>
                             {% elif ranking_set.type == 'time' %}
-                                <th>Pace</th>
                                 <th>Dist (m)</th>
+                                <th>Pace</th>
                             {% endif %}
                             <th>Date</th>
                         </tr>
@@ -37,8 +45,8 @@
                                 <td>{{ item.average_split_seconds_500m | format_split_short if item.average_split_seconds_500m else 'N/A' }}</td>
                                 <td>{{ item.duration_seconds | format_seconds_to_hms if item.duration_seconds else 'N/A' }}</td>
                             {% elif ranking_set.type == 'time' %}
-                                <td>{{ item.average_split_seconds_500m | format_split_short if item.average_split_seconds_500m else 'N/A' }}</td>
                                 <td>{{ '{:,.0f}'.format(item.total_distance_meters) if item.total_distance_meters is not none else 'N/A' }}</td>
+                                <td>{{ item.average_split_seconds_500m | format_split_short if item.average_split_seconds_500m else 'N/A' }}</td>
                             {% endif %}
                             <td>
                                 <a href="{{ url_for('details', workout_id=item.workout_id) }}">
@@ -50,7 +58,7 @@
                     </tbody>
                 </table>
                 {% else %}
-                <p>No {{ ranking_set.label }} rankings available yet.</p>
+                <p>No {{ ranking_set.label }} rankings available yet {% if selected_year %} for {{ selected_year }}{% endif %}.</p>
                 {% endif %}
             </div>
             {% endfor %}

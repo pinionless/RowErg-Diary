@@ -6,6 +6,7 @@ from models import db
 from sqlalchemy import text
 from decimal import Decimal
 from markupsafe import Markup # Import Markup for custom filters
+import datetime # Import the datetime module
 
 # --------------------------------------------------------
 # - Parsing Functions
@@ -154,6 +155,10 @@ def sidebar_stats_processor():
         }
     
     return dict(sidebar_stats=stats) # Make stats available to templates
+
+# Provides utility functions like 'now' to all templates
+def utility_processor():
+    return dict(now=datetime.datetime.now)
 
 # --------------------------------------------------------
 # - Custom Pagination Class
