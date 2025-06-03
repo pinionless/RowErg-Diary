@@ -78,7 +78,7 @@
 											</a>
 										</td>
 										<td>{{ '{:,.0f}'.format(item_data.workout_obj.total_distance_meters) if item_data.workout_obj.total_distance_meters is not none else 'N/A' }}</td> <!-- Formatted Distance -->
-										<td>{{ item_data.workout_obj.duration_seconds | format_total_seconds_human_readable if item_data.workout_obj.duration_seconds is not none else 'N/A' }}</td> <!-- Formatted Duration -->
+										<td>{{ item_data.workout_obj.duration_seconds | format_seconds_to_hms if item_data.workout_obj.duration_seconds is not none else 'N/A' }}</td> <!-- Formatted Duration -->
 										<td>{{ item_data.workout_obj.average_split_seconds_500m | format_split_ms if item_data.workout_obj.average_split_seconds_500m is not none else 'N/A' }}</td> <!-- Formatted Split -->
 										<td class="showhide">
 											{{ '{:,.0f}'.format(item_data.workout_obj.total_isoreps) if item_data.workout_obj.total_isoreps is not none and item_data.workout_obj.total_isoreps > 0 else '' }}

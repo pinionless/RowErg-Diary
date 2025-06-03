@@ -87,7 +87,7 @@
 										</td>
 										<td class="showhide">{% if item_data.workout_obj.notes != None %}{{ item_data.workout_obj.notes | default(' ') |truncate(10, True,'') }}{% endif %}</td>
 										<td>{{ '{:,.0f}'.format(item_data.workout_obj.total_distance_meters) if item_data.workout_obj.total_distance_meters is not none else 'N/A' }}</td>
-										<td>{{ item_data.workout_obj.duration_seconds | format_total_seconds_human_readable if item_data.workout_obj.duration_seconds is not none else 'N/A' }}</td>
+										<td>{{ item_data.workout_obj.duration_seconds | format_seconds_to_hms if item_data.workout_obj.duration_seconds is not none else 'N/A' }}</td>
 										<td>{{ item_data.workout_obj.average_split_seconds_500m | format_split_ms if item_data.workout_obj.average_split_seconds_500m is not none else 'N/A' }}</td> 
 										<td class="showhide">{% if item_data.workout_obj.level != None %}{{ item_data.workout_obj.level | round(1) }}{% endif %}</td>
 										<td class="showhide">{{ '{:,.0f}'.format(item_data.workout_obj.total_isoreps) if item_data.workout_obj.total_isoreps is not none and item_data.workout_obj.total_isoreps > 0 else '' }}</td>
@@ -106,7 +106,7 @@
 										<td class="hideshow">Totals:</td>
 										<td colspan="2" class="showhide" style="text-align: right;">Totals:</td>
 										<td>{{ '{:,.0f}'.format(daily_summary_data.meters) if daily_summary_data.meters is not none else '0' }}</td>
-										<td>{{ daily_summary_data.seconds | format_total_seconds_human_readable if daily_summary_data.seconds is not none else 'N/A' }}</td>
+										<td>{{ daily_summary_data.seconds | format_seconds_to_hms if daily_summary_data.seconds is not none else 'N/A' }}</td>
 										<td>{{ daily_summary_data.split | format_split_ms if daily_summary_data.split is not none and daily_summary_data.split > 0 else 'N/A' }}</td>
 										<td class="showhide"></td> <!-- Empty cell for Level column -->
 										<td class="showhide">{% if daily_summary_data.isoreps and daily_summary_data.isoreps > 0 %}{{ '{:,.0f}'.format(daily_summary_data.isoreps) }}{% endif %}</td>

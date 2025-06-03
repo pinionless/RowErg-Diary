@@ -33,154 +33,182 @@
 					{% endif %}
 				{% endwith %}
 
-				<!-- -- Overall Yearly Summary Section ------------------- -->
-				{% if year_summary_data %}
+
+				<!-- -- Monthly Trends Chart Section ------------------- -->
+				{% if has_chart_data_monthly_trends_year %}
+				<article class="box post post-excerpt">
+					<header style="margin-bottom: 10px; padding-top: 0px;">
+						<h3 style="margin-bottom: 5px; color: #555;">Monthly Trends for {{ selected_year_str }}</h3>
+					</header>
+					<div style="max-width: 800px;" class="type01">
+						<div id="monthlyTrendsYearChart" style="width:100%; min-height:350px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0 15px 0;">
+							{% if not series_data_meters_monthly_year and not series_data_seconds_monthly_year and not series_data_pace_monthly_year and not series_data_reps_monthly_year %}
+							<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:350px;">
+								<span style="color:#6a8fd7; font-size:1.2em;">[ No chart data available for monthly trends ]</span>
+							</div>
+							{% endif %}
+						</div>
+					</div>
+				</article>
+				<hr class="extra_article">
+				{% endif %}
+
+				<!-- -- Monthly Totals Table Section ------------------- -->
+				{% if monthly_summaries_in_year %} <!-- Renamed variable -->
 					<article class="box post post-excerpt">
-						<header style="margin-bottom: 10px; padding-top: 0px;">
-							<h3 style="margin-bottom: 5px; color: #555;">Overall Summary for {{ selected_year_str }}</h3>
-						</header>
-						<table style="width: 100%; margin-bottom: 20px;">
-							<thead>
-								<tr>
-									<th style="text-align: left; padding: 8px; background-color: #f4f7fb;">Metric</th>
-									<th style="text-align: right; padding: 8px; background-color: #f4f7fb;">Total</th>
-								</tr>
-							</thead>
-							<tbody>
-								<tr>
-									<td style="padding: 8px; border-bottom: 1px solid #eee;">Total Distance:</td>
-									<td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">
-										{{ '{:,.0f}'.format(year_summary_data.meters) if year_summary_data.meters is not none else '0' }} m
-									</td>
-								</tr>
-								<tr>
-									<td style="padding: 8px; border-bottom: 1px solid #eee;">Total Duration:</td>
-									<td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">
-										{{ year_summary_data.seconds | format_total_seconds_human_readable if year_summary_data.seconds is not none else 'N/A' }}
-									</td>
-								</tr>
-								<tr>
-									<td style="padding: 8px; border-bottom: 1px solid #eee;">Average Split (/500m):</td>
-									<td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">
-										{{ year_summary_data.split | format_split_short if year_summary_data.split is not none and year_summary_data.split > 0 else 'N/A' }}
-									</td>
-								</tr>
-								{% if year_summary_data.isoreps and year_summary_data.isoreps > 0 %}
-								<tr>
-									<td style="padding: 8px;">Total IsoReps:</td>
-									<td style="padding: 8px; text-align: right;">
-										{{ '{:,.0f}'.format(year_summary_data.isoreps) }}
-									</td>
-								</tr>
+						<div class="table-wrapper">
+							<table class="type01">
+								<thead>
+									<tr>
+										<th>Month<span class="showhide"> (MM-YYYY)</span></th>
+										<th>Dist<span class="showhide">ance </span>(m)</th>
+										<th>Duration</th>
+										<th>Pace</th>
+										<th class="showhide">Reps</th>
+										<th>
+											<span class="showhide">Actions</span>
+											<span class="hideshow"><i class="fas fa-eye"></i></span>
+										</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for summary_month in monthly_summaries_in_year %} <!-- Renamed variable -->
+									<tr>
+										<td>{{ summary_month.month_name }} {{ summary_month.year }}</td>
+										<td>{{ '{:,.0f}'.format(summary_month.meters) if summary_month.meters is not none else '0' }}</td>
+										<td>
+											{{ summary_month.seconds | format_seconds_to_hms if summary_month.seconds is not none else 'N/A' }}
+										</td>
+										<td>
+											{{ summary_month.split | format_split_short if summary_month.split is not none and summary_month.split > 0 else 'N/A' }}
+										</td>
+										<td class="showhide">
+											{{ '{:,.0f}'.format(summary_month.isoreps) if summary_month.isoreps is not none else '0' }}
+										</td>
+										<td>
+											<a href="{{ url_for('workouts_by_month_detail', year_month_str=summary_month.year~'-'~'{:02d}'.format(summary_month.month)) }}">
+												<i class="fas fa-eye hideshow"></i><span class="showhide"> Details</span>
+											</a>
+										</td>
+									</tr>
+									{% endfor %}
+								</tbody>
+								{% if year_summary_data %}
+								<tfoot>
+									<tr style="font-weight: bold;">
+										<td>Totals:</td>
+										<td>{{ '{:,.0f}'.format(year_summary_data.meters) if year_summary_data.meters is not none else '0' }}</td>
+										<td>{{ year_summary_data.seconds | format_seconds_to_hms if year_summary_data.seconds is not none else 'N/A' }}</td>
+										<td>{{ year_summary_data.split | format_split_ms if year_summary_data.split is not none and year_summary_data.split > 0 else 'N/A' }}</td>
+										<td class="showhide">{% if year_summary_data.isoreps and year_summary_data.isoreps > 0 %}{{ '{:,.0f}'.format(year_summary_data.isoreps) }}{% endif %}</td>
+										<td></td> <!-- Empty cell for Actions column -->
+									</tr>
+								</tfoot>
 								{% endif %}
-							</tbody>
-						</table>
+							</table>
+						</div>
 					</article>
-					<hr class="extra_article"> 
+				{% else %}							
+					<article class="box post post-excerpt">
+						<div class="box alert-info" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
+							No monthly totals found.
+						</div>
+					</article>
 				{% endif %}
 
-				<!-- -- Monthly Summaries in Year Section ------------------- -->
-				{% if monthly_summaries_in_year %}
+
+				<!-- -- Weekly Trends Chart Section ------------------- -->
+				{% if has_chart_data_weekly_trends_year %}
+				<article class="box post post-excerpt">
+					<header style="margin-bottom: 10px; padding-top: 0px;">
+						<h3 style="margin-bottom: 5px; color: #555;">Weekly Trends for {{ selected_year_str }}</h3>
+					</header>
+					<div style="max-width: 800px;" class="type01">
+						<div id="weeklyTrendsYearChart" style="width:100%; min-height:350px; background:#f4f7fb; border:1px solid #e0e0e0; margin: 0px 0 15px 0;">
+							{% if not series_data_meters_weekly_year and not series_data_seconds_weekly_year and not series_data_pace_weekly_year and not series_data_reps_weekly_year %}
+							<div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:350px;">
+								<span style="color:#6a8fd7; font-size:1.2em;">[ No chart data available for weekly trends ]</span>
+							</div>
+							{% endif %}
+						</div>
+					</div>
+				</article>
+				<hr class="extra_article">
+				{% endif %}
+
+
+				<!-- -- Weekly Totals Table Section ------------------- -->
+				{% if weekly_summaries_in_year %} <!-- Renamed variable -->
 					<article class="box post post-excerpt">
-						<header style="margin-bottom: 10px; padding-top: 0px;">
-							<h3 style="margin-bottom: 5px; color: #555;">Monthly Breakdown for {{ selected_year_str }}</h3>
-						</header>
 						<div class="table-wrapper">
-							<table>
+							<table class="type01">
 								<thead>
 									<tr>
-										<th>Month (YYYY-MM)</th>
-										<th>Distance</th>
+										<th>Week<span class="showhide"> (WW-YYYY)</span></th>
+										<th>Dist<span class="showhide">ance </span>(m)</th>
 										<th>Duration</th>
-										<th>Avg. Split</th>
-										<th>Total IsoReps</th>
-										<th>Actions</th>
+										<th>Pace</th>
+										<th class="showhide">Reps</th>
+										<th>
+											<span class="showhide">Actions</span>
+											<span class="hideshow"><i class="fas fa-eye"></i></span>
+										</th>
 									</tr>
 								</thead>
 								<tbody>
-									{% for monthly_summary in monthly_summaries_in_year %}
+									{% for summary in weekly_summaries_in_year %} <!-- Renamed variable -->
 									<tr>
-										<td>{{ monthly_summary.year }}-{{ "{:02d}".format(monthly_summary.month) }} ({{ monthly_summary.month_name }})</td>
-										<td>{{ '{:,.0f}'.format(monthly_summary.meters) if monthly_summary.meters > 0 else '-' }} m</td>
+										<td>W{{ "{:02d}".format(summary.week_number) }} - {{ summary.year }}</td>
+										<td>{{ '{:,.0f}'.format(summary.meters) if summary.meters is not none else '0' }}</td>
 										<td>
-											{{ monthly_summary.seconds | format_total_seconds_human_readable if monthly_summary.seconds > 0 else '-' }}
+											{{ summary.seconds | format_seconds_to_hms if summary.seconds is not none else 'N/A' }}
 										</td>
 										<td>
-											{{ monthly_summary.split | format_split_short if monthly_summary.split > 0 else '-' }}
+											{{ summary.split | format_split_short if summary.split is not none and summary.split > 0 else 'N/A' }}
+										</td>
+										<td class="showhide">
+											{{ '{:,.0f}'.format(summary.isoreps) if summary.isoreps is not none else '0' }}
 										</td>
 										<td>
-											{{ '{:,.0f}'.format(monthly_summary.isoreps) if monthly_summary.isoreps > 0 else '-' }}
-										</td>
-										<td>
-											{% if monthly_summary.has_workouts %}
-											<a href="{{ url_for('workouts_by_month_detail', year_month_str=monthly_summary.year~'-'~'{:02d}'.format(monthly_summary.month)) }}">
-												<i class="fas fa-eye"></i> Details
+											<a href="{{ url_for('workouts_by_week_detail', year_week_str=summary.year~'-W'~'{:02d}'.format(summary.week_number)) }}">
+												<i class="fas fa-eye hideshow"></i><span class="showhide"> Details</span>
 											</a>
-											{% else %}
-											<span style="color: #999;">No Workouts</span>
-											{% endif %}
 										</td>
 									</tr>
 									{% endfor %}
 								</tbody>
+								{% if year_summary_data %}
+								<tfoot>
+									<tr style="font-weight: bold;">
+										<td>Totals:</td>
+										<td>{{ '{:,.0f}'.format(year_summary_data.meters) if year_summary_data.meters is not none else '0' }}</td>
+										<td>{{ year_summary_data.seconds | format_seconds_to_hms if year_summary_data.seconds is not none else 'N/A' }}</td>
+										<td>{{ year_summary_data.split | format_split_ms if year_summary_data.split is not none and year_summary_data.split > 0 else 'N/A' }}</td>
+										<td class="showhide">{% if year_summary_data.isoreps and year_summary_data.isoreps > 0 %}{{ '{:,.0f}'.format(year_summary_data.isoreps) }}{% endif %}</td>
+										<td></td> <!-- Empty cell for Actions column -->
+									</tr>
+								</tfoot>
+								{% endif %}
 							</table>
 						</div>
 					</article>
-					<hr class="extra_article">
+				{% else %}							
+					<article class="box post post-excerpt">
+						<div class="box alert-info" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
+							No weekly totals found.
+						</div>
+					</article>
 				{% endif %}
 
-				<!-- -- Weekly Summaries in Year Section ------------------- -->
-				{% if weekly_summaries_in_year %}
-					<article class="box post post-excerpt">
-						<header style="margin-bottom: 10px; padding-top: 0px;">
-							<h3 style="margin-bottom: 5px; color: #555;">Weekly Breakdown for {{ selected_year_str }}</h3>
-						</header>
-						<div class="table-wrapper">
-							<table>
-								<thead>
-									<tr>
-										<th>Week (YYYY-Www)</th>
-										<th>Distance</th>
-										<th>Duration</th>
-										<th>Avg. Split</th>
-										<th>Total IsoReps</th>
-										<th>Actions</th>
-									</tr>
-								</thead>
-								<tbody>
-									{% for weekly_summary in weekly_summaries_in_year %}
-									<tr>
-										<td>{{ weekly_summary.year }}-W{{ "{:02d}".format(weekly_summary.week_number) }} <br><small>({{ weekly_summary.week_start_date.strftime('%b %d') }} - {{ weekly_summary.week_end_date_display.strftime('%b %d, %Y') }})</small></td>
-										<td>{{ '{:,.0f}'.format(weekly_summary.meters) if weekly_summary.meters > 0 else '-' }} m</td>
-										<td>
-											{{ weekly_summary.seconds | format_total_seconds_human_readable if weekly_summary.seconds > 0 else '-' }}
-										</td>
-										<td>
-											{{ weekly_summary.split | format_split_short if weekly_summary.split > 0 else '-' }}
-										</td>
-										<td>
-											{{ '{:,.0f}'.format(weekly_summary.isoreps) if weekly_summary.isoreps > 0 else '-' }}
-										</td>
-										<td>
-											{% if weekly_summary.has_workouts %}
-											<a href="{{ url_for('workouts_by_week_detail', year_week_str=weekly_summary.year~'-W'~'{:02d}'.format(weekly_summary.week_number)) }}">
-												<i class="fas fa-eye"></i> Details
-											</a>
-											{% else %}
-											<span style="color: #999;">No Workouts</span>
-											{% endif %}
-										</td>
-									</tr>
-									{% endfor %}
-								</tbody>
-							</table>
-						</div>
-					</article>
-				{% endif %}
+
+
+
+
+
 
 				<!-- -- Back Link Section ------------------- -->
 				<div style="text-align: center; margin-top: 30px;">
-					<a href="{{ url_for('yearlysummary') }}" class="button">
+					<a href="{{ url_for('summary_year') }}" class="button">
 						← Back to Yearly Summary
 					</a>
 				</div>
@@ -195,5 +223,59 @@
 		<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/util.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+		<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script> <!-- ApexCharts Library -->
+		<script src="{{ url_for('static', filename='js/chart_summary.js') }}"></script> <!-- Summary Chart Logic -->
+
+		{% if has_chart_data_monthly_trends_year %}
+		<script>
+			document.addEventListener("DOMContentLoaded", function() {
+				const categoriesMonthlyYear = Array.isArray({{ chart_categories_labels_monthly_year | tojson | safe }}) ? {{ chart_categories_labels_monthly_year | tojson | safe }} : [];
+				const metersMonthlyYear = Array.isArray({{ series_data_meters_monthly_year | tojson | safe }}) ? {{ series_data_meters_monthly_year | tojson | safe }} : [];
+				const secondsMonthlyYear = Array.isArray({{ series_data_seconds_monthly_year | tojson | safe }}) ? {{ series_data_seconds_monthly_year | tojson | safe }} : [];
+				const paceMonthlyYear = Array.isArray({{ series_data_pace_monthly_year | tojson | safe }}) ? {{ series_data_pace_monthly_year | tojson | safe }} : [];
+				const repsMonthlyYear = Array.isArray({{ series_data_reps_monthly_year | tojson | safe }}) ? {{ series_data_reps_monthly_year | tojson | safe }} : [];
+
+				if (typeof initializeSummaryChart === "function") {
+					initializeSummaryChart(
+						"monthlyTrendsYearChart",
+						categoriesMonthlyYear,
+						metersMonthlyYear,
+						secondsMonthlyYear,
+						paceMonthlyYear,
+						repsMonthlyYear,
+						"Monthly Aggregates for {{ selected_year_str }}"
+					);
+				} else {
+					console.error("Error: initializeSummaryChart function not found for monthly trends.");
+				}
+			});
+		</script>
+		{% endif %}
+
+		{% if has_chart_data_weekly_trends_year %}
+		<script>
+			document.addEventListener("DOMContentLoaded", function() {
+				const categoriesWeeklyYear = Array.isArray({{ chart_categories_labels_weekly_year | tojson | safe }}) ? {{ chart_categories_labels_weekly_year | tojson | safe }} : [];
+				const metersWeeklyYear = Array.isArray({{ series_data_meters_weekly_year | tojson | safe }}) ? {{ series_data_meters_weekly_year | tojson | safe }} : [];
+				const secondsWeeklyYear = Array.isArray({{ series_data_seconds_weekly_year | tojson | safe }}) ? {{ series_data_seconds_weekly_year | tojson | safe }} : [];
+				const paceWeeklyYear = Array.isArray({{ series_data_pace_weekly_year | tojson | safe }}) ? {{ series_data_pace_weekly_year | tojson | safe }} : [];
+				const repsWeeklyYear = Array.isArray({{ series_data_reps_weekly_year | tojson | safe }}) ? {{ series_data_reps_weekly_year | tojson | safe }} : [];
+
+				if (typeof initializeSummaryChart === "function") {
+					initializeSummaryChart(
+						"weeklyTrendsYearChart",
+						categoriesWeeklyYear,
+						metersWeeklyYear,
+						secondsWeeklyYear,
+						paceWeeklyYear,
+						repsWeeklyYear,
+						"Weekly Aggregates for {{ selected_year_str }}"
+					);
+				} else {
+					console.error("Error: initializeSummaryChart function not found for weekly trends.");
+				}
+			});
+		</script>
+		{% endif %}
 	</body>
 </html>

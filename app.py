@@ -17,7 +17,7 @@ from sqlalchemy.exc import ProgrammingError # To catch errors like "table not fo
 # --------------------------------------------------------
 # - Application Version
 #---------------------------------------------------------
-__version__ = "0.16.0" # Current application version
+__version__ = "0.16" # Current application version
 TARGET_DB_SCHEMA_VERSION = "0.16" # Target schema version for this change
 
 # --------------------------------------------------------
@@ -87,10 +87,17 @@ def create_app(config_object=None):
         app.jinja_env.filters['format_seconds_to_hms'] = format_seconds_to_hms
         app.jinja_env.filters['format_split_short'] = format_split_short
         app.jinja_env.filters['format_duration_ms'] = format_duration_ms
+        app.jinja_env.filters['format_split_ms'] = format_duration_ms
         app.jinja_env.filters['format_total_seconds_human_readable'] = format_total_seconds_human_readable
         
         app.context_processor(sidebar_stats_processor) # For sidebar statistics
         app.context_processor(utility_processor) # For utility functions like now()
+
+        # == Inject App Version into Templates ============================================
+        @app.context_processor
+        def inject_version():
+            # Makes app_version available in all templates
+            return dict(app_version=__version__)
 
         # == Register Blueprints for different application modules ============================================
         # Each blueprint corresponds to a feature or section of the application
