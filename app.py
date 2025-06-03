@@ -8,7 +8,7 @@ from models import db
 # - View and Utility Imports
 #---------------------------------------------------------
 # Import application views
-from views import home, submit_json_workout, workouts, details, summary_day, summary_week, summary_month, summary_year, workouts_by_date, submit_manual_workout, workouts_by_week, workouts_by_month, workouts_by_year, settings 
+from views import home, submit_json_workout, workouts, details, summary_day, summary_week, summary_month, summary_year, workouts_by_date, submit_manual_workout, workouts_by_week, workouts_by_month, workouts_by_year, settings, ranking # Added ranking
 # Import utility functions and context processors
 from utils import sidebar_stats_processor, format_total_seconds_human_readable, format_split_short, format_duration_ms, nl2br_filter, format_seconds_to_hms # Changed format_duration_hms_tenths
 from database_setup import create_db_components, update_db_schema # Import database setup functions
@@ -17,8 +17,8 @@ from sqlalchemy.exc import ProgrammingError # To catch errors like "table not fo
 # --------------------------------------------------------
 # - Application Version
 #---------------------------------------------------------
-__version__ = "0.16" 
-TARGET_DB_SCHEMA_VERSION = "0.15" # Target schema version for this change
+__version__ = "0.16.0" # Current application version
+TARGET_DB_SCHEMA_VERSION = "0.16" # Target schema version for this change
 
 # --------------------------------------------------------
 # - Application Factory Function
@@ -116,6 +116,7 @@ def create_app(config_object=None):
         workouts_by_year.register_routes(app) # Registers routes for viewing workouts by specific year
         submit_manual_workout.register_routes(app) # Registers routes for submitting manual workouts
         settings.register_routes(app)       # Registers routes for settings page
+        ranking.register_routes(app)        # Registers routes for ranking page
 
     return app
 
