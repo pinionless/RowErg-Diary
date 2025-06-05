@@ -1,80 +1,82 @@
 # ========================================================
 # = ranking.py - View for displaying rankings
 # ========================================================
-from flask import Blueprint, render_template, flash, current_app
-from models import db, Workout, EquipmentType
-from utils import format_split_short, format_duration_ms, format_seconds_to_hms # Ensure utils are imported
-from sqlalchemy import extract # For extracting year
+from flask import Blueprint, render_template, current_app
+from models import db, Workout, RankingSetting
+from sqlalchemy import text, func
+from utils import format_split_short, format_duration_ms, format_seconds_to_hms
 
 ranking_bp = Blueprint('ranking', __name__, url_prefix='/ranking')
 
-def get_rankings_for_distance(distance_meters, year=None, limit=10):
+def get_rankings_from_mv(ranking_id, year=None, limit=10, rank_type='overall'):
     """
-    Fetches workout rankings for a specific distance, optionally filtered by year.
-    - Filters by exact distance.
-    - Considers only equipment types marked 'settings_include_in_totals = TRUE'.
-    - Orders by average_split_seconds_500m (lower is better).
-    - Limits results.
-    - Optionally filters by year.
+    Fetches workout rankings from the materialized view.
+    
+    Args:
+        ranking_id: The ID of the ranking setting
+        year: Optional year to filter by 
+        limit: Maximum number of results to return
+        rank_type: Type of ranking ('overall', 'year', 'month')
+    
+    Returns:
+        List of workout ranking data
     """
     try:
-        query = db.session.query(
-                Workout.average_split_seconds_500m,
-                Workout.duration_seconds,
-                Workout.workout_date,
-                Workout.workout_id
-            ).\
-            join(EquipmentType, Workout.equipment_type_id == EquipmentType.equipment_type_id).\
-            filter(Workout.total_distance_meters == distance_meters).\
-            filter(EquipmentType.settings_include_in_totals == True).\
-            filter(Workout.average_split_seconds_500m != None).\
-            filter(Workout.average_split_seconds_500m > 0)
-
-        if year:
-            query = query.filter(extract('year', Workout.workout_date) == year)
+        # Start with a base query for the specified ranking ID and rank type
+        query = text("""
+            SELECT 
+                r.id, 
+                r.ranking_id, 
+                r.workout_id, 
+                r.rank,
+                w.workout_date,
+                w.total_distance_meters,
+                w.duration_seconds,
+                w.average_split_seconds_500m,
+                rs.type,
+                rs.value as setting_value
+            FROM 
+                mv_workout_rankings r
+                JOIN workouts w ON w.workout_id = r.workout_id
+                JOIN ranking_settings rs ON rs.ranking_id = r.ranking_id
+            WHERE 
+                r.ranking_id = :ranking_id
+                AND r.rank_type = :rank_type
+        """)
         
-        rankings = query.order_by(Workout.average_split_seconds_500m.asc()).\
-            limit(limit).\
-            all()
-        return rankings
+        params = {'ranking_id': ranking_id, 'rank_type': rank_type, 'limit': limit}
+        
+        # Add year filter if specified
+        if year is not None and rank_type != 'overall':
+            query = text(query.text + " AND r.year = :year")
+            params['year'] = year
+        
+        # Add ordering and limit
+        query = text(query.text + " ORDER BY r.rank LIMIT :limit")
+        
+        # Execute the query
+        result = db.session.execute(query, params).fetchall()
+        return result
+    
     except Exception as e:
-        current_app.logger.error(f"Error fetching distance rankings for {distance_meters}m (year: {year}): {e}", exc_info=True)
+        current_app.logger.error(f"Error fetching rankings for ID {ranking_id}: {e}", exc_info=True)
         return []
 
-def get_rankings_for_duration(duration_seconds, year=None, limit=10):
-    """
-    Fetches workout rankings for a specific duration, optionally filtered by year.
-    - Filters by exact duration.
-    - Considers only equipment types marked 'settings_include_in_totals = TRUE'.
-    - Orders by total_distance_meters (higher is better).
-    - Limits results.
-    - Optionally filters by year.
-    """
+def get_available_years():
+    """Get years that have ranking data available"""
     try:
-        query = db.session.query(
-                Workout.total_distance_meters,
-                Workout.average_split_seconds_500m,
-                Workout.workout_date,
-                Workout.workout_id,
-                Workout.duration_seconds
-            ).\
-            join(EquipmentType, Workout.equipment_type_id == EquipmentType.equipment_type_id).\
-            filter(Workout.duration_seconds == duration_seconds).\
-            filter(EquipmentType.settings_include_in_totals == True).\
-            filter(Workout.total_distance_meters != None).\
-            filter(Workout.total_distance_meters > 0)
-
-        if year:
-            query = query.filter(extract('year', Workout.workout_date) == year)
-
-        rankings = query.order_by(Workout.total_distance_meters.desc()).\
-            limit(limit).\
-            all()
-        return rankings
+        # Query distinct years from the materialized view
+        query = text("""
+            SELECT DISTINCT year 
+            FROM mv_workout_rankings 
+            WHERE year IS NOT NULL 
+            ORDER BY year DESC
+        """)
+        result = db.session.execute(query).fetchall()
+        return [row[0] for row in result]
     except Exception as e:
-        current_app.logger.error(f"Error fetching duration rankings for {duration_seconds}s (year: {year}): {e}", exc_info=True)
+        current_app.logger.error(f"Error fetching available years: {e}", exc_info=True)
         return []
-
 
 @ranking_bp.route('/', defaults={'year_param': None})
 @ranking_bp.route('/<int:year_param>')
@@ -84,57 +86,32 @@ def index(year_param):
     if selected_year:
         page_title = f"Athlete Rankings {selected_year}"
     
-    ranking_configurations = [
-        {'type': 'distance', 'value': 2000, 'label': '2000m'},
-        {'type': 'distance', 'value': 5000, 'label': '5000m'},
-        {'type': 'distance', 'value': 100, 'label': '100m'},
-        {'type': 'distance', 'value': 500, 'label': '500m'},
-        {'type': 'distance', 'value': 1000, 'label': '1000m'},
-        {'type': 'distance', 'value': 6000, 'label': '6000m'},
-        {'type': 'distance', 'value': 10000, 'label': '10000m'},
-        {'type': 'distance', 'value': 21097, 'label': 'Half Marathon'},
-        {'type': 'time', 'value': 60, 'label': '1:00'},      # 1 minute
-        {'type': 'time', 'value': 240, 'label': '4:00'},     # 4 minutes
-        {'type': 'time', 'value': 1800, 'label': '30:00'},   # 30 minutes
-        {'type': 'time', 'value': 3600, 'label': '60:00'},   # 20 minutes
-    ]
-
-    # Fetch candidate years first
-    candidate_years_query = db.session.query(extract('year', Workout.workout_date).label('year')).distinct().order_by(extract('year', Workout.workout_date).desc()).all()
-    candidate_years = [y.year for y in candidate_years_query if y.year is not None]
-
-    available_years = []
-    for year_val in candidate_years:
-        year_has_rankable_data = False
-        for config in ranking_configurations:
-            rankings_check = []
-            if config['type'] == 'distance':
-                # Check if any rankable workout exists for this config and year
-                rankings_check = get_rankings_for_distance(config['value'], year=year_val, limit=1)
-            elif config['type'] == 'time':
-                # Check if any rankable workout exists for this config and year
-                rankings_check = get_rankings_for_duration(config['value'], year=year_val, limit=1)
-            
-            if rankings_check: # If the list is not empty, means at least one rankable item found
-                year_has_rankable_data = True
-                break # No need to check other configs for this year
-        
-        if year_has_rankable_data:
-            available_years.append(year_val)
-    # available_years will be sorted based on the initial query order (descending)
+    # Get all ranking settings from database without sorting (use natural database order)
+    try:
+        # Remove the order_by to preserve the insertion order
+        ranking_settings = db.session.query(RankingSetting).all()
+    except Exception as e:
+        current_app.logger.error(f"Error fetching ranking settings: {e}", exc_info=True)
+        ranking_settings = []
     
+    # Get available years
+    available_years = get_available_years()
+    
+    # Fetch rankings for each setting
     all_rankings_data = []
+    rank_type = 'year' if selected_year else 'overall'
 
-    for config in ranking_configurations:
-        rankings = []
-        if config['type'] == 'distance':
-            rankings = get_rankings_for_distance(config['value'], year=selected_year)
-        elif config['type'] == 'time':
-            rankings = get_rankings_for_duration(config['value'], year=selected_year)
+    for setting in ranking_settings:
+        rankings = get_rankings_from_mv(
+            setting.ranking_id, 
+            year=selected_year, 
+            limit=10,
+            rank_type=rank_type
+        )
         
         all_rankings_data.append({
-            'type': config['type'],
-            'label': config['label'],
+            'type': setting.type,
+            'label': setting.label,
             'rankings': rankings
         })
 
@@ -142,7 +119,7 @@ def index(year_param):
         'ranking.html',
         page_title=page_title,
         all_rankings_data=all_rankings_data,
-        available_years=available_years, # Use the filtered list
+        available_years=available_years,
         selected_year=selected_year
     )
 
