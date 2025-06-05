@@ -85,16 +85,18 @@ def index(year_param):
         page_title = f"Athlete Rankings {selected_year}"
     
     ranking_configurations = [
-        {'type': 'distance', 'value': 500, 'label': '500m'},
-        {'type': 'distance', 'value': 1000, 'label': '1000m'},
         {'type': 'distance', 'value': 2000, 'label': '2000m'},
         {'type': 'distance', 'value': 5000, 'label': '5000m'},
+        {'type': 'distance', 'value': 100, 'label': '100m'},
+        {'type': 'distance', 'value': 500, 'label': '500m'},
+        {'type': 'distance', 'value': 1000, 'label': '1000m'},
         {'type': 'distance', 'value': 6000, 'label': '6000m'},
         {'type': 'distance', 'value': 10000, 'label': '10000m'},
+        {'type': 'distance', 'value': 21097, 'label': 'Half Marathon'},
         {'type': 'time', 'value': 60, 'label': '1:00'},      # 1 minute
         {'type': 'time', 'value': 240, 'label': '4:00'},     # 4 minutes
-        {'type': 'time', 'value': 1200, 'label': '20:00'},   # 20 minutes
         {'type': 'time', 'value': 1800, 'label': '30:00'},   # 30 minutes
+        {'type': 'time', 'value': 3600, 'label': '60:00'},   # 20 minutes
     ]
 
     # Fetch candidate years first

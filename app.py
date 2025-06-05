@@ -17,8 +17,8 @@ from sqlalchemy.exc import ProgrammingError # To catch errors like "table not fo
 # --------------------------------------------------------
 # - Application Version
 #---------------------------------------------------------
-__version__ = "0.16" # Current application version
-TARGET_DB_SCHEMA_VERSION = "0.16" # Target schema version for this change
+__version__ = "0.17" # Current application version
+TARGET_DB_SCHEMA_VERSION = "0.17" # Target schema version for this change
 
 # --------------------------------------------------------
 # - Application Factory Function
@@ -66,6 +66,7 @@ def create_app(config_object=None):
                     app.logger.info(f"DB schema version mismatch. Current: {current_db_schema_ver}, Target: {target_schema_ver_from_config}. Running update.")
                     update_db_schema(current_db_schema_ver, target_schema_ver_from_config)
                 else:
+                    create_db_components() # Ensure all tables are created, even if schema version matches
                     app.logger.info(f"DB schema version {current_db_schema_ver} is up to date.")
 
         except ProgrammingError as e:
