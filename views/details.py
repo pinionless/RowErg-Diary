@@ -3,7 +3,8 @@
 # ========================================================
 from flask import render_template
 from sqlalchemy.orm import joinedload
-from models import db, Workout, MetricDescriptor, WorkoutSample, HeartRateSample # Added HeartRateSample
+from models import db, Workout, MetricDescriptor, WorkoutSample, HeartRateSample, RankingSetting
+from sqlalchemy import text
 import json # Added json
 # import math # No longer needed for chart data processing
 
@@ -15,6 +16,56 @@ def details(workout_id):
     workout = Workout.query.options(
         joinedload(Workout.equipment_type_ref), # Eager load equipment type
     ).get_or_404(workout_id)
+
+    # Get ranking information for this workout
+    ranking_data = {}
+    
+    # Query for rankings from the materialized view
+    ranking_query = text("""
+        SELECT 
+            r.ranking_id, r.rank, r.rank_type, r.year, r.month,
+            rs.type, rs.value, rs.label
+        FROM 
+            mv_workout_rankings r
+            JOIN ranking_settings rs ON r.ranking_id = rs.ranking_id
+        WHERE 
+            r.workout_id = :workout_id
+        ORDER BY rs.type, rs.value
+    """)
+    
+    try:
+        ranking_results = db.session.execute(ranking_query, {'workout_id': workout_id}).fetchall()
+        
+        # Format ranking results
+        for row in ranking_results:
+            ranking_key = f"{row.type}-{row.value}"
+            if ranking_key not in ranking_data:
+                ranking_data[ranking_key] = {
+                    'label': row.label,
+                    'type': row.type,
+                    'value': row.value,
+                    'ranks': {}
+                }
+            
+            # Add rank by type
+            if row.rank_type == 'overall':
+                ranking_data[ranking_key]['ranks']['overall'] = row.rank
+            elif row.rank_type == 'year' and row.year:
+                ranking_data[ranking_key]['ranks'][f'year_{row.year}'] = {
+                    'year': row.year,
+                    'rank': row.rank
+                }
+            elif row.rank_type == 'month' and row.year and row.month:
+                ranking_data[ranking_key]['ranks'][f'month_{row.year}_{row.month}'] = {
+                    'year': row.year,
+                    'month': row.month,
+                    'rank': row.rank
+                }
+                
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error fetching workout rankings: {e}")
+        ranking_data = {}
 
     charts_data_list = []
     
@@ -218,7 +269,8 @@ def details(workout_id):
     return render_template(
         'details.html',
         workout=workout,
-        charts_data_list=charts_data_list # Pass the new chart data
+        charts_data_list=charts_data_list,
+        ranking_data=ranking_data
     )
 
 # --------------------------------------------------------
