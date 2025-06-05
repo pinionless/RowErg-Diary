@@ -1,17 +1,25 @@
-def upgrade(db, current_app):
+from sqlalchemy import text
+from models import UserSetting, RankingSetting, db
+from database_setup import (
+    DEFAULT_RANKING_CONFIGURATIONS,
+    create_function_ranking_sql,
+    drop_triggers_sql,
+    create_triggers_sql
+)
+
+def upgrade(db_obj, current_app):
+    """Upgrade database from version 0.16 to 0.17."""
     current_app.logger.info("Applying schema migration from 0.16 to 0.17 (Adding Ranking Settings).")
     try:
         # Create the ranking_settings table if it doesn't exist
-        # This uses SQLAlchemy's create_all which is safe to run even if tables exist
         current_app.logger.info("Ensuring ranking_settings table exists...")
         with current_app.app_context():
-            db.create_all()
+            db_obj.create_all()
         
         # Insert default ranking configurations
         current_app.logger.info("Inserting default ranking configurations...")
         for config in DEFAULT_RANKING_CONFIGURATIONS:
-            # Check if this configuration already exists
-            ranking_exists = db.session.query(RankingSetting).filter_by(
+            ranking_exists = db_obj.session.query(RankingSetting).filter_by(
                 type=config['type'],
                 value=config['value'],
                 label=config['label']
@@ -23,13 +31,11 @@ def upgrade(db, current_app):
                     value=config['value'],
                     label=config['label']
                 )
-                db.session.add(new_ranking)
-                current_app.logger.info(f"Added default ranking configuration: {config['label']} ({config['type']}, {config['value']})")
+                db_obj.session.add(new_ranking)
+                current_app.logger.info(f"Added default ranking configuration: {config['label']}")
         
-        # Create the materialized view, function and triggers for rankings
-        current_app.logger.info("Creating ranking materialized view and triggers...")
-        
-        # Get the SQL for the materialized view that includes rankings
+        # Create ranking materialized view in a separate transaction
+        current_app.logger.info("Creating ranking materialized view...")
         ranking_mv_sql = """
         CREATE MATERIALIZED VIEW mv_workout_rankings AS
         WITH base AS (
@@ -113,49 +119,53 @@ def upgrade(db, current_app):
         WITH DATA;
         """
         
-        # Execute the SQL in separate transactions to avoid issues
-        with db.engine.connect() as connection:
-            # Create the refresh function for rankings
-            connection.execute(text(create_function_ranking_sql))
-            
-            # Drop and recreate materialized view
-            connection.execute(text("DROP MATERIALIZED VIEW IF EXISTS mv_workout_rankings;"))
-            connection.execute(text(ranking_mv_sql))
-            
-            # Create triggers for workouts table
-            for stmt in drop_triggers_sql:
+        # Execute view creation and function in separate connections
+        with db_obj.engine.connect() as connection:
+            with connection.begin():
+                # Create the refresh function for rankings
+                connection.execute(text(create_function_ranking_sql))
+        
+        with db_obj.engine.connect() as connection:
+            with connection.begin():
+                # Drop and recreate materialized view
+                connection.execute(text("DROP MATERIALIZED VIEW IF EXISTS mv_workout_rankings;"))
+                connection.execute(text(ranking_mv_sql))
+        
+        # Drop triggers in separate connections
+        current_app.logger.info("Dropping existing triggers...")
+        for stmt in drop_triggers_sql:
+            with db_obj.engine.connect() as connection:
                 try:
                     connection.execute(text(stmt))
                 except Exception as e:
-                    current_app.logger.warning(f"Error dropping trigger: {e}")
-            
-            # Create triggers one by one in separate connections
-            for stmt in create_triggers_sql:
-                try:
-                    with db.engine.connect() as conn_trigger:
-                        conn_trigger.execute(text(stmt))
-                except Exception as e:
-                    current_app.logger.error(f"Error creating trigger: {e}")
+                    current_app.logger.warning(f"Error dropping trigger: {stmt.strip()} - {e}")
         
-        # Update the schema version
+        # Create triggers in separate connections
+        current_app.logger.info("Creating triggers...")
+        for stmt in create_triggers_sql:
+            with db_obj.engine.connect() as connection:
+                try:
+                    connection.execute(text(stmt))
+                except Exception as e:
+                    current_app.logger.error(f"Error creating trigger: {stmt.strip()} - {e}")
+        
+        # Update the schema version in the database
         migrated_to_version = "0.17"
-        setting = db.session.query(UserSetting).filter_by(key='db_schema_ver').first()
+        setting = db_obj.session.query(UserSetting).filter_by(key='db_schema_ver').first()
         if setting:
             setting.value = migrated_to_version
-            db.session.add(setting)
+            db_obj.session.add(setting)
             current_app.logger.info(f"Updated 'db_schema_ver' to '{migrated_to_version}'.")
         else:
-            current_app.logger.error(f"Could not find 'db_schema_ver' to update during migration to {migrated_to_version}. Creating it.")
+            current_app.logger.error(f"Could not find 'db_schema_ver' to update. Creating it.")
             new_schema_ver_setting = UserSetting(key='db_schema_ver', value=migrated_to_version)
-            db.session.add(new_schema_ver_setting)
+            db_obj.session.add(new_schema_ver_setting)
 
-        db.session.commit()
+        db_obj.session.commit()
         current_app.logger.info(f"Database schema migration from 0.16 to {migrated_to_version} completed successfully.")
-        effective_current_version = migrated_to_version
-        applied_migration_in_iteration = True
         return migrated_to_version
 
     except Exception as e:
-        db.session.rollback()
+        db_obj.session.rollback()
         current_app.logger.error(f"Error migrating schema from 0.16 to 0.17: {e}", exc_info=True)
-    return None  # Explicit return None on error
+        return None

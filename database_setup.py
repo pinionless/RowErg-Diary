@@ -409,31 +409,37 @@ def create_db_components():
 # - Database Schema Update Function (Placeholder)
 #---------------------------------------------------------
 def update_db_schema(current_version, target_version):
-    current_app.logger.info(f"Attempting to update database schema from {current_version} to {target_version}.")
+    """Apply database schema migrations from current_version to target_version."""
+    current_app.logger.info(f"Updating schema from {current_version} to {target_version}")
     
-    # Make a mutable copy of current_version to track progress within the loop
+    # Import migration modules
+    from db_migrations import v0_13_to_0_15, v0_15_to_0_16, v0_16_to_0_17
+    
+    # Define available migrations
+    migrations = {
+        "0.13": {"target": "0.15", "upgrade": v0_13_to_0_15.upgrade},
+        "0.15": {"target": "0.16", "upgrade": v0_15_to_0_16.upgrade},
+        "0.16": {"target": "0.17", "upgrade": v0_16_to_0_17.upgrade}
+    }
+    
     effective_current_version = current_version
-
-    with current_app.app_context():
-        while effective_current_version != target_version:
-            applied_migration_in_iteration = False
-            if effective_current_version == "0.13" and target_version >= "0.15": # Check against target_version
-
-            elif effective_current_version == "0.15" and target_version >= "0.16": # Check against target_version
-
-
-            elif effective_current_version == "0.16" and target_version >= "0.17":
- 
-
-            if not applied_migration_in_iteration:
-                # If no migration was applied in this iteration, it means we're stuck or target is met.
-                # The while loop condition (effective_current_version != target_version) will handle the target met case.
-                # If stuck, log and break to prevent infinite loop.
-                if effective_current_version != target_version: # Only log if there's an actual mismatch not handled
-                    current_app.logger.warning(f"No specific migration path found from {effective_current_version} to {target_version}. Stopping migration process.")
-                break 
-        
-        if effective_current_version == target_version:
-            current_app.logger.info(f"All schema migrations up to version {target_version} completed successfully.")
-        else:
-            current_app.logger.warning(f"Schema migration process stopped at version {effective_current_version}, but target was {target_version}.")
+    
+    while effective_current_version != target_version:
+        if effective_current_version not in migrations:
+            current_app.logger.warning(f"No migration path from {effective_current_version}")
+            break
+            
+        migration = migrations[effective_current_version]
+        if migration["target"] > target_version:
+            # We've gone far enough
+            break
+            
+        try:
+            current_app.logger.info(f"Applying migration from {effective_current_version} to {migration['target']}")
+            new_version = migration["upgrade"](db, current_app)
+            effective_current_version = new_version
+        except Exception as e:
+            current_app.logger.error(f"Migration failed: {e}")
+            return
+    
+    current_app.logger.info(f"Schema update complete. Current version: {effective_current_version}")
