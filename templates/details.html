@@ -78,23 +78,42 @@
 							</table>
 						</div>
 						<div class="flex-box">
-							<h3>Workout Rank #todo DEV</h3>
-							<table>
-								<tbody>
-									<tr>
-										<td>Overall:</td><!-- DEV. TO DO -->
-										<td>12.</td> <!-- DEV. TO DO -->
-									</tr>
-									<tr>
-										<td>This Year:</td><!-- DEV. TO DO -->
-										<td>3.</td><!-- DEV. TO DO -->
-									</tr>
-									<tr>
-										<td>This Month:</td><!-- DEV. TO DO -->
-										<td>1.</td><!-- DEV. TO DO -->
-									</tr>
-								</tbody>
-							</table>
+							<h3>Workout Rankings</h3>
+							{% if ranking_data %}
+								<table>
+									<tbody>
+									{% for key, ranking in ranking_data.items() %}
+										<tr>
+											<th colspan="2" style="text-align:center;">{{ ranking.label }}</th>
+										</tr>
+										{% if ranking.ranks.overall is defined %}
+										<tr>
+											<td>Overall:</td>
+											<td>#{{ ranking.ranks.overall }}</td>
+										</tr>
+										{% endif %}
+										
+										{% for year_key, year_data in ranking.ranks.items() if year_key.startswith('year_') %}
+										<tr>
+											<td>{{ year_data.year }}:</td>
+											<td>#{{ year_data.rank }}</td>
+										</tr>
+										{% endfor %}
+										
+										{% for month_key, month_data in ranking.ranks.items() if month_key.startswith('month_') %}
+										<tr>
+											<td>{{ "%02d"|format(month_data.month) }} - {{ month_data.year }}:</td>
+											<td>#{{ month_data.rank }}</td>
+										</tr>
+										{% endfor %}
+										
+										{% if not loop.last %}<tr><td colspan="2"><hr></td></tr>{% endif %}
+									{% endfor %}
+									</tbody>
+								</table>
+							{% else %}
+								<p>Workout is not ranked.</p>
+							{% endif %}
 						</div>
 					</div>
 				</article>

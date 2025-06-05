@@ -120,3 +120,18 @@ class UserSetting(db.Model):
 
     def __repr__(self):
         return f"<UserSetting {self.key}='{self.value}'>"
+
+# --------------------------------------------------------
+# - RankingSetting Model
+#---------------------------------------------------------
+# Represents the ranking settings for workouts
+class RankingSetting(db.Model):
+    __tablename__ = 'ranking_settings'
+
+    ranking_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    type = db.Column(db.String(50), nullable=False)  # 'distance' or 'time'
+    value = db.Column(db.Integer, nullable=False)    # e.g., 2000 (meters), 60 (seconds)
+    label = db.Column(db.String(100), nullable=False) # e.g., '2000m', '1:00'
+
+    def __repr__(self):
+        return f"<RankingSetting(ranking_id={self.ranking_id}, type='{self.type}', value={self.value}, label='{self.label}')>"

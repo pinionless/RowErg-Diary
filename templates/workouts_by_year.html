@@ -74,7 +74,7 @@
 								<tbody>
 									{% for summary_month in monthly_summaries_in_year %} <!-- Renamed variable -->
 									<tr>
-										<td>{{ summary_month.month_name }} {{ summary_month.year }}</td>
+										<td>{{ "%02d"|format(summary_month.month) }} - {{ summary_month.year }}</td>
 										<td>{{ '{:,.0f}'.format(summary_month.meters) if summary_month.meters is not none else '0' }}</td>
 										<td>
 											{{ summary_month.seconds | format_seconds_to_hms if summary_month.seconds is not none else 'N/A' }}
