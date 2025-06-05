@@ -1,17 +1,14 @@
 # Roadmap
 - Enhanced Statistics & Dashboard Page
-    - Create a new route (e.g., /dashboard) that displays more comprehensive statistics.
-    - Utilize mv_year_totals, mv_month_totals, mv_week_totals to show trends.
-    - Charts: Integrate a simple charting library (e.g., Chart.js, ApexCharts) to visualize:
-        - Meters rowed per week/month.
-        - Average split over time.
-        - Workout frequency.
-    - Personal Bests: Longest distance, longest duration, fastest split for common distances (e.g., 500m, 1k, 2k, 5k).
+    - Personal Bests: Longest distance, longest duration.
+
 - Workout Editing and Deletion
-    - Add "Edit" and "Delete" buttons to the workout listings (e.g., in workouts.html, workouts_by_date.html, index.html).
+    - Add "Edit" and "Delete" buttons to the workout listings (e.g., in workouts.html, workouts_by_date.html).
+
 - Filtering and Sorting:
     - Workouts Page:
         - Add clickable table headers to sort by date, distance, duration, split.
+        
 - Extra widgets on Homepage
     - This Week 
     - This Month
