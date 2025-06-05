@@ -42,34 +42,40 @@ $$ LANGUAGE plpgsql;
 """
 
 # -- SQL for Dropping and Creating Triggers -------------------
-drop_triggers_sql = """
-DROP TRIGGER IF EXISTS trg_refresh_rowing_summary_on_workout ON workouts;
-DROP TRIGGER IF EXISTS trg_refresh_summary_on_equipment_update ON equipment_types;
-DROP TRIGGER IF EXISTS trg_refresh_workout_rankings_on_workout ON workouts;
-DROP TRIGGER IF EXISTS trg_refresh_workout_rankings_on_ranking_settings ON ranking_settings;
-"""
+# Instead of executing multiple DROP statements at once, split and execute them one by one.
+drop_triggers_sql = [
+    "DROP TRIGGER IF EXISTS trg_refresh_rowing_summary_on_workout ON workouts;",
+    "DROP TRIGGER IF EXISTS trg_refresh_summary_on_equipment_update ON equipment_types;",
+    "DROP TRIGGER IF EXISTS trg_refresh_workout_rankings_on_workout ON workouts;",
+    "DROP TRIGGER IF EXISTS trg_refresh_workout_rankings_on_ranking_settings ON ranking_settings;"
+]
 
-create_triggers_sql = """
-CREATE TRIGGER trg_refresh_rowing_summary_on_workout
-AFTER INSERT OR UPDATE OR DELETE ON workouts
-FOR EACH STATEMENT 
-EXECUTE FUNCTION refresh_rowing_summary_mvs();
-
-CREATE TRIGGER trg_refresh_summary_on_equipment_update
-AFTER UPDATE ON equipment_types
-FOR EACH STATEMENT
-EXECUTE FUNCTION refresh_rowing_summary_mvs();
-
-CREATE TRIGGER trg_refresh_workout_rankings_on_workout
-AFTER INSERT OR UPDATE OR DELETE ON workouts
-FOR EACH STATEMENT
-EXECUTE FUNCTION refresh_workout_rankings_mv();
-
-CREATE TRIGGER trg_refresh_workout_rankings_on_ranking_settings
-AFTER INSERT OR UPDATE OR DELETE ON ranking_settings
-FOR EACH STATEMENT
-EXECUTE FUNCTION refresh_workout_rankings_mv();
-"""
+create_triggers_sql = [
+    """
+    CREATE TRIGGER trg_refresh_rowing_summary_on_workout
+    AFTER INSERT OR UPDATE OR DELETE ON workouts
+    FOR EACH STATEMENT 
+    EXECUTE FUNCTION refresh_rowing_summary_mvs();
+    """,
+    """
+    CREATE TRIGGER trg_refresh_summary_on_equipment_update
+    AFTER UPDATE ON equipment_types
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION refresh_rowing_summary_mvs();
+    """,
+    """
+    CREATE TRIGGER trg_refresh_workout_rankings_on_workout
+    AFTER INSERT OR UPDATE OR DELETE ON workouts
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION refresh_workout_rankings_mv();
+    """,
+    """
+    CREATE TRIGGER trg_refresh_workout_rankings_on_ranking_settings
+    AFTER INSERT OR UPDATE OR DELETE ON ranking_settings
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION refresh_workout_rankings_mv();
+    """
+]
 
 
 
@@ -334,15 +340,13 @@ def create_db_components():
         # Use a single transaction for all DDL operations.
         # This requires an app context for db.engine.
         with current_app.app_context():
+            # Initial settings and configurations - first transaction
             with db.engine.connect() as connection:
-                with connection.begin(): # Start a transaction
-                    # == Initialize Default Settings ============================================
+                with connection.begin():
                     current_app.logger.info("Initializing default settings...")
-
-                    # Use DEFAULT_USER_SETTINGS and add schema version
                     default_settings = DEFAULT_USER_SETTINGS.copy()
                     default_settings['db_schema_ver'] = current_app.config.get('TARGET_DB_SCHEMA_VERSION', '0.0')
-
+                    
                     for key, value in default_settings.items():
                         setting_exists = db.session.query(UserSetting).filter_by(key=key).first()
                         if not setting_exists:
@@ -352,50 +356,50 @@ def create_db_components():
                         else:
                             current_app.logger.info(f"Setting '{key}' already exists with value '{setting_exists.value}'. No changes made by create_db_components for this key.")
                     
-                    db.session.commit() # Commit all new settings
-
-                    # == Initialize Default Ranking Configurations ============================================
+                    db.session.commit()
+                    
                     current_app.logger.info("Initializing default ranking configurations...")
                     for config in DEFAULT_RANKING_CONFIGURATIONS:
-                        # Check if this configuration already exists
                         ranking_exists = db.session.query(RankingSetting).filter_by(
-                            type=config['type'],
-                            value=config['value'],
-                            label=config['label']
-                        ).first()
+                            type=config['type'], value=config['value'], label=config['label']).first()
                         
                         if not ranking_exists:
                             new_ranking = RankingSetting(
-                                type=config['type'],
-                                value=config['value'],
-                                label=config['label']
-                            )
+                                type=config['type'], value=config['value'], label=config['label'])
                             db.session.add(new_ranking)
                             current_app.logger.info(f"Initialized ranking configuration: {config['label']} ({config['type']}, {config['value']})")
-                        else:
-                            current_app.logger.info(f"Ranking configuration already exists for {config['label']}. No changes made.")
                     
-                    current_app.logger.info("Executing DDL for materialized views and triggers...")
-                    connection.execute(text(DROP_MVS_SQL)) # Use global constant
-                    current_app.logger.info("Executing DDL for materialized views and triggers... 2")
-                    connection.execute(text(create_mvs_sql)) # Use SQL from helper
-                    current_app.logger.info("Executing DDL for materialized views and triggers... 3")
-                    connection.execute(text(create_function_sql))
-                    current_app.logger.info("Executing DDL for materialized views and triggers... 4")
-                    connection.execute(text(create_function_ranking_sql))
-                    current_app.logger.info("Executing DDL for materialized views and triggers... 4.5")
-                    connection.execute(text(drop_triggers_sql))
-                    current_app.logger.info("Executing DDL for materialized views and triggers... 4.7")
-                    connection.execute(text(create_triggers_sql))
-                    current_app.logger.info("Executing DDL for materialized views and triggers... 5")
-                    current_app.logger.info("Materialized views and triggers setup complete.")
-                    current_app.logger.info("Executing DDL for materialized views and triggers... 6")
-                    db.session.commit() # Commit all new ranking configurations
+                    db.session.commit()
 
-            # Transaction for DDL is committed here if no exceptions
-        
-        current_app.logger.info("Database components and default settings set up successfully!")
-        return True
+            # Materialized views - second transaction
+            with db.engine.connect() as connection:
+                with connection.begin():
+                    current_app.logger.info("Creating materialized views...")
+                    connection.execute(text(DROP_MVS_SQL))
+                    connection.execute(text(create_mvs_sql))
+                    connection.execute(text(create_function_sql))
+                    connection.execute(text(create_function_ranking_sql))
+
+            # Drop triggers - separate transaction for each one
+            current_app.logger.info("Dropping triggers...")
+            for stmt in drop_triggers_sql:
+                with db.engine.connect() as connection:
+                    try:
+                        connection.execute(text(stmt))
+                    except Exception as e:
+                        current_app.logger.warning(f"Error dropping trigger: {e}")
+
+            # Create triggers - separate transaction for each one
+            current_app.logger.info("Creating triggers...")
+            for stmt in create_triggers_sql:
+                with db.engine.connect() as connection:
+                    try:
+                        connection.execute(text(stmt))
+                    except Exception as e:
+                        current_app.logger.error(f"Error creating trigger: {e}")
+
+            current_app.logger.info("Database components and default settings set up successfully!")
+            return True
 
     except Exception as e:
         current_app.logger.error(f"Error setting up database components: {e}", exc_info=True)
@@ -413,108 +417,7 @@ def update_db_schema(current_version, target_version):
     with current_app.app_context():
         while effective_current_version != target_version:
             applied_migration_in_iteration = False
-            if effective_current_version == "0.13" and target_version >= "0.15": # Check against target_version
-                current_app.logger.info("Applying schema migration from 0.13 to 0.15.")
-                try:
-                    # 1. Add 'settings_include_in_totals' column
-                    current_app.logger.info("Adding 'settings_include_in_totals' to 'equipment_types'.")
-                    alter_sql = text("""
-                        ALTER TABLE equipment_types
-                        ADD COLUMN IF NOT EXISTS settings_include_in_totals BOOLEAN NOT NULL DEFAULT TRUE;
-                    """)
-                    with db.engine.connect() as connection:
-                        with connection.begin(): # Start a transaction for this 
-                            connection.execute(alter_sql)
-                        # DDL transaction committed
-
-                    # 2. Add new default user settings
-                    current_app.logger.info("Adding default pagination settings to 'user_settings'.")
-                    default_pagination_settings = {
-                        'per_page_workouts': '20',
-                        'per_page_summary_day': '14',
-                        'per_page_summary_week': '12',
-                        'per_page_summary_month': '12'
-                    }
-                    for key, value in default_pagination_settings.items():
-                        setting_exists = db.session.query(UserSetting).filter_by(key=key).first()
-                        if not setting_exists:
-                            new_setting = UserSetting(key=key, value=value)
-                            db.session.add(new_setting)
-                            current_app.logger.info(f"Added default setting during migration.")
-                    
-                    # 3. Update the schema version in the database
-                    migrated_to_version = "0.15"
-                    setting = db.session.query(UserSetting).filter_by(key='db_schema_ver').first()
-                    if setting:
-                        setting.value = migrated_to_version
-                        db.session.add(setting) 
-                        current_app.logger.info(f"Updated 'db_schema_ver' to '{migrated_to_version}'.")
-                    else:
-                        current_app.logger.error(f"Could not find 'db_schema_ver' to update during migration to {migrated_to_version}. Creating it.")
-                        new_schema_ver_setting = UserSetting(key='db_schema_ver', value=migrated_to_version)
-                        db.session.add(new_schema_ver_setting)
-
-                    db.session.commit() 
-                    current_app.logger.info(f"Database schema migration from 0.13 to {migrated_to_version} completed successfully.")
-                    effective_current_version = migrated_to_version
-                    applied_migration_in_iteration = True
-                            
-                except Exception as e:
-                    db.session.rollback()
-                    current_app.logger.error(f"Error migrating schema from 0.13 to 0.15: {e}", exc_info=True)
-                    return # Stop further migrations on error
-            
-            elif effective_current_version == "0.15" and target_version >= "0.16": # Check against target_version
-                current_app.logger.info("Applying schema migration from 0.15 to 0.16 (Update Materialized Views and Triggers).")
-                try:
-                    # Define the SQL for triggers, ensuring it includes both.
-                    # This is the same definition as in create_db_components.
-                    final_drop_and_create_triggers_sql = """
-                    DROP TRIGGER IF EXISTS trg_refresh_rowing_summary_on_workout ON workouts;
-                    DROP TRIGGER IF EXISTS trg_refresh_summary_on_equipment_update ON equipment_types;
-
-                    CREATE TRIGGER trg_refresh_rowing_summary_on_workout
-                    AFTER INSERT OR UPDATE OR DELETE ON workouts
-                    FOR EACH STATEMENT 
-                    EXECUTE FUNCTION refresh_rowing_summary_mvs();
-
-                    CREATE TRIGGER trg_refresh_summary_on_equipment_update
-                    AFTER UPDATE ON equipment_types
-                    FOR EACH STATEMENT
-                    EXECUTE FUNCTION refresh_rowing_summary_mvs();
-                    """
-                    with db.engine.connect() as connection:
-                        with connection.begin(): # Start a transaction for DDL
-                            current_app.logger.info("Dropping existing materialized views...")
-                            connection.execute(text(DROP_MVS_SQL))
-                            current_app.logger.info("Creating new materialized views with updated definitions...")
-                            connection.execute(text(_get_create_mvs_sql()))
-                            current_app.logger.info("Dropping and recreating triggers to include equipment_types and workouts.")
-                            connection.execute(text(final_drop_and_create_triggers_sql))
-                    
-                    migrated_to_version = "0.16"
-                    # Update the schema version in the database
-                    setting = db.session.query(UserSetting).filter_by(key='db_schema_ver').first()
-                    if setting:
-                        setting.value = migrated_to_version
-                        db.session.add(setting)
-                        current_app.logger.info(f"Updated 'db_schema_ver' to '{migrated_to_version}'.")
-                    else:
-                        current_app.logger.error(f"Could not find 'db_schema_ver' to update during migration to {migrated_to_version}. Creating it.")
-                        new_schema_ver_setting = UserSetting(key='db_schema_ver', value=migrated_to_version)
-                        db.session.add(new_schema_ver_setting)
-
-                    db.session.commit() 
-                    current_app.logger.info(f"Database schema migration from 0.15 to {migrated_to_version} completed successfully.")
-                    effective_current_version = migrated_to_version
-                    applied_migration_in_iteration = True
-
-                except Exception as e:
-                    db.session.rollback()
-                    current_app.logger.error(f"Error migrating schema from 0.15 to 0.16: {e}", exc_info=True)
-                    return # Stop further migrations on error
-
-            elif effective_current_version == "0.16" and target_version >= "0.17":
+            if effective_current_version == "0.16" and target_version >= "0.17":
                 current_app.logger.info("Applying schema migration from 0.16 to 0.17 (Adding Ranking Settings).")
                 try:
                     # Create the ranking_settings table if it doesn't exist

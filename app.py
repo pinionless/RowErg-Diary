@@ -66,7 +66,6 @@ def create_app(config_object=None):
                     app.logger.info(f"DB schema version mismatch. Current: {current_db_schema_ver}, Target: {target_schema_ver_from_config}. Running update.")
                     update_db_schema(current_db_schema_ver, target_schema_ver_from_config)
                 else:
-                    create_db_components() # Ensure all tables are created, even if schema version matches
                     app.logger.info(f"DB schema version {current_db_schema_ver} is up to date.")
 
         except ProgrammingError as e:
