@@ -1,5 +1,8 @@
+from sqlalchemy import text
+from models import UserSetting
+
 def upgrade(db, current_app):
-    from models import UserSetting
+    """Upgrade database from version 0.13 to 0.15."""
     current_app.logger.info("Applying schema migration from 0.13 to 0.15.")
     try:
         # 1. Add 'settings_include_in_totals' column
@@ -42,12 +45,9 @@ def upgrade(db, current_app):
 
         db.session.commit() 
         current_app.logger.info(f"Database schema migration from 0.13 to {migrated_to_version} completed successfully.")
-        effective_current_version = migrated_to_version
-        applied_migration_in_iteration = True
+        return migrated_to_version
                 
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Error migrating schema from 0.13 to 0.15: {e}", exc_info=True)
-        return # Stop further migrations on error
-    
-    return "0.15"  # Return the new version
+        return None
