@@ -3,6 +3,7 @@ from models import UserSetting, RankingSetting, db
 from database_setup import (
     DEFAULT_RANKING_CONFIGURATIONS,
     create_function_ranking_sql,
+    create_function_sql,  # <-- Add this import for the summary function
     drop_triggers_sql,
     create_triggers_sql
 )
@@ -122,7 +123,11 @@ def upgrade(db_obj, current_app):
         # Execute view creation and function in separate connections
         with db_obj.engine.connect() as connection:
             with connection.begin():
-                # Create the refresh function for rankings
+                # Create both functions needed by triggers
+                current_app.logger.info("Creating summary refresh function...")
+                connection.execute(text(create_function_sql))  # <-- Add this to create the summary function
+                
+                current_app.logger.info("Creating ranking refresh function...")
                 connection.execute(text(create_function_ranking_sql))
         
         with db_obj.engine.connect() as connection:
@@ -131,23 +136,45 @@ def upgrade(db_obj, current_app):
                 connection.execute(text("DROP MATERIALIZED VIEW IF EXISTS mv_workout_rankings;"))
                 connection.execute(text(ranking_mv_sql))
         
-        # Drop triggers in separate connections
-        current_app.logger.info("Dropping existing triggers...")
-        for stmt in drop_triggers_sql:
-            with db_obj.engine.connect() as connection:
-                try:
-                    connection.execute(text(stmt))
-                except Exception as e:
-                    current_app.logger.warning(f"Error dropping trigger: {stmt.strip()} - {e}")
+        # Force a commit to ensure all previous operations are completed
+        db_obj.session.commit()
         
-        # Create triggers in separate connections
-        current_app.logger.info("Creating triggers...")
-        for stmt in create_triggers_sql:
-            with db_obj.engine.connect() as connection:
-                try:
+        # Handle triggers differently - first create an engine with AUTOCOMMIT
+        current_app.logger.info("Setting up AUTOCOMMIT engine for trigger operations")
+        autocommit_engine = db_obj.engine.execution_options(isolation_level="AUTOCOMMIT")
+        
+        # Drop triggers one by one with explicit error handling
+        current_app.logger.info("Starting trigger drop operations...")
+        for i, stmt in enumerate(drop_triggers_sql):
+            try:
+                current_app.logger.info(f"Dropping trigger {i+1}/{len(drop_triggers_sql)}: Starting")
+                with autocommit_engine.connect() as connection:
+                    # Keep statements extremely simple
+                    current_app.logger.info(f"Executing drop: {stmt.strip()}")
                     connection.execute(text(stmt))
-                except Exception as e:
-                    current_app.logger.error(f"Error creating trigger: {stmt.strip()} - {e}")
+                current_app.logger.info(f"Dropping trigger {i+1}/{len(drop_triggers_sql)}: Complete")
+            except Exception as e:
+                current_app.logger.warning(f"Error dropping trigger: {e}")
+                # Continue with the next one regardless of errors
+        
+        # Force a small delay to ensure database has processed all operations
+        import time
+        current_app.logger.info("Waiting 2 seconds before creating triggers...")
+        time.sleep(2)
+        
+        # Create triggers one by one, also with explicit error handling
+        current_app.logger.info("Starting trigger create operations...")
+        for i, stmt in enumerate(create_triggers_sql):
+            try:
+                current_app.logger.info(f"Creating trigger {i+1}/{len(create_triggers_sql)}: Starting")
+                with autocommit_engine.connect() as connection:
+                    # Keep statements extremely simple
+                    current_app.logger.info(f"Executing create: {stmt.strip()}")
+                    connection.execute(text(stmt))
+                current_app.logger.info(f"Creating trigger {i+1}/{len(create_triggers_sql)}: Complete")
+            except Exception as e:
+                current_app.logger.error(f"Error creating trigger: {e}")
+                # Continue regardless of errors
         
         # Update the schema version in the database
         migrated_to_version = "0.17"
