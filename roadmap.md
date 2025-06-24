@@ -20,3 +20,4 @@
     - Allow users to export their workout data (e.g., main workout stats or even detailed samples) to CSV.
 - Concept2 Log API integration
     - autosync workouts
+- Display Heart Rate Data
