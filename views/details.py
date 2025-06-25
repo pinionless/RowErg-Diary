@@ -22,13 +22,21 @@ def details(workout_id):
     
     # Query for rankings from the materialized view
     ranking_query = text("""
-        SELECT 
+        SELECT
             r.ranking_id, r.rank, r.rank_type, r.year, r.month,
+            (
+                SELECT COUNT(*)
+                FROM mv_workout_rankings r2
+                WHERE r2.ranking_id = r.ranking_id
+                AND r2.rank_type = r.rank_type
+                AND COALESCE(r2.year, 0) = COALESCE(r.year, 0)
+                AND COALESCE(r2.month, 0) = COALESCE(r.month, 0)
+            ) as total_in_rank,
             rs.type, rs.value, rs.label
-        FROM 
+        FROM
             mv_workout_rankings r
             JOIN ranking_settings rs ON r.ranking_id = rs.ranking_id
-        WHERE 
+        WHERE
             r.workout_id = :workout_id
         ORDER BY rs.type, rs.value
     """)
@@ -49,17 +57,22 @@ def details(workout_id):
             
             # Add rank by type
             if row.rank_type == 'overall':
-                ranking_data[ranking_key]['ranks']['overall'] = row.rank
+                ranking_data[ranking_key]['ranks']['overall'] = {
+                    'rank': row.rank,
+                    'total': row.total_in_rank
+                }
             elif row.rank_type == 'year' and row.year:
                 ranking_data[ranking_key]['ranks'][f'year_{row.year}'] = {
                     'year': row.year,
-                    'rank': row.rank
+                    'rank': row.rank,
+                    'total': row.total_in_rank
                 }
             elif row.rank_type == 'month' and row.year and row.month:
                 ranking_data[ranking_key]['ranks'][f'month_{row.year}_{row.month}'] = {
                     'year': row.year,
                     'month': row.month,
-                    'rank': row.rank
+                    'rank': row.rank,
+                    'total': row.total_in_rank
                 }
                 
     except Exception as e:

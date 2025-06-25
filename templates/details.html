@@ -101,21 +101,21 @@
 										{% if ranking.ranks.overall is defined %}
 										<tr>
 											<td>Overall:</td>
-											<td>#{{ ranking.ranks.overall }}</td>
+											<td>#{{ ranking.ranks.overall.rank }} of {{ ranking.ranks.overall.total }}</td>
 										</tr>
 										{% endif %}
 										
 										{% for year_key, year_data in ranking.ranks.items() if year_key.startswith('year_') %}
 										<tr>
 											<td>{{ year_data.year }}:</td>
-											<td>#{{ year_data.rank }}</td>
+											<td>#{{ year_data.rank }} of {{ year_data.total }}</td>
 										</tr>
 										{% endfor %}
 										
 										{% for month_key, month_data in ranking.ranks.items() if month_key.startswith('month_') %}
 										<tr>
 											<td>{{ "%02d"|format(month_data.month) }} - {{ month_data.year }}:</td>
-											<td>#{{ month_data.rank }}</td>
+											<td>#{{ month_data.rank }} of {{ month_data.total }}</td>
 										</tr>
 										{% endfor %}
 										
