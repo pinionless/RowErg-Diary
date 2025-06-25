@@ -78,6 +78,17 @@
 									</div>
 								</div>
 
+								<!-- ---- Equipment Dropdown ------------------- -->
+								<div class="form-field-group">
+									<label for="equipmentType">Equipment:</label>
+									<select id="equipmentType" name="equipmentType" required>
+										<option value="" disabled selected>Select Equipment</option>
+										{% for equipment in equipment_types %}
+											<option value="{{ equipment.equipment_type_id }}">{{ equipment.name }}</option>
+										{% endfor %}
+									</select>
+								</div>
+
 								<!-- ---- Workout Notes ------------------- -->
 								<div>
 									<label for="workoutNotes">Notes:</label>

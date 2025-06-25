@@ -2,7 +2,7 @@
 # = home.py - View for the home page
 # ========================================================
 from flask import render_template, current_app
-from models import db, Workout, MetricDescriptor, WorkoutSample # Ensure all are imported
+from models import db, Workout, MetricDescriptor, WorkoutSample, EquipmentType # Ensure all are imported
 from sqlalchemy import desc
 import json
 
@@ -11,11 +11,11 @@ import json
 #---------------------------------------------------------
 # Displays the home page with the latest five workouts.
 def home():
-    # == Query Latest Workouts ============================================
-    # Fetch the latest five workouts, ordered by date and then ID for consistency
+    # == Query Equipment Types for dropdown =================================
+    equipment_types = EquipmentType.query.order_by(EquipmentType.name).all()
 
     # == Render Template ============================================
-    return render_template('index.html')
+    return render_template('index.html', equipment_types=equipment_types)
 
 # --------------------------------------------------------
 # - Route Registration

@@ -19,11 +19,12 @@ def submit_manual_workout():
         distance_str = request.form.get('workoutDistance')
         level_str = request.form.get('workoutLevel')
         notes = request.form.get('workoutNotes')
+        equipment_type_id_form = request.form.get('equipmentType')
 
         # == Validation ============================================
         # -- Mandatory Fields -------------------
-        if not date_str or not time_str or not distance_str:
-            flash('Date, Time, and Distance are required fields.', 'danger')
+        if not date_str or not time_str or not distance_str or not equipment_type_id_form:
+            flash('Date, Time, Distance, and Equipment are required fields.', 'danger')
             return redirect(url_for('home'))
 
         workout_name = workout_name_form if workout_name_form else "Rowing" # Default workout name
@@ -68,13 +69,16 @@ def submit_manual_workout():
         if total_distance_meters_val > 0 and duration_seconds_val > 0:
             average_split_val = (duration_seconds_val / total_distance_meters_val) * 500 # Calculate 500m split
 
-        # == Get or Create Equipment Type ============================================
-        equipment_name = "Manual Entry" # Default equipment type for manual entries
-        equipment_type = EquipmentType.query.filter_by(name=equipment_name).first()
-        if not equipment_type: # If "Manual Entry" type doesn't exist, create it
-            equipment_type = EquipmentType(name=equipment_name)
-            db.session.add(equipment_type)
-            db.session.flush() # Ensure equipment_type_id is available before commit
+        # == Equipment Validation ============================================
+        try:
+            equipment_type_id_val = int(equipment_type_id_form)
+            equipment_type = EquipmentType.query.get(equipment_type_id_val)
+            if not equipment_type:
+                flash('Invalid equipment selected.', 'danger')
+                return redirect(url_for('home'))
+        except (ValueError, TypeError):
+            flash('Invalid equipment ID format.', 'danger')
+            return redirect(url_for('home'))
 
         # == Create Workout Object and Save to Database ============================================
         try:
@@ -82,7 +86,7 @@ def submit_manual_workout():
 
             new_workout = Workout(
                 cardio_log_id=cardio_log_id,
-                equipment_type_id=equipment_type.equipment_type_id,
+                equipment_type_id=equipment_type_id_val,
                 workout_name=workout_name,
                 workout_date=workout_date_obj,
                 target_description=None, # Manual entries might not have a target description
