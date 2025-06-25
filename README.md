@@ -1,9 +1,5 @@
 # RowErg Diary 🚣‍♂️
 
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![Code Coverage](https://img.shields.io/badge/coverage-N/A-lightgrey)
-![License](https://img.shields.io/badge/license-MIT-blue)
-
 RowErg Diary is a self-hosted web application designed for rowing enthusiasts to track, analyze, and visualize their workout data. It provides a centralized platform to import workout files from services like Technogym's MyWellness or to enter them manually, offering detailed insights into performance metrics, long-term progress, and personal rankings.
 
 ## ✨ Key Features
