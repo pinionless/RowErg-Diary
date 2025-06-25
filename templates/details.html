@@ -115,15 +115,38 @@
 								<p>Workout is not ranked.</p>
 							{% endif %}
 						</div>
+						<div class="flex-box">
+							<h3>Heart Rate Zones</h3>
+							{% if ranking_data %}
+								<table>
+									<tbody>
+									
+									</tbody>
+								</table>
+							{% else %}
+								<p>Workout is not ranked.</p>
+							{% endif %}
+						</div>
+						<div class="flex-box">
+							<h3>Split</h3>
+							{% if ranking_data %}
+								<table>
+									<tbody>
+									500m
+									1000m
+									2000m...
+									</tbody>
+								</table>
+							{% else %}
+								<p>Workout is not ranked.</p>
+							{% endif %}
+						</div>
 					</div>
 				</article>
 
 				<!-- -- Metric Charts Section ------------------- -->
 				{% if charts_data_list %}
 				<article class="box post post-excerpt">
-					<header>
-						<h2 style="text-align: center;">Workout Graphs</h2>
-					</header>
 					{% for chart_info in charts_data_list %}
 					<!-- Wrapper for Chart - similar to workouts.html -->
 					<div style="max-width: 800px; margin-left: auto; margin-right: auto; margin-bottom: 30px;" class="type01"> 
