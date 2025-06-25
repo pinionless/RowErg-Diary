@@ -96,6 +96,10 @@ def details(workout_id):
 
     
 
+    distance_metric_id = None
+    power_metric_id = None
+    spm_metric_id = None
+
     if time_categories:
         pace_metric_descriptor = MetricDescriptor.query.filter_by(metric_name='RowingSplit').first()
         pace_metric_id = pace_metric_descriptor.metric_descriptor_id if pace_metric_descriptor else None
@@ -294,8 +298,8 @@ def details(workout_id):
         workout_id=workout.workout_id
     ).order_by(HeartRateSample.time_offset_seconds.asc()).all()
     
+    hr_series_values = []
     if hr_samples_query:
-        hr_series_values = []
         
         # Check if heart rate data starts after time 0, if so add a null point at time 0
         first_hr_time = hr_samples_query[0].time_offset_seconds if hr_samples_query else None
