@@ -117,19 +117,27 @@
 						</div>
 						<div class="flex-box">
 							<h3>Heart Rate Zones</h3>
-							{% if ranking_data %}
 								<table>
 									<tbody>
-									
+									{% if hr_zone_table_data %}
+										{% for zone in hr_zone_table_data %}
+										<tr style="background: linear-gradient(to right, {{ zone.color.replace('rgb', 'rgba').replace(')', ', 0.5)') }} {{ zone.percentage }}, transparent {{ zone.percentage }});">
+											<td>{{ zone.name }}</td>
+											<td>{{ zone.range }}</td>
+											<td>{{ zone.time | format_seconds_to_hms }}</td>
+											<td>{{ zone.percentage }}</td>
+										</tr>
+										{% endfor %}
+									{% else %}
+										<tr>
+											<td colspan="4" style="text-align: center;">No Heart Rate Data Available</td>
+										</tr>
+									{% endif %}
 									</tbody>
 								</table>
-							{% else %}
-								<p>Workout is not ranked.</p>
-							{% endif %}
 						</div>
 						<div class="flex-box">
 							<h3>Split</h3>
-							{% if ranking_data %}
 								<table>
 									<tbody>
 									500m
@@ -137,9 +145,6 @@
 									2000m...
 									</tbody>
 								</table>
-							{% else %}
-								<p>Workout is not ranked.</p>
-							{% endif %}
 						</div>
 					</div>
 				</article>

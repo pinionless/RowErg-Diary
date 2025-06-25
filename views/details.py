@@ -389,11 +389,68 @@ def details(workout_id):
                 "annotations_json": json.dumps(hr_annotations_dict) if hr_annotations_dict else None
             })
 
+    # Calculate time spent in each heart rate zone
+    hr_zone_table_data = []
+    if hr_series_values and hr_zones and 'zone_definitions' in locals():
+        # Build zone ranges first
+        zone_ranges = []
+        for i, zone_def in enumerate(zone_definitions):
+            zone_key = zone_def['key']
+            if zone_key in hr_zones:
+                y_start = hr_zones[zone_key]
+                y_end = float('inf')
+                
+                # Find the start of the next zone to define the end of the current one
+                next_zone_start = None
+                if i + 1 < len(zone_definitions):
+                    next_zone_key = zone_definitions[i+1]['key']
+                    if next_zone_key in hr_zones:
+                        next_zone_start = hr_zones[next_zone_key]
+                
+                if next_zone_start is not None:
+                    y_end = next_zone_start
+                
+                zone_ranges.append({'key': zone_key, 'name': zone_def['name'], 'start': y_start, 'end': y_end, 'time': 0})
+
+        # Calculate time in each zone
+        if len(hr_series_values) > 1:
+            for i in range(1, len(hr_series_values)):
+                prev_point = hr_series_values[i-1]
+                curr_point = hr_series_values[i]
+
+                if prev_point['y'] is None or curr_point['x'] is None or prev_point['x'] is None:
+                    continue
+
+                duration = curr_point['x'] - prev_point['x']
+                hr = prev_point['y']
+
+                for zone in zone_ranges:
+                    if zone['start'] <= hr < zone['end']:
+                        zone['time'] += duration
+                        break
+        
+        total_hr_duration = sum(zone['time'] for zone in zone_ranges)
+
+        # Prepare data for the template
+        for zone in zone_ranges:
+            percentage = (zone['time'] / total_hr_duration) * 100 if total_hr_duration > 0 else 0
+            
+            range_str = f"{zone['start']} - {zone['end'] - 1}" if zone['end'] != float('inf') else f"{zone['start']}+"
+
+            hr_zone_table_data.append({
+                'name': zone['name'],
+                'range': range_str,
+                'time': zone['time'],
+                'percentage': f"{percentage:.1f}%",
+                'color': zone_colors.get(zone['key'], 'rgb(220, 220, 220)')
+            })
+
     return render_template(
         'details.html',
         workout=workout,
         charts_data_list=charts_data_list,
-        ranking_data=ranking_data
+        ranking_data=ranking_data,
+        hr_zone_table_data=hr_zone_table_data
     )
 
 # --------------------------------------------------------
