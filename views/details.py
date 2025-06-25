@@ -90,6 +90,9 @@ def details(workout_id):
         power_metric_id = power_metric_descriptor.metric_descriptor_id if power_metric_descriptor else None
         power_unit = power_metric_descriptor.unit_of_measure if power_metric_descriptor else None
 
+        distance_metric_descriptor = MetricDescriptor.query.filter_by(metric_name='RowingDistance').first()
+        distance_metric_id = distance_metric_descriptor.metric_descriptor_id if distance_metric_descriptor else None
+
         spm_metric_descriptor = MetricDescriptor.query.filter_by(metric_name='Spm').first()
         spm_metric_id = spm_metric_descriptor.metric_descriptor_id if spm_metric_descriptor else None
         spm_unit = spm_metric_descriptor.unit_of_measure if spm_metric_descriptor else None
@@ -450,8 +453,103 @@ def details(workout_id):
         workout=workout,
         charts_data_list=charts_data_list,
         ranking_data=ranking_data,
-        hr_zone_table_data=hr_zone_table_data
+        hr_zone_table_data=hr_zone_table_data,
+        split_table_data=calculate_split_data(workout.workout_id, distance_metric_id, power_metric_id, spm_metric_id, hr_samples_query)
     )
+
+def calculate_split_data(workout_id, distance_metric_id, power_metric_id, spm_metric_id, hr_samples_raw):
+    current_app.logger.debug(f"--- Calculating split data for workout_id: {workout_id} ---")
+    
+    # Fetch all necessary samples, converting to dicts for easier use
+    distance_samples_query = WorkoutSample.query.filter_by(workout_id=workout_id, metric_descriptor_id=distance_metric_id).order_by(WorkoutSample.time_offset_seconds).all()
+    power_samples_query = WorkoutSample.query.filter_by(workout_id=workout_id, metric_descriptor_id=power_metric_id).order_by(WorkoutSample.time_offset_seconds).all()
+    spm_samples_query = WorkoutSample.query.filter_by(workout_id=workout_id, metric_descriptor_id=spm_metric_id).order_by(WorkoutSample.time_offset_seconds).all()
+    
+    distance_samples = [{'time': s.time_offset_seconds, 'value': float(s.value)} for s in distance_samples_query]
+    power_samples = [{'time': s.time_offset_seconds, 'value': float(s.value)} for s in power_samples_query]
+    spm_samples = [{'time': s.time_offset_seconds, 'value': float(s.value)} for s in spm_samples_query]
+    hr_samples = [{'time': s.time_offset_seconds, 'value': float(s.heart_rate_bpm)} for s in hr_samples_raw]
+
+    current_app.logger.debug(f"Found {len(distance_samples)} distance samples.")
+    current_app.logger.debug(f"Found {len(power_samples)} power samples.")
+    current_app.logger.debug(f"Found {len(spm_samples)} SPM samples.")
+    current_app.logger.debug(f"Found {len(hr_samples)} HR samples.")
+
+    if not distance_samples:
+        current_app.logger.debug("No distance samples found. Returning empty list.")
+        return []
+    
+    current_app.logger.debug(f"Last distance sample value: {distance_samples[-1]['value']}")
+
+    if distance_samples[-1]['value'] < 500:
+        current_app.logger.debug("Total distance is less than 500m. Returning empty list.")
+        return []
+
+    def get_average_for_interval(samples, start_time, end_time):
+        if not samples:
+            return 0
+        
+        relevant_samples = [s['value'] for s in samples if start_time <= s['time'] < end_time]
+        
+        if not relevant_samples:
+            last_sample_before = [s['value'] for s in samples if s['time'] < start_time]
+            if last_sample_before:
+                return last_sample_before[-1]
+            return 0
+
+        return sum(relevant_samples) / len(relevant_samples)
+
+    if not distance_samples or distance_samples[0]['time'] != 0:
+        distance_samples.insert(0, {'time': 0, 'value': 0})
+        current_app.logger.debug("Inserted a zero point for distance samples.")
+
+    current_app.logger.debug(f"Distance samples (first 5): {distance_samples[:5]}")
+
+    split_data = []
+    target_distance = 500
+    last_time = 0.0
+    i = 1
+    while i < len(distance_samples):
+        prev_sample = distance_samples[i-1]
+        curr_sample = distance_samples[i]
+
+        current_app.logger.debug(f"Looping... i={i}, prev_dist={prev_sample['value']}, curr_dist={curr_sample['value']}, target_dist={target_distance}")
+
+        if prev_sample['value'] < target_distance <= curr_sample['value']:
+            current_app.logger.debug(f"Target distance {target_distance}m crossed.")
+            dist_range = curr_sample['value'] - prev_sample['value']
+            time_range = curr_sample['time'] - prev_sample['time']
+            
+            if dist_range > 0:
+                fraction = (target_distance - prev_sample['value']) / dist_range
+                split_time = prev_sample['time'] + (time_range * fraction)
+            else:
+                split_time = curr_sample['time']
+
+            interval_duration = split_time - last_time
+            current_app.logger.debug(f"Split time: {split_time}, Interval duration: {interval_duration}")
+
+            avg_power = get_average_for_interval(power_samples, last_time, split_time)
+            avg_spm = get_average_for_interval(spm_samples, last_time, split_time)
+            avg_hr = get_average_for_interval(hr_samples, last_time, split_time)
+            current_app.logger.debug(f"Avg Power: {avg_power}, Avg SPM: {avg_spm}, Avg HR: {avg_hr}")
+
+            split_data.append({
+                'distance': int(target_distance),
+                'time': split_time,
+                'pace': interval_duration,
+                'avg_power': avg_power,
+                'avg_spm': avg_spm,
+                'avg_hr': avg_hr
+            })
+
+            last_time = split_time
+            target_distance += 500
+        else:
+            i += 1
+    
+    current_app.logger.debug(f"Final split data: {split_data}")
+    return split_data
 
 # --------------------------------------------------------
 # - Route Registration

@@ -139,10 +139,33 @@
 						<div class="flex-box">
 							<h3>Split</h3>
 								<table>
+									<thead>
+										<tr>
+											<th>Dist</th>
+											<th>Time</th>
+											<th>Pace</th>
+											<th>Pwr</th>
+											<th>SPM</th>
+											<th>HR</th>
+										</tr>
+									</thead>
 									<tbody>
-									500m
-									1000m
-									2000m...
+										{% if split_table_data %}
+											{% for split in split_table_data %}
+											<tr>
+												<td>{{ split.distance }}m</td>
+												<td>{{ split.time | format_seconds_to_hms }}</td>
+												<td>{{ split.pace | format_seconds_to_hms }}</td>
+												<td>{{ '%.0f'|format(split.avg_power) }}W</td>
+												<td>{{ '%.0f'|format(split.avg_spm) }}</td>
+												<td>{{ '%.0f'|format(split.avg_hr) }}</td>
+											</tr>
+											{% endfor %}
+										{% else %}
+											<tr>
+												<td colspan="6" style="text-align: center;">No split data available.</td>
+											</tr>
+										{% endif %}
 									</tbody>
 								</table>
 						</div>
