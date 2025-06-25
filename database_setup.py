@@ -302,7 +302,12 @@ DEFAULT_USER_SETTINGS = {
     'per_page_workouts': '20',
     'per_page_summary_day': '14',
     'per_page_summary_week': '12',
-    'per_page_summary_month': '12'
+    'per_page_summary_month': '12',
+    'HR_Very_hard': '166',
+    'HR_Hard': '147',
+    'HR_Moderate': '129',
+    'HR_Light': '111',
+    'HR_Very_light': '0'
 }
 
 # Default ranking configurations
@@ -444,13 +449,14 @@ def update_db_schema(current_version, target_version):
     current_app.logger.info(f"Updating schema from {current_version} to {target_version}")
     
     # Import migration modules
-    from db_migrations import v0_13_to_0_15, v0_15_to_0_16, v0_16_to_0_17
+    from db_migrations import v0_13_to_0_15, v0_15_to_0_16, v0_16_to_0_17, v0_17_to_0_18
     
     # Define available migrations
     migrations = {
         "0.13": {"target": "0.15", "upgrade": v0_13_to_0_15.upgrade},
         "0.15": {"target": "0.16", "upgrade": v0_15_to_0_16.upgrade},
-        "0.16": {"target": "0.17", "upgrade": v0_16_to_0_17.upgrade}
+        "0.16": {"target": "0.17", "upgrade": v0_16_to_0_17.upgrade},
+        "0.17": {"target": "0.18", "upgrade": v0_17_to_0_18.upgrade}
     }
     
     effective_current_version = current_version

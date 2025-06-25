@@ -12,9 +12,12 @@ DEFAULT_SETTINGS = {
     'per_page_workouts': '20',
     'per_page_summary_day': '14',
     'per_page_summary_week': '12',
-    'per_page_summary_month': '12'
-    # 'items_per_page' and 'preferred_theme' are removed as per new requirements
-    # or managed elsewhere/differently.
+    'per_page_summary_month': '12',
+    'HR_Very_hard': '166',
+    'HR_Hard': '147',
+    'HR_Moderate': '129',
+    'HR_Light': '111',
+    'HR_Very_light': '0'
 }
 
 # --------------------------------------------------------
@@ -33,7 +36,12 @@ def show_settings():
                 'per_page_workouts': request.form.get('per_page_workouts'),
                 'per_page_summary_day': request.form.get('per_page_summary_day'),
                 'per_page_summary_week': request.form.get('per_page_summary_week'),
-                'per_page_summary_month': request.form.get('per_page_summary_month')
+                'per_page_summary_month': request.form.get('per_page_summary_month'),
+                'HR_Very_hard': request.form.get('HR_Very_hard'),
+                'HR_Hard': request.form.get('HR_Hard'),
+                'HR_Moderate': request.form.get('HR_Moderate'),
+                'HR_Light': request.form.get('HR_Light'),
+                'HR_Very_light': request.form.get('HR_Very_light')
             }
 
             for key, value_str in settings_to_update.items():

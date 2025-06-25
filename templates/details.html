@@ -203,6 +203,7 @@
 							name: chartInfo.title,
 							data: seriesDataWithXY // Use the {x,y} data directly
 						}],
+						colors: ['#008FFB'],
 						xaxis: {
 							// categories: categories, // Removed, x-values are in series data
 							type: 'numeric', // X-axis is numeric
@@ -227,15 +228,16 @@
 									return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
 								}
 							},
-							// Conditionally set min to 0 for Power chart only
-							min: (chartInfo.metric_key === 'Power') ? 0 : undefined
+							// Conditionally set min to 0 for Power chart, or appropriate range for Heart Rate
+							min: (chartInfo.metric_key === 'Power') ? 0 : 
+								 (chartInfo.metric_key === 'HeartRate') ? 40 : undefined
 						},
 						title: {
 							text: chartInfo.title,
 							align: 'left'
 						},
 						stroke: {
-							curve: 'smooth', // or 'straight' if data has many nulls
+							curve: 'smooth',
 							width: 1
 						},
 						grid: {

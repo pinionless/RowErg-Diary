@@ -1,9 +1,9 @@
 # ========================================================
 # = details.py - View for displaying detailed workout information
 # ========================================================
-from flask import render_template
+from flask import render_template, current_app
 from sqlalchemy.orm import joinedload
-from models import db, Workout, MetricDescriptor, WorkoutSample, HeartRateSample, RankingSetting
+from models import db, Workout, MetricDescriptor, WorkoutSample, HeartRateSample, RankingSetting, UserSetting
 from sqlalchemy import text
 import json # Added json
 # import math # No longer needed for chart data processing
@@ -75,6 +75,9 @@ def details(workout_id):
 
     if workout_sample_times:
         time_categories = sorted(list(set(t[0] for t in workout_sample_times)))
+        # Ensure time 0 is included in categories if data doesn't start at 0
+        if time_categories and min(time_categories) > 0:
+            time_categories = [0] + time_categories
 
     
 
@@ -125,8 +128,12 @@ def details(workout_id):
                 except (ValueError, TypeError):
                     metric_samples_dict[sample.time_offset_seconds] = None
             
-            # Create a list of {x, y} pairs
+            # Create a list of {x, y} pairs, ensuring we start at time 0
             series_list_of_dicts = []
+            # Always add a point at time 0 if not present
+            if 0 not in metric_samples_dict and categories_list and min(categories_list) > 0:
+                series_list_of_dicts.append({'x': 0, 'y': None})
+            
             for t_offset in categories_list:
                 series_list_of_dicts.append({'x': t_offset, 'y': metric_samples_dict.get(t_offset, None)})
 
@@ -263,8 +270,124 @@ def details(workout_id):
                     "annotations_json": json.dumps(spm_annotations_dict) if spm_annotations_dict else None
                 })
 
+    # Prepare Heart Rate Chart Data (independent of time_categories since HR data may have different timing)
+    hr_samples_query = HeartRateSample.query.filter_by(
+        workout_id=workout.workout_id
+    ).order_by(HeartRateSample.time_offset_seconds.asc()).all()
+    
+    if hr_samples_query:
+        hr_series_values = []
+        
+        # Check if heart rate data starts after time 0, if so add a null point at time 0
+        first_hr_time = hr_samples_query[0].time_offset_seconds if hr_samples_query else None
+        if first_hr_time is not None and first_hr_time > 0:
+            hr_series_values.append({'x': 0, 'y': None})
+        
+        for sample in hr_samples_query:
+            if sample.heart_rate_bpm is not None and sample.heart_rate_bpm > 0:
+                hr_series_values.append({
+                    'x': sample.time_offset_seconds,
+                    'y': int(sample.heart_rate_bpm)
+                })
+        
+        if hr_series_values:  # Check if we have valid heart rate data
+            hr_annotations_yaxis = []
+            
+            # Fetch HR Zone settings
+            hr_zone_settings = db.session.query(UserSetting).filter(UserSetting.key.like('HR_%')).all()
+            hr_zones = {setting.key: int(setting.value) for setting in hr_zone_settings if setting.value.isdigit()}
+            print(f"--- Debug HR Zones from DB: {hr_zones} ---")
 
+            if hr_zones:
+                zone_colors = {
+                    'HR_Very_light': 'rgb(173, 216, 230)', # Light Blue
+                    'HR_Light':      'rgb(144, 238, 144)', # Light Green
+                    'HR_Moderate':   'rgb(255, 255, 0)',   # Yellow
+                    'HR_Hard':       'rgb(255, 165, 0)',   # Orange
+                    'HR_Very_hard':  'rgb(255, 99, 71)'    # Tomato Red
+                }
 
+                # Define the zones in a canonical order
+                zone_definitions = [
+                    {'key': 'HR_Very_light', 'name': 'Very Light'},
+                    {'key': 'HR_Light',      'name': 'Light'},
+                    {'key': 'HR_Moderate',   'name': 'Moderate'},
+                    {'key': 'HR_Hard',       'name': 'Hard'},
+                    {'key': 'HR_Very_hard',  'name': 'Very Hard'}
+                ]
+
+                for i, zone_def in enumerate(zone_definitions):
+                    zone_key = zone_def['key']
+                    
+                    if zone_key not in hr_zones:
+                        continue
+
+                    y_start = hr_zones[zone_key]
+                    y_end = None
+                    
+                    # Find the start of the next zone to define the end of the current one
+                    if i + 1 < len(zone_definitions):
+                        next_zone_key = zone_definitions[i+1]['key']
+                        if next_zone_key in hr_zones:
+                            y_end = hr_zones[next_zone_key]
+
+                    # Create label
+                    if y_end is not None:
+                        # The end of the zone is one less than the start of the next zone
+                        label_text = f"{zone_def['name']} ({y_start} - {y_end - 1})"
+                    else:
+                        # This is the last zone (Very Hard)
+                        label_text = f"{zone_def['name']} ({y_start}+)"
+                        if zone_key == 'HR_Very_hard':
+                            y_end = 300
+
+                    print(f"--- Debug Zone: key={zone_key}, y_start={y_start}, y_end={y_end}, label='{label_text}' ---")
+
+                    hr_annotations_yaxis.append({
+                        "y": y_start,
+                        "y2": y_end,
+                        "borderColor": "#ddd",
+                        "fillColor": zone_colors.get(zone_key, 'rgb(220, 220, 220)'),
+                        "opacity": 0.35,
+                    })
+
+            # Calculate average heart rate (excluding None values)
+            valid_hr_values = [point['y'] for point in hr_series_values if point['y'] is not None]
+            if valid_hr_values:
+                avg_hr = sum(valid_hr_values) / len(valid_hr_values)
+                if avg_hr > 0:
+                    hr_annotations_yaxis.append({
+                        "y": avg_hr,
+                        "borderColor": "#FF0000", # Red color
+                        "borderWidth": 1,         # 1px width
+                        "strokeDashArray": 0,     # Solid line
+                        "label": {
+                            "borderColor": "#FF0000",
+                            "style": {
+                                "color": "#fff",
+                                "background": "#FF0000",
+                                "fontSize": "13px",  # Reduced font size
+                                "padding": {         # Reduced padding
+                                    "left": 2,
+                                    "right": 2,
+                                    "top": 2,
+                                    "bottom": 2
+                                }
+                            },
+                            "text": f"{avg_hr:.0f}", # Only value
+                        }
+                    })
+            
+            hr_annotations_dict = {"yaxis": hr_annotations_yaxis} if hr_annotations_yaxis else None
+            
+            charts_data_list.append({
+                "element_id": "heartRateChart",
+                "title": "Heart Rate (bpm)", 
+                "series_data_json": json.dumps(hr_series_values), 
+                "metric_key": "HeartRate",
+                "unit": "bpm",
+                "annotations_json": json.dumps(hr_annotations_dict) if hr_annotations_dict else None
+            })
 
     return render_template(
         'details.html',
