@@ -56,6 +56,18 @@
 										<td>Pace (/500m):</td>
 										<td>{{ workout.average_split_seconds_500m | format_split_ms }}</td>
 									</tr>
+									{% if avg_power is not none %}
+									<tr>
+										<td>Avg Power:</td>
+										<td>{{ '%.0f'|format(avg_power) }} W</td>
+									</tr>
+									{% endif %}
+									{% if avg_hr is not none %}
+									<tr>
+										<td>Avg HR:</td>
+										<td>{{ '%.0f'|format(avg_hr) }} bpm</td>
+									</tr>
+									{% endif %}
 									{% if workout.total_isoreps is not none and workout.total_isoreps > 0 %}
 									<tr>
 										<td>Reps:</td>

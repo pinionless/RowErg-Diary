@@ -68,6 +68,8 @@ def details(workout_id):
         ranking_data = {}
 
     charts_data_list = []
+    avg_power = None
+    avg_hr = None
     
     time_categories = []
     
@@ -194,10 +196,11 @@ def details(workout_id):
             # print(f"--- Debug VIEW: Power series values (count: {len(power_series_values)}): {power_series_values[:10]}... ---")
             if any(d['y'] is not None for d in power_series_values): # Check if any y-value is not None
                 power_annotations_yaxis = []
-                avg_power = calculate_average_from_series(power_series_values)
-                if avg_power is not None:
+                calculated_avg_power = calculate_average_from_series(power_series_values)
+                if calculated_avg_power is not None:
+                    avg_power = calculated_avg_power
                     power_annotations_yaxis.append({
-                        "y": avg_power,
+                        "y": calculated_avg_power,
                         "borderColor": "#FF0000", # Red color
                         "borderWidth": 1,         # 1px width
                         "strokeDashArray": 0,     # Solid line
@@ -214,7 +217,7 @@ def details(workout_id):
                                     "bottom": 2
                                 }
                             },
-                            "text": f"{avg_power:.0f}", # Only value
+                            "text": f"{calculated_avg_power:.0f}", # Only value
                         }
                     })
                     # print(f"--- Debug VIEW: Added average power annotation: {avg_power} ---")
@@ -357,10 +360,11 @@ def details(workout_id):
             # Calculate average heart rate (excluding None values)
             valid_hr_values = [point['y'] for point in hr_series_values if point['y'] is not None]
             if valid_hr_values:
-                avg_hr = sum(valid_hr_values) / len(valid_hr_values)
-                if avg_hr > 0:
+                calculated_avg_hr = sum(valid_hr_values) / len(valid_hr_values)
+                if calculated_avg_hr > 0:
+                    avg_hr = calculated_avg_hr
                     hr_annotations_yaxis.append({
-                        "y": avg_hr,
+                        "y": calculated_avg_hr,
                         "borderColor": "#FF0000", # Red color
                         "borderWidth": 1,         # 1px width
                         "strokeDashArray": 0,     # Solid line
@@ -377,7 +381,7 @@ def details(workout_id):
                                     "bottom": 2
                                 }
                             },
-                            "text": f"{avg_hr:.0f}", # Only value
+                            "text": f"{calculated_avg_hr:.0f}", # Only value
                         }
                     })
             
@@ -454,7 +458,9 @@ def details(workout_id):
         charts_data_list=charts_data_list,
         ranking_data=ranking_data,
         hr_zone_table_data=hr_zone_table_data,
-        split_table_data=calculate_split_data(workout.workout_id, distance_metric_id, power_metric_id, spm_metric_id, hr_samples_query)
+        split_table_data=calculate_split_data(workout.workout_id, distance_metric_id, power_metric_id, spm_metric_id, hr_samples_query),
+        avg_power=avg_power,
+        avg_hr=avg_hr
     )
 
 def calculate_split_data(workout_id, distance_metric_id, power_metric_id, spm_metric_id, hr_samples_raw):
