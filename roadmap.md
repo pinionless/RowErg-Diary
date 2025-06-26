@@ -20,9 +20,10 @@
     - Allow users to export their workout data (e.g., main workout stats or even detailed samples) to CSV.
 - Concept2 Log API integration
     - autosync workouts
-- Display Heart Rate Data
 - Performance Enhancements (via Materialized Views)
     - Pre-calculate ranking totals to speed up details page.
     - Pre-calculate average Power, SPM, and Heart Rate for workouts.
     - Pre-calculate time spent in each heart rate zone.
     - Pre-calculate averages for 500m splits.
+- Fix Styles overall
+- Fix Styles on details paige
