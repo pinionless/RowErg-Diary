@@ -1,125 +1,100 @@
 <!-- ======================================================== -->
 <!-- = index.html - Main landing page for RowErg Diary      -->
 <!-- ======================================================== -->
-<!DOCTYPE HTML>
-<html>
-	<head>
-		<title>RowErg Diary</title> <!-- Page Title -->
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-		<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}"> <!-- Favicon Link -->
-		<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" /> <!-- Main Stylesheet -->
-		<link rel="stylesheet" href="{{ url_for('static', filename='css/mystyles.css') }}" /> <!-- Custom Stylesheet -->
-	</head>
-	<body class="is-preload">
+{% extends "base.html" %}
 
+{% block title %}RowErg Diary{% endblock %}
 
+{% block page_header %}{% endblock %}
 
+{% block content %}
 
-
-
-		<!-- == Main Content Area ============================================ -->
-		<div id="content" class="custom-fullwidth">
-			<div class="inner">
-
-				<!-- -- Flash Messages Section ------------------- -->
-				{% with messages = get_flashed_messages(with_categories=true) %}
-					{% if messages %}
-						<article class="box post post-excerpt">
-						{% for category, message in messages %}
-							<div class="box alert-{{ category }}" style="font-size: 1.3em; border: 1px solid; padding: 16px; margin-bottom: 20px; text-align: center;">
-								{{ message }} <!-- Display flash message -->
-							</div>
-						{% endfor %}
-						</article>
-					{% endif %}
-				{% endwith %}
-
-				<!-- -- Input Forms Section (Widgets) ------------------- -->
-				<article class="box post post-excerpt">
-					<div class="flex-container">
-						<!-- --- Manual Workout Input Form ------------------- -->
-						<div class="flex-box">
-							<h3>Manual Workout Input</h3>
-							<form id="workoutInputForm" method="POST" action="{{ url_for('submit_manual_workout') }}">
-								<!-- ---- Workout Name and Date ------------------- -->
-								<div class="form-row-split">
-									<div class="form-field-group">
-										<label for="workoutName">Name:</label>
-										<input type="text" id="workoutName" name="workoutName" placeholder="e.g., Morning Row">
-									</div>
-									<div class="form-field-group">
-										<label for="workoutDate">Date:</label>
-										<input type="date" id="workoutDate" name="workoutDate" required>
-									</div>
-								</div>
-								
-								<!-- ---- Workout Time and Distance ------------------- -->
-								<div class="form-row-split">
-									<div class="form-field-group">
-										<label for="workoutTime">Time (HH:MM:SS.ms):</label>
-										<input type="text" id="workoutTime" name="workoutTime" placeholder="1:46:45.2 or 65:45.2" required pattern="^([0-9]+:)?([0-9]+:){1}([0-5]?[0-9])(\.[0-9]+)?$">
-									</div>
-									<div class="form-field-group">
-										<label for="workoutDistance">Distance (Meters):</label>
-										<input type="number" id="workoutDistance" name="workoutDistance" placeholder="e.g., 2000" required>
-									</div>
-								</div>
-
-								<!-- ---- Workout Level and Calculated Pace ------------------- -->
-								<div class="form-row-split">
-									<div class="form-field-group">
-										<label for="workoutLevel">Level:</label>
-										<input type="text" id="workoutLevel" name="workoutLevel" placeholder="1-10">
-									</div>
-									<div class="form-field-group">
-										<label for="calculatedPace">Pace:</label>
-										<input type="text" id="calculatedPace" name="calculatedPace" placeholder="--:--.--" readonly> <!-- Pace is auto-calculated by pace.js -->
-									</div>
-								</div>
-
-								<!-- ---- Workout Notes ------------------- -->
-								<div>
-									<label for="workoutNotes">Notes:</label>
-									<textarea id="workoutNotes" name="workoutNotes" placeholder="e.g., Feeling strong today!"></textarea>
-								</div>
-								
-								<!-- ---- Submit Button ------------------- -->
-								<button type="submit" id="workoutSubmitBtn" class="button">Add Workout</button>
-							</form>
-						</div>
-						<!-- --- JSON Import Form ------------------- -->
-						<div class="flex-box">
-							<h3>Mywelness Json Import</h3>
-							<form id="jsonInputForm" method="POST" action="{{ url_for('submit_json_workout') }}">
-								<div>
-									<label for="jsonData">Json:</label>
-									<textarea id="jsonData" class="text_data" name="jsonData" placeholder='{"key": "value"}' required></textarea>
-								</div>
-								<div>
-									<label for="jsonNotes">Notes:</label>
-									<textarea id="jsonNotes" name="jsonNotes" placeholder="Any specific notes for this imported workout?"></textarea>
-								</div>
-								<div>
-									<button type="submit" id="jsonSubmitBtn" class="button">Submit JSON</button>
-								</div>
-							</form>
-						</div>
+<!-- -- Input Forms Section (Widgets) ------------------- -->
+<article class="box post post-excerpt">
+	<div class="flex-container">
+		<!-- --- Manual Workout Input Form ------------------- -->
+		<div class="flex-box">
+			<h3>Manual Workout Input</h3>
+			<form id="workoutInputForm" method="POST" action="{{ url_for('submit_manual_workout') }}">
+				<!-- ---- Workout Name and Date ------------------- -->
+				<div class="form-row-split">
+					<div class="form-field-group">
+						<label for="workoutName">Name:</label>
+						<input type="text" id="workoutName" name="workoutName" placeholder="e.g., Morning Row">
 					</div>
-				</article>
-			</div>
+					<div class="form-field-group">
+						<label for="workoutDate">Date:</label>
+						<input type="date" id="workoutDate" name="workoutDate" required>
+					</div>
+				</div>
+				
+				<!-- ---- Workout Time and Distance ------------------- -->
+				<div class="form-row-split">
+					<div class="form-field-group">
+						<label for="workoutTime">Time (HH:MM:SS.ms):</label>
+						<input type="text" id="workoutTime" name="workoutTime" placeholder="1:46:45.2 or 65:45.2" required pattern="^([0-9]+:)?([0-9]+:){1}([0-5]?[0-9])(\.[0-9]+)?$">
+					</div>
+					<div class="form-field-group">
+						<label for="workoutDistance">Distance (Meters):</label>
+						<input type="number" id="workoutDistance" name="workoutDistance" placeholder="e.g., 2000" required>
+					</div>
+				</div>
+
+				<!-- ---- Workout Level and Calculated Pace ------------------- -->
+				<div class="form-row-split">
+					<div class="form-field-group">
+						<label for="workoutLevel">Level:</label>
+						<input type="text" id="workoutLevel" name="workoutLevel" placeholder="1-10">
+					</div>
+					<div class="form-field-group">
+						<label for="calculatedPace">Pace:</label>
+						<input type="text" id="calculatedPace" name="calculatedPace" placeholder="--:--.--" readonly> <!-- Pace is auto-calculated by pace.js -->
+					</div>
+				</div>
+
+				<!-- ---- Equipment Dropdown ------------------- -->
+				<div class="form-field-group">
+					<label for="equipmentType">Equipment:</label>
+					<select id="equipmentType" name="equipmentType" required>
+						<option value="" disabled selected>Select Equipment</option>
+						{% for equipment in equipment_types %}
+							<option value="{{ equipment.equipment_type_id }}">{{ equipment.name }}</option>
+						{% endfor %}
+					</select>
+				</div>
+
+				<!-- ---- Workout Notes ------------------- -->
+				<div>
+					<label for="workoutNotes">Notes:</label>
+					<textarea id="workoutNotes" name="workoutNotes" placeholder="e.g., Feeling strong today!"></textarea>
+				</div>
+				
+				<!-- ---- Submit Button ------------------- -->
+				<button type="submit" id="workoutSubmitBtn" class="button">Add Workout</button>
+			</form>
 		</div>
+		<!-- --- JSON Import Form ------------------- -->
+		<div class="flex-box">
+			<h3>Mywelness Json Import</h3>
+			<form id="jsonInputForm" method="POST" action="{{ url_for('submit_json_workout') }}">
+				<div>
+					<label for="jsonData">Json:</label>
+					<textarea id="jsonData" class="text_data" name="jsonData" placeholder='{"key": "value"}' required></textarea>
+				</div>
+				<div>
+					<label for="jsonNotes">Notes:</label>
+					<textarea id="jsonNotes" name="jsonNotes" placeholder="Any specific notes for this imported workout?"></textarea>
+				</div>
+				<div>
+					<button type="submit" id="jsonSubmitBtn" class="button">Submit JSON</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</article>
 
-		<!-- == Sidebar Inclusion ============================================ -->
-		{% include '_sidebar.html' %} <!-- Include the sidebar template -->
+{% endblock %}
 
-		<!-- == Scripts ============================================ -->
-		<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
-		<script src="{{ url_for('static', filename='js/browser.min.js') }}"></script>
-		<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
-		<script src="{{ url_for('static', filename='js/util.js') }}"></script>
-		<script src="{{ url_for('static', filename='js/main.js') }}"></script>
-		<script src="{{ url_for('static', filename='js/pace.js') }}"></script> <!-- Script for pace calculation -->
-		
-	</body>
-</html>
+{% block scripts_extra %}
+	<script src="{{ url_for('static', filename='js/pace.js') }}"></script> <!-- Script for pace calculation -->
+{% endblock %}

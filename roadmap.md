@@ -1,17 +1,14 @@
 # Roadmap
 - Enhanced Statistics & Dashboard Page
-    - Create a new route (e.g., /dashboard) that displays more comprehensive statistics.
-    - Utilize mv_year_totals, mv_month_totals, mv_week_totals to show trends.
-    - Charts: Integrate a simple charting library (e.g., Chart.js, ApexCharts) to visualize:
-        - Meters rowed per week/month.
-        - Average split over time.
-        - Workout frequency.
-    - Personal Bests: Longest distance, longest duration, fastest split for common distances (e.g., 500m, 1k, 2k, 5k).
+    - Personal Bests: Longest distance, longest duration.
+
 - Workout Editing and Deletion
-    - Add "Edit" and "Delete" buttons to the workout listings (e.g., in workouts.html, workouts_by_date.html, index.html).
+    - Add "Edit" and "Delete" buttons to the workout listings (e.g., in workouts.html, workouts_by_date.html).
+
 - Filtering and Sorting:
     - Workouts Page:
         - Add clickable table headers to sort by date, distance, duration, split.
+        
 - Extra widgets on Homepage
     - This Week 
     - This Month
@@ -23,3 +20,10 @@
     - Allow users to export their workout data (e.g., main workout stats or even detailed samples) to CSV.
 - Concept2 Log API integration
     - autosync workouts
+- Performance Enhancements (via Materialized Views)
+    - Pre-calculate ranking totals to speed up details page.
+    - Pre-calculate average Power, SPM, and Heart Rate for workouts.
+    - Pre-calculate time spent in each heart rate zone.
+    - Pre-calculate averages for 500m splits.
+- Fix Styles overall
+- Fix Styles on details paige

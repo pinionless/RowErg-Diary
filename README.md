@@ -1,32 +1,17 @@
 # RowErg Diary 🚣‍♂️
 
-Tracking and analyzing SKILLROW RowErg an Concept2 (or similar cardio equipment) workouts. This application allows you to import workout data, view summaries, track progress, and manage your workout history.
+RowErg Diary is a self-hosted web application designed for rowing enthusiasts to track, analyze, and visualize their workout data. It provides a centralized platform to import workout files from services like Technogym's MyWellness or to enter them manually, offering detailed insights into performance metrics, long-term progress, and personal rankings.
 
----
+## ✨ Key Features
 
-## ⚠️ **Status: Early Development** ⚠️
+*   **Multiple Data Entry Methods:** Import workout data from MyWellness JSON files or use the intuitive form for manual entries.
+*   **Interactive Performance Charts:** Visualize your pace, power, stroke rate (SPM), and heart rate for each workout with zoomable, interactive charts.
+*   **In-Depth Analytics:** Get detailed 500m split breakdowns and see how much time you spent in each configurable heart rate zone.
+*   **Personal Ranking System:** See how your workouts rank against each other overall, by year, and by month to track your improvement.
+*   **Historical Summaries:** View aggregated workout data by day, week, month, or year to see the bigger picture.
 
-This project is currently in its **early development stages**. Please be aware that:
-    
-    ❗ Active Development Notice: Expect breaking changes to features, APIs, and the database schema; backward compatibility is not guaranteed at this early stage.
-*   Functionality may be incomplete or change significantly.
-*   You might encounter bugs or instability.
-*   We appreciate your understanding and any feedback you might have!
 
----
-
-## Current Features
-
-*   **Import SKILLROW Workouts:** Easily upload and parse your MyWellness JSON data.
-*   **Track Your Progress:** View a detailed list of all workouts with key stats.
-*   **Dive Deep into Details:** Analyze individual workouts with comprehensive metrics, samples, and heart rate zone data.
-*   **Daily Performance Summaries:** Get aggregated totals for each day's rowing activity.
-*   **Overall Statistics:** See your lifetime rowing achievements at a glance in the sidebar.
-*   **Efficient Data Handling:** Leverages materialized views for fast display of summaries and stats.
-*   **Dockerized & Developer Ready:** Easy to set up and contribute.
----
-
-## Getting Your MyWellness JSON Data
+ ## Getting Your MyWellness JSON Data
 
 To import your SKILLROW workouts, you'll need the JSON data from your MyWellness account.
 
@@ -34,141 +19,85 @@ To import your SKILLROW workouts, you'll need the JSON data from your MyWellness
     *   [RowErg JSON Helper Script](https://github.com/pinionless/rowerg-json-helper/blob/main/rowerg-json-helper.user.js)
 2.  **Copy & Paste:** Once you have the JSON content, copy it and paste it into the designated textarea in the RowErg Diary application.
 
----
+*   **Dockerized & Easy to Deploy:** The entire application is containerized, allowing for a simple and consistent setup process.
 
-## Project Roadmap
+## 🛠️ Tech Stack
 
-We have exciting plans for RowErg Diary! You can view our detailed development roadmap here:
+*   **Backend:** Python with Flask
+*   **Database:** PostgreSQL
+*   **ORM:** SQLAlchemy
+*   **Frontend:** HTML, CSS, JavaScript, ApexCharts.js
+*   **Containerization:** Docker & Docker Compose
 
-➡️ **[View Project Roadmap](roadmap.md)**
+## ✅ Prerequisites
 
----
+To run this project locally, you will need the following tools installed:
 
-## AI WARNING
+*   [Docker](https://docs.docker.com/engine/install/)
+*   [Docker Compose](https://docs.docker.com/compose/install/)
 
-> I do not code a lot, That's why most of the foundational code and this README were created with the assistance of AI. I am actively refining and building upon this base.
+## 🚀 Local Development Setup
 
----
+Follow these steps to get your local development environment up and running.
 
-## RowErg Diary
-
-A Flask-based web application for tracking and analyzing SKILLROW RowErg (or similar cardio equipment) workouts. This application allows you to import workout data, view summaries, track progress, and manage your workout history.
-
----
-
-## ✨ Key Features
-
-*   **Workout Data Import:**
-    *   Seamlessly import detailed SKILLROW workout data via MyWellness JSON exports.
-    *   Automatic parsing of workout metrics, samples, heart rate data, and HR zones.
-*   **Comprehensive Workout Diary:**
-    *   Paginated list of all your workouts (`/workouts`).
-    *   At-a-glance summaries for each workout (Date, Name, Distance, Duration, Average Split).
-*   **Detailed Workout View (`/details/<id>`):**
-    *   In-depth information for individual workouts.
-    *   General workout information (ID, equipment, target, totals).
-    *   List of all metric descriptors used in the workout (e.g., Pace, Power, Stroke Rate).
-    *   Display of workout samples (first & last 10, with total count).
-    *   Display of heart rate samples (first & last 10, with total count).
-    *   Visualization of time spent in different heart rate zones.
-*   **Daily Summaries (`/dailysummary`):**
-    *   Paginated view of aggregated daily totals (Total Distance, Total Duration, Average Split for each day).
-    *   Ability to click through to see all workouts for a specific day (`/workouts/date/<date>`).
-*   **Dynamic Sidebar Statistics:**
-    *   Always-visible overall lifetime statistics (Total Meters Rowed, Total Duration, Overall Average Split).
-    *   Data is efficiently sourced from materialized views for quick display.
-*   **Robust Database Backend:**
-    *   Utilizes PostgreSQL for reliable data storage.
-    *   SQLAlchemy ORM for Pythonic database interaction.
-    *   Materialized views for pre-calculated aggregate statistics, ensuring fast dashboard/summary loading.
-    *   Automatic refresh of materialized views upon new workout data insertion, update, or deletion via database triggers.
-*   **Flexible Configuration:**
-    *   App settings (like items per page, secret key) configurable via environment variables.
-*   **Developer-Friendly:**
-    *   Modular Flask application structure (views, models, utils).
-    *   Dockerized environment for easy setup and consistent development/deployment (`docker-compose.yml` provided).
-    *   Database management scripts for easy creation and deletion of all DB components (tables, MVs, functions, triggers) during development.
-*   **(Planned/In Progress)** Manual workout entry form.
-
----
-
-## Getting Started
-
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
-
-### Prerequisites
-
-Before you begin, ensure you have the following installed on your system:
-
-*   **Docker & Docker Compose:** For running the application in containers.
-    *   [Install Docker Engine](https://docs.docker.com/engine/install/)
-    *   [Install Docker Compose](https://docs.docker.com/compose/install/)
-
-### Installation and Setup
-
-  1.  **Prepare `docker-compose.yml`:**
-  * See example below.
-
-  2.  **First-Time Database Setup (Crucial!):**
-  *   Open your web browser and navigate to:
-      `http://localhost:5000/database/create`
-  *   This will trigger the database creation script within the application, setting up necessary tables, materialized views, and triggers. You should see a success message.
-
-### Usage
-
-Once the application is running and the database is initialized:
-
-*   Open your web browser and go to `http://localhost:5000`.
-
-
-### docker-compose.yml
+**1. Clone the Repository**
+```bash
+git clone https://github.com/pinionless/rowergdiary.git
+cd rowergdiary
 ```
+
+**2. Configure and Run the Application**
+The project uses Docker Compose to manage all services. You can use the official pre-built image for a quick start.
+
+Create a `docker-compose.yml` file in the project root with the following content:
+
+```yaml
 services:
   rowergdiary:
     image: ghcr.io/pinionless/rowerg-diary:latest
     container_name: rowerg_diary
     restart: unless-stopped
-    networks:
-      - rowerg_diary
     ports:
       - "5000:5000"
-    environment:      
+    environment:
       FLASK_APP: app.py
       FLASK_ENV: development
-      FLASK_DEBUG: 1
-      PER_PAGE: ${PER_PAGE:-20}
-
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
       POSTGRES_DB: mydatabase
       POSTGRES_HOST: rowerg_diary_db
     depends_on:
       rowerg_diary_db:
-        condition: service_healthy # Waits for postgres_dev to be healthy
+        condition: service_healthy
 
   rowerg_diary_db:
     image: postgres:17-alpine
     container_name: rowerg_diary_db
     restart: unless-stopped
-    networks:
-      - rowerg_diary
-    ports:
-      - "5432:5432" # Expose PostgreSQL port for local debugging (optional)
     volumes:
-      - postgres_data:/var/lib/postgresql/data/ # Persistent volume for database data
+      - postgres_data:/var/lib/postgresql/data/
     environment:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
       POSTGRES_DB: mydatabase
-    healthcheck: # Added healthcheck for postgres
+    healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-networks:
-  rowerg_diary:
-    driver: bridge
-
 volumes:
-  postgres_data: # Define the named volume for PostgreSQL data persistence
+  postgres_data:
+```
+
+Then, start the services:
+```bash
+docker-compose up -d
+```
+
+
+
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to open an issue to discuss a bug or feature, or submit a pull request with your improvements. For major changes, please open an issue first to discuss what you would like to change.
