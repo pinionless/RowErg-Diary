@@ -13,6 +13,7 @@ DROP MATERIALIZED VIEW IF EXISTS mv_month_totals;
 DROP MATERIALIZED VIEW IF EXISTS mv_week_totals;
 DROP MATERIALIZED VIEW IF EXISTS mv_day_totals;
 DROP MATERIALIZED VIEW IF EXISTS mv_workout_rankings;
+DROP MATERIALIZED VIEW IF EXISTS mv_rolling_avg;
 """
 
 # Global SQL definition for dropping functions
@@ -31,6 +32,7 @@ BEGIN
     REFRESH MATERIALIZED VIEW mv_month_totals;
     REFRESH MATERIALIZED VIEW mv_week_totals;
     REFRESH MATERIALIZED VIEW mv_day_totals;
+    REFRESH MATERIALIZED VIEW mv_rolling_avg;
     RETURN NULL; -- Result is ignored since this is an AFTER trigger
 END;
 $$ LANGUAGE plpgsql;
@@ -295,6 +297,82 @@ def _get_create_mvs_sql():
         SELECT * FROM monthly_ranks
     ) all_ranks
     WITH DATA;
+
+    CREATE MATERIALIZED VIEW mv_rolling_avg AS
+    SELECT
+        w.workout_id,
+        w.workout_date,
+        w.total_distance_meters,
+        w.duration_seconds,
+        w.average_split_seconds_500m,
+        
+        -- All Time (cumulative unbounded)
+        SUM(w.duration_seconds) OVER (
+            ORDER BY w.workout_date, w.workout_id
+            ROWS UNBOUNDED PRECEDING
+        ) / NULLIF(SUM(w.total_distance_meters) OVER (
+            ORDER BY w.workout_date, w.workout_id
+            ROWS UNBOUNDED PRECEDING
+        ), 0) * 500.0 AS avg_all_time,
+        
+        -- Last 365 Days
+        SUM(w.duration_seconds) OVER (
+            ORDER BY w.workout_date
+            RANGE BETWEEN INTERVAL '365 days' PRECEDING AND CURRENT ROW
+        ) / NULLIF(SUM(w.total_distance_meters) OVER (
+            ORDER BY w.workout_date
+            RANGE BETWEEN INTERVAL '365 days' PRECEDING AND CURRENT ROW
+        ), 0) * 500.0 AS avg_365_days,
+        
+        -- Last 180 Days
+        SUM(w.duration_seconds) OVER (
+            ORDER BY w.workout_date
+            RANGE BETWEEN INTERVAL '180 days' PRECEDING AND CURRENT ROW
+        ) / NULLIF(SUM(w.total_distance_meters) OVER (
+            ORDER BY w.workout_date
+            RANGE BETWEEN INTERVAL '180 days' PRECEDING AND CURRENT ROW
+        ), 0) * 500.0 AS avg_180_days,
+        
+        -- Last 90 Days
+        SUM(w.duration_seconds) OVER (
+            ORDER BY w.workout_date
+            RANGE BETWEEN INTERVAL '90 days' PRECEDING AND CURRENT ROW
+        ) / NULLIF(SUM(w.total_distance_meters) OVER (
+            ORDER BY w.workout_date
+            RANGE BETWEEN INTERVAL '90 days' PRECEDING AND CURRENT ROW
+        ), 0) * 500.0 AS avg_90_days,
+        
+        -- Last 30 Days
+        SUM(w.duration_seconds) OVER (
+            ORDER BY w.workout_date
+            RANGE BETWEEN INTERVAL '30 days' PRECEDING AND CURRENT ROW
+        ) / NULLIF(SUM(w.total_distance_meters) OVER (
+            ORDER BY w.workout_date
+            RANGE BETWEEN INTERVAL '30 days' PRECEDING AND CURRENT ROW
+        ), 0) * 500.0 AS avg_30_days,
+        
+        -- Last 7 Days
+        SUM(w.duration_seconds) OVER (
+            ORDER BY w.workout_date
+            RANGE BETWEEN INTERVAL '7 days' PRECEDING AND CURRENT ROW
+        ) / NULLIF(SUM(w.total_distance_meters) OVER (
+            ORDER BY w.workout_date
+            RANGE BETWEEN INTERVAL '7 days' PRECEDING AND CURRENT ROW
+        ), 0) * 500.0 AS avg_7_days
+    FROM
+        workouts w
+        JOIN equipment_types et ON w.equipment_type_id = et.equipment_type_id
+    WHERE
+        et.settings_include_in_totals = TRUE
+        AND w.total_distance_meters IS NOT NULL
+        AND w.total_distance_meters > 0
+        AND w.duration_seconds IS NOT NULL
+        AND w.duration_seconds > 0
+        AND w.average_split_seconds_500m IS NOT NULL
+        AND w.average_split_seconds_500m > 0
+    ORDER BY
+        w.workout_date, w.workout_id
+    WITH DATA;
     """
 
 # Default settings for UserSetting table
@@ -449,14 +527,16 @@ def update_db_schema(current_version, target_version):
     current_app.logger.info(f"Updating schema from {current_version} to {target_version}")
     
     # Import migration modules
-    from db_migrations import v0_13_to_0_15, v0_15_to_0_16, v0_16_to_0_17, v0_17_to_0_18
+    from db_migrations import v0_13_to_0_15, v0_15_to_0_16, v0_16_to_0_17, v0_17_to_0_18, v0_18_to_0_19, v0_19_to_0_20
     
     # Define available migrations
     migrations = {
         "0.13": {"target": "0.15", "upgrade": v0_13_to_0_15.upgrade},
         "0.15": {"target": "0.16", "upgrade": v0_15_to_0_16.upgrade},
         "0.16": {"target": "0.17", "upgrade": v0_16_to_0_17.upgrade},
-        "0.17": {"target": "0.18", "upgrade": v0_17_to_0_18.upgrade}
+        "0.17": {"target": "0.18", "upgrade": v0_17_to_0_18.upgrade},
+        "0.18": {"target": "0.19", "upgrade": v0_18_to_0_19.upgrade},
+        "0.19": {"target": "0.20", "upgrade": v0_19_to_0_20.upgrade}
     }
     
     effective_current_version = current_version

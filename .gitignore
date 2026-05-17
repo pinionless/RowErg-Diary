@@ -30,6 +30,7 @@ flask_app.log # Example log file
 
 # Docker
 *.env # If you use separate .env files for secrets
+db_data/ # Dev postgres data volume
 
 # Operating System Files
 .DS_Store
