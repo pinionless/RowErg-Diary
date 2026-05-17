@@ -1,7 +1,7 @@
 # ========================================================
 # = rolling_avg.py - View for displaying rolling average pace
 # ========================================================
-from flask import Blueprint, render_template, current_app
+from flask import Blueprint, render_template, current_app, request
 from models import db
 from sqlalchemy import text
 
@@ -12,23 +12,56 @@ rolling_avg_bp = Blueprint('rolling_avg', __name__, url_prefix='/rolling-avg')
 #---------------------------------------------------------
 @rolling_avg_bp.route('/')
 def index():
-    """Renders a single combined Rolling Average pace chart."""
+    """Renders a single combined Rolling Average pace chart with filtering."""
     try:
-        # Fetch all precalculated values from the MV ordered chronologically
-        query = text("""
-            SELECT 
-                workout_date,
-                avg_all_time,
-                avg_365_days,
-                avg_180_days,
-                avg_90_days,
-                avg_30_days,
-                avg_7_days
-            FROM mv_rolling_avg
-            ORDER BY workout_date, workout_id
-        """)
-        results = db.session.execute(query).fetchall()
+        # -- Parse filter params -------------------
+        range_filter = request.args.get('range', 'all')  # 'all', 'year', 'last'
+        year_value = request.args.get('year', None, type=int)
+        days_value = request.args.get('days', None, type=int)
 
+        # -- Get available years for buttons -------------------
+        years_query = text("""
+            SELECT DISTINCT EXTRACT(YEAR FROM workout_date)::integer AS yr
+            FROM mv_rolling_avg
+            ORDER BY yr DESC
+        """)
+        available_years = [row.yr for row in db.session.execute(years_query).fetchall()]
+
+        # -- Build filtered query -------------------
+        if range_filter == 'year' and year_value:
+            query = text("""
+                SELECT workout_date, avg_all_time, avg_365_days, avg_180_days,
+                       avg_90_days, avg_30_days, avg_7_days
+                FROM mv_rolling_avg
+                WHERE EXTRACT(YEAR FROM workout_date) = :year
+                ORDER BY workout_date
+            """)
+            results = db.session.execute(query, {'year': year_value}).fetchall()
+            page_title = f"Rolling Average Pace — {year_value}"
+
+        elif range_filter == 'last' and days_value:
+            query = text("""
+                SELECT workout_date, avg_all_time, avg_365_days, avg_180_days,
+                       avg_90_days, avg_30_days, avg_7_days
+                FROM mv_rolling_avg
+                WHERE workout_date >= CURRENT_DATE - :days
+                ORDER BY workout_date
+            """)
+            results = db.session.execute(query, {'days': days_value}).fetchall()
+            page_title = f"Rolling Average Pace — Last {days_value} Days"
+
+        else:
+            # Default: all time
+            query = text("""
+                SELECT workout_date, avg_all_time, avg_365_days, avg_180_days,
+                       avg_90_days, avg_30_days, avg_7_days
+                FROM mv_rolling_avg
+                ORDER BY workout_date
+            """)
+            results = db.session.execute(query).fetchall()
+            page_title = "Rolling Average Pace"
+
+        # -- Build chart data -------------------
         dates = []
         all_time = []
         last_365 = []
@@ -60,8 +93,12 @@ def index():
 
         return render_template(
             'rolling_avg.html',
-            page_title="Rolling Average Pace",
+            page_title=page_title,
             chart_data=chart_data,
+            available_years=available_years,
+            range_filter=range_filter,
+            year_value=year_value,
+            days_value=days_value,
         )
 
     except Exception as e:
@@ -70,6 +107,10 @@ def index():
             'rolling_avg.html',
             page_title="Rolling Average Pace",
             chart_data={'dates': [], 'series': []},
+            available_years=[],
+            range_filter='all',
+            year_value=None,
+            days_value=None,
         )
 
 

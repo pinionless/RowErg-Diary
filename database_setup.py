@@ -299,79 +299,54 @@ def _get_create_mvs_sql():
     WITH DATA;
 
     CREATE MATERIALIZED VIEW mv_rolling_avg AS
-    SELECT
-        w.workout_id,
-        w.workout_date,
-        w.total_distance_meters,
-        w.duration_seconds,
-        w.average_split_seconds_500m,
-        
-        -- All Time (cumulative unbounded)
-        SUM(w.duration_seconds) OVER (
-            ORDER BY w.workout_date, w.workout_id
-            ROWS UNBOUNDED PRECEDING
-        ) / NULLIF(SUM(w.total_distance_meters) OVER (
-            ORDER BY w.workout_date, w.workout_id
-            ROWS UNBOUNDED PRECEDING
-        ), 0) * 500.0 AS avg_all_time,
-        
-        -- Last 365 Days
-        SUM(w.duration_seconds) OVER (
-            ORDER BY w.workout_date
-            RANGE BETWEEN INTERVAL '365 days' PRECEDING AND CURRENT ROW
-        ) / NULLIF(SUM(w.total_distance_meters) OVER (
-            ORDER BY w.workout_date
-            RANGE BETWEEN INTERVAL '365 days' PRECEDING AND CURRENT ROW
-        ), 0) * 500.0 AS avg_365_days,
-        
-        -- Last 180 Days
-        SUM(w.duration_seconds) OVER (
-            ORDER BY w.workout_date
-            RANGE BETWEEN INTERVAL '180 days' PRECEDING AND CURRENT ROW
-        ) / NULLIF(SUM(w.total_distance_meters) OVER (
-            ORDER BY w.workout_date
-            RANGE BETWEEN INTERVAL '180 days' PRECEDING AND CURRENT ROW
-        ), 0) * 500.0 AS avg_180_days,
-        
-        -- Last 90 Days
-        SUM(w.duration_seconds) OVER (
-            ORDER BY w.workout_date
-            RANGE BETWEEN INTERVAL '90 days' PRECEDING AND CURRENT ROW
-        ) / NULLIF(SUM(w.total_distance_meters) OVER (
-            ORDER BY w.workout_date
-            RANGE BETWEEN INTERVAL '90 days' PRECEDING AND CURRENT ROW
-        ), 0) * 500.0 AS avg_90_days,
-        
-        -- Last 30 Days
-        SUM(w.duration_seconds) OVER (
-            ORDER BY w.workout_date
-            RANGE BETWEEN INTERVAL '30 days' PRECEDING AND CURRENT ROW
-        ) / NULLIF(SUM(w.total_distance_meters) OVER (
-            ORDER BY w.workout_date
-            RANGE BETWEEN INTERVAL '30 days' PRECEDING AND CURRENT ROW
-        ), 0) * 500.0 AS avg_30_days,
-        
-        -- Last 7 Days
-        SUM(w.duration_seconds) OVER (
-            ORDER BY w.workout_date
-            RANGE BETWEEN INTERVAL '7 days' PRECEDING AND CURRENT ROW
-        ) / NULLIF(SUM(w.total_distance_meters) OVER (
-            ORDER BY w.workout_date
-            RANGE BETWEEN INTERVAL '7 days' PRECEDING AND CURRENT ROW
-        ), 0) * 500.0 AS avg_7_days
-    FROM
-        workouts w
+    WITH daily_totals AS (
+        SELECT
+            w.workout_date,
+            SUM(w.total_distance_meters) AS day_distance,
+            SUM(w.duration_seconds) AS day_duration
+        FROM workouts w
         JOIN equipment_types et ON w.equipment_type_id = et.equipment_type_id
-    WHERE
-        et.settings_include_in_totals = TRUE
-        AND w.total_distance_meters IS NOT NULL
-        AND w.total_distance_meters > 0
-        AND w.duration_seconds IS NOT NULL
-        AND w.duration_seconds > 0
-        AND w.average_split_seconds_500m IS NOT NULL
-        AND w.average_split_seconds_500m > 0
-    ORDER BY
-        w.workout_date, w.workout_id
+        WHERE
+            et.settings_include_in_totals = TRUE
+            AND w.total_distance_meters IS NOT NULL
+            AND w.total_distance_meters > 0
+            AND w.duration_seconds IS NOT NULL
+            AND w.duration_seconds > 0
+            AND w.average_split_seconds_500m IS NOT NULL
+            AND w.average_split_seconds_500m > 0
+        GROUP BY w.workout_date
+    )
+    SELECT
+        workout_date,
+        day_distance,
+        day_duration,
+        day_duration / NULLIF(day_distance, 0) * 500.0 AS day_pace,
+        
+        SUM(day_duration) OVER (ORDER BY workout_date ROWS UNBOUNDED PRECEDING) /
+            NULLIF(SUM(day_distance) OVER (ORDER BY workout_date ROWS UNBOUNDED PRECEDING), 0) * 500.0
+            AS avg_all_time,
+        
+        SUM(day_duration) OVER (ORDER BY workout_date ROWS BETWEEN 364 PRECEDING AND CURRENT ROW) /
+            NULLIF(SUM(day_distance) OVER (ORDER BY workout_date ROWS BETWEEN 364 PRECEDING AND CURRENT ROW), 0) * 500.0
+            AS avg_365_days,
+        
+        SUM(day_duration) OVER (ORDER BY workout_date ROWS BETWEEN 179 PRECEDING AND CURRENT ROW) /
+            NULLIF(SUM(day_distance) OVER (ORDER BY workout_date ROWS BETWEEN 179 PRECEDING AND CURRENT ROW), 0) * 500.0
+            AS avg_180_days,
+        
+        SUM(day_duration) OVER (ORDER BY workout_date ROWS BETWEEN 89 PRECEDING AND CURRENT ROW) /
+            NULLIF(SUM(day_distance) OVER (ORDER BY workout_date ROWS BETWEEN 89 PRECEDING AND CURRENT ROW), 0) * 500.0
+            AS avg_90_days,
+        
+        SUM(day_duration) OVER (ORDER BY workout_date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) /
+            NULLIF(SUM(day_distance) OVER (ORDER BY workout_date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW), 0) * 500.0
+            AS avg_30_days,
+        
+        SUM(day_duration) OVER (ORDER BY workout_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) /
+            NULLIF(SUM(day_distance) OVER (ORDER BY workout_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 0) * 500.0
+            AS avg_7_days
+    FROM daily_totals
+    ORDER BY workout_date
     WITH DATA;
     """
 
@@ -527,7 +502,7 @@ def update_db_schema(current_version, target_version):
     current_app.logger.info(f"Updating schema from {current_version} to {target_version}")
     
     # Import migration modules
-    from db_migrations import v0_13_to_0_15, v0_15_to_0_16, v0_16_to_0_17, v0_17_to_0_18, v0_18_to_0_19, v0_19_to_0_20
+    from db_migrations import v0_13_to_0_15, v0_15_to_0_16, v0_16_to_0_17, v0_17_to_0_18, v0_18_to_0_19, v0_19_to_0_20, v0_20_to_0_21
     
     # Define available migrations
     migrations = {
@@ -536,7 +511,8 @@ def update_db_schema(current_version, target_version):
         "0.16": {"target": "0.17", "upgrade": v0_16_to_0_17.upgrade},
         "0.17": {"target": "0.18", "upgrade": v0_17_to_0_18.upgrade},
         "0.18": {"target": "0.19", "upgrade": v0_18_to_0_19.upgrade},
-        "0.19": {"target": "0.20", "upgrade": v0_19_to_0_20.upgrade}
+        "0.19": {"target": "0.20", "upgrade": v0_19_to_0_20.upgrade},
+        "0.20": {"target": "0.21", "upgrade": v0_20_to_0_21.upgrade}
     }
     
     effective_current_version = current_version

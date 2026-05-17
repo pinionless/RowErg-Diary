@@ -8,11 +8,28 @@
 {% block page_title_h1 %}{{ page_title }}{% endblock %}
 
 {% block content %}
+
+<!-- == Range Filter Buttons ============================================ -->
+<div class="ranking-year-nav" style="margin-bottom: 10px; text-align: center;">
+    <a href="{{ url_for('rolling_avg.index') }}"
+       class="button {{ 'alt' if range_filter == 'all' }}">All Time</a>
+    {% for yr in available_years %}
+        <a href="{{ url_for('rolling_avg.index', range='year', year=yr) }}"
+           class="button {{ 'alt' if range_filter == 'year' and year_value == yr }}">{{ yr }}</a>
+    {% endfor %}
+</div>
+<div class="ranking-year-nav" style="margin-bottom: 20px; text-align: center;">
+    {% for d in [365, 180, 90, 30, 7] %}
+        <a href="{{ url_for('rolling_avg.index', range='last', days=d) }}"
+           class="button {{ 'alt' if range_filter == 'last' and days_value == d }}">Last {{ d }}d</a>
+    {% endfor %}
+</div>
+
 <article class="box post post-excerpt">
-    <div style="margin-bottom: 20px;">
-        <p style="font-size: 1.1em; color: #555; line-height: 1.6;">
-            Compare your rowing performance trends across different time windows. 
-            Click series names in the legend below the chart to toggle lines on/off.
+    <div style="margin-bottom: 10px;">
+        <p style="font-size: 0.95em; color: #777;">
+            Distance-weighted rolling average pace across workout days (rest days are skipped).
+            Click legend items to toggle lines.
         </p>
     </div>
 
@@ -21,7 +38,7 @@
         <div id="combinedRollingAvgChart" style="width:100%; min-height:460px;">
             {% if not chart_data.dates %}
             <div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:460px;">
-                <span style="color:#6a8fd7; font-size:1.2em;">[ No rowing workout data available to calculate trends ]</span>
+                <span style="color:#6a8fd7; font-size:1.2em;">[ No data available for this selection ]</span>
             </div>
             {% endif %}
         </div>
@@ -66,7 +83,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 speed: 800
             }
         },
-        // Curved paths look more modern and sleek
         stroke: {
             curve: 'smooth',
             width: [3, 2, 2, 2, 2, 2.5]
@@ -88,7 +104,7 @@ document.addEventListener("DOMContentLoaded", function() {
             tickAmount: Math.min(chartData.dates.length, 15)
         },
         yaxis: {
-            reversed: true,  // Reversing the Y-axis so faster paces (lower numbers) are plotted higher
+            reversed: true,
             title: { 
                 text: 'Average Pace /500m',
                 style: { fontSize: '12px', fontWeight: 600, color: '#3b4a6b' }
@@ -99,7 +115,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             }
         },
-        // Premium color palette for high-end feel
         colors: [
             '#008FFB', // All Time (Blue)
             '#00E396', // Last 365 Days (Green)
@@ -115,7 +130,6 @@ document.addEventListener("DOMContentLoaded", function() {
         tooltip: {
             shared: true,
             intersect: false,
-            // A custom shared tooltip card that displays all series' formatted pace nicely
             custom: function({ series, seriesIndex, dataPointIndex, w }) {
                 var categoryLabel = w.globals.labels[dataPointIndex] || '';
                 var html = '<div class="apexcharts-tooltip-title" style="font-family: inherit; font-size: 13px; font-weight: bold; padding: 6px 10px; background: #eef2f7; border-bottom: 1px solid #ddd;">' + categoryLabel + '</div>';

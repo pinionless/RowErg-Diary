@@ -1,0 +1,14 @@
+db_data/
+.git/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+.venv/
+venv/
+.idea/
+.vscode/
+instance/
+*.sqlite3
