@@ -1,0 +1,177 @@
+<!-- ======================================================== -->
+<!-- = rolling_dist.html - Combined Rolling Average Distance Chart -->
+<!-- ======================================================== -->
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block page_title_h1 %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<!-- == Range Filter Buttons ============================================ -->
+<div class="ranking-year-nav" style="margin-bottom: 10px; text-align: center;">
+    <a href="{{ url_for('rolling_dist.index') }}"
+       class="button {{ 'alt' if range_filter == 'all' }}">All Time</a>
+    {% for yr in available_years %}
+        <a href="{{ url_for('rolling_dist.index', range='year', year=yr) }}"
+           class="button {{ 'alt' if range_filter == 'year' and year_value == yr }}">{{ yr }}</a>
+    {% endfor %}
+</div>
+<div class="ranking-year-nav" style="margin-bottom: 20px; text-align: center;">
+    {% for d in [365, 180, 90, 30, 7] %}
+        <a href="{{ url_for('rolling_dist.index', range='last', days=d) }}"
+           class="button {{ 'alt' if range_filter == 'last' and days_value == d }}">Last {{ d }}d</a>
+    {% endfor %}
+</div>
+
+<article class="box post post-excerpt">
+    <div style="margin-bottom: 10px;">
+        <p style="font-size: 0.95em; color: #777;">
+            Rolling average distance rowed per calendar day (incorporates empty days into the average).
+            Click legend items to toggle lines.
+        </p>
+    </div>
+
+    <!-- Combined Chart container -->
+    <div style="width:100%; min-height:500px; background:#f4f7fb; border:1px solid #e0e0e0; padding: 20px; border-radius: 6px; box-sizing: border-box;" class="type01">
+        <div id="combinedRollingDistChart" style="width:100%; min-height:460px;">
+            {% if not chart_data.dates %}
+            <div style="display:flex; align-items:center; justify-content:center; height:100%; min-height:460px;">
+                <span style="color:#6a8fd7; font-size:1.2em;">[ No data available for this selection ]</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</article>
+{% endblock %}
+
+{% block scripts_extra %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+// ========================================================
+// = Combined Rolling Average Distance Chart Initialization
+// ========================================================
+document.addEventListener("DOMContentLoaded", function() {
+    // -- Distance formatting helper -------------------
+    function formatDistance(meters) {
+        if (meters === null || typeof meters === 'undefined') return 'N/A';
+        return Math.round(meters).toLocaleString() + 'm';
+    }
+
+    var chartData = {{ chart_data | tojson | safe }};
+
+    if (!chartData.dates || chartData.dates.length === 0) return;
+
+    var chartEl = document.querySelector("#combinedRollingDistChart");
+    if (!chartEl) return;
+
+    var options = {
+        chart: {
+            type: 'line',
+            height: 460,
+            zoom: { enabled: true },
+            toolbar: { show: true },
+            animations: {
+                enabled: true,
+                easing: 'easeinout',
+                speed: 800
+            }
+        },
+        stroke: {
+            curve: 'smooth',
+            width: [3, 2, 2, 2, 2, 2.5]
+        },
+        series: chartData.series,
+        xaxis: {
+            categories: chartData.dates,
+            type: 'category',
+            title: { 
+                text: 'Workout Date',
+                style: { fontSize: '12px', fontWeight: 600, color: '#3b4a6b' }
+            },
+            labels: {
+                show: true,
+                rotate: -45,
+                rotateAlways: chartData.dates.length > 20,
+                style: { fontSize: '10px' }
+            },
+            tickAmount: Math.min(chartData.dates.length, 15)
+        },
+        yaxis: {
+            reversed: false, // Distance is higher = better
+            title: { 
+                text: 'Average Distance (m) / day',
+                style: { fontSize: '12px', fontWeight: 600, color: '#3b4a6b' }
+            },
+            labels: {
+                formatter: function(val) {
+                    return Math.round(val) + 'm';
+                }
+            }
+        },
+        colors: [
+            '#008FFB', // All Time (Blue)
+            '#00E396', // Last 365 Days (Green)
+            '#FEB019', // Last 180 Days (Orange)
+            '#FF4560', // Last 90 Days (Pink/Red)
+            '#775DD0', // Last 30 Days (Purple)
+            '#546E7A'  // Last 7 Days (Slate/Grey)
+        ],
+        markers: {
+            size: chartData.dates.length <= 40 ? 3 : 0,
+            hover: { size: 5 }
+        },
+        tooltip: {
+            shared: true,
+            intersect: false,
+            custom: function({ series, seriesIndex, dataPointIndex, w }) {
+                var categoryLabel = w.globals.labels[dataPointIndex] || '';
+                var html = '<div class="apexcharts-tooltip-title" style="font-family: inherit; font-size: 13px; font-weight: bold; padding: 6px 10px; background: #eef2f7; border-bottom: 1px solid #ddd;">' + categoryLabel + '</div>';
+                
+                w.globals.initialSeries.forEach(function(s, idx) {
+                    var val = s.data[dataPointIndex];
+                    var formattedValue = (val !== null && val >= 0) ? formatDistance(val) : 'N/A';
+                    var color = w.globals.colors[idx];
+                    
+                    html += '<div class="apexcharts-tooltip-series-group" style="display: flex; align-items: center; padding: 4px 10px; font-family: inherit; font-size: 12px;">' +
+                            '<span class="apexcharts-tooltip-marker" style="background-color: ' + color + '; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%; display: inline-block;"></span>' +
+                            '<div class="apexcharts-tooltip-text" style="display: flex; justify-content: space-between; width: 100%;">' +
+                            '<span class="apexcharts-tooltip-text-y-label" style="color: #666; margin-right: 15px;">' + s.name + ':</span>' +
+                            '<span class="apexcharts-tooltip-text-y-value" style="font-weight: bold; font-family: monospace;">' + formattedValue + '</span>' +
+                            '</div>' +
+                            '</div>';
+                });
+                return html;
+            }
+        },
+        grid: {
+            borderColor: '#e0e0e0',
+            strokeDashArray: 4,
+            padding: {
+                bottom: 15
+            }
+        },
+        legend: {
+            position: 'bottom',
+            horizontalAlign: 'center',
+            fontSize: '13px',
+            fontFamily: 'inherit',
+            fontWeight: 500,
+            markers: {
+                width: 12,
+                height: 12,
+                radius: 12
+            },
+            itemMargin: {
+                horizontal: 12,
+                vertical: 8
+            }
+        }
+    };
+
+    var chart = new ApexCharts(chartEl, options);
+    chart.render();
+});
+</script>
+{% endblock %}

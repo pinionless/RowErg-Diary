@@ -14,6 +14,7 @@ DROP MATERIALIZED VIEW IF EXISTS mv_week_totals;
 DROP MATERIALIZED VIEW IF EXISTS mv_day_totals;
 DROP MATERIALIZED VIEW IF EXISTS mv_workout_rankings;
 DROP MATERIALIZED VIEW IF EXISTS mv_rolling_avg;
+DROP MATERIALIZED VIEW IF EXISTS mv_rolling_dist;
 """
 
 # Global SQL definition for dropping functions
@@ -33,6 +34,7 @@ BEGIN
     REFRESH MATERIALIZED VIEW mv_week_totals;
     REFRESH MATERIALIZED VIEW mv_day_totals;
     REFRESH MATERIALIZED VIEW mv_rolling_avg;
+    REFRESH MATERIALIZED VIEW mv_rolling_dist;
     RETURN NULL; -- Result is ignored since this is an AFTER trigger
 END;
 $$ LANGUAGE plpgsql;
@@ -348,6 +350,66 @@ def _get_create_mvs_sql():
     FROM daily_totals
     ORDER BY workout_date
     WITH DATA;
+
+    CREATE MATERIALIZED VIEW mv_rolling_dist AS
+    WITH daily_totals AS (
+        SELECT
+            w.workout_date,
+            SUM(w.total_distance_meters) AS day_distance
+        FROM workouts w
+        JOIN equipment_types et ON w.equipment_type_id = et.equipment_type_id
+        WHERE
+            et.settings_include_in_totals = TRUE
+            AND w.total_distance_meters IS NOT NULL
+            AND w.total_distance_meters > 0
+        GROUP BY w.workout_date
+    ),
+    first_date AS (
+        SELECT MIN(workout_date) AS fd FROM daily_totals
+    )
+    SELECT
+        d.workout_date,
+        
+        -- All Time (cumulative unbounded)
+        SUM(d.day_distance) OVER (
+            ORDER BY d.workout_date 
+            ROWS UNBOUNDED PRECEDING
+        ) / (d.workout_date - f.fd + 1) AS avg_all_time,
+        
+        -- Last 365 Days
+        SUM(d.day_distance) OVER (
+            ORDER BY d.workout_date 
+            RANGE BETWEEN INTERVAL '364 days' PRECEDING AND CURRENT ROW
+        ) / LEAST(365, d.workout_date - f.fd + 1) AS avg_365_days,
+        
+        -- Last 180 Days
+        SUM(d.day_distance) OVER (
+            ORDER BY d.workout_date 
+            RANGE BETWEEN INTERVAL '179 days' PRECEDING AND CURRENT ROW
+        ) / LEAST(180, d.workout_date - f.fd + 1) AS avg_180_days,
+        
+        -- Last 90 Days
+        SUM(d.day_distance) OVER (
+            ORDER BY d.workout_date 
+            RANGE BETWEEN INTERVAL '89 days' PRECEDING AND CURRENT ROW
+        ) / LEAST(90, d.workout_date - f.fd + 1) AS avg_90_days,
+        
+        -- Last 30 Days
+        SUM(d.day_distance) OVER (
+            ORDER BY d.workout_date 
+            RANGE BETWEEN INTERVAL '29 days' PRECEDING AND CURRENT ROW
+        ) / LEAST(30, d.workout_date - f.fd + 1) AS avg_30_days,
+        
+        -- Last 7 Days
+        SUM(d.day_distance) OVER (
+            ORDER BY d.workout_date 
+            RANGE BETWEEN INTERVAL '6 days' PRECEDING AND CURRENT ROW
+        ) / LEAST(7, d.workout_date - f.fd + 1) AS avg_7_days
+    
+    FROM daily_totals d
+    CROSS JOIN first_date f
+    ORDER BY d.workout_date
+    WITH DATA;
     """
 
 # Default settings for UserSetting table
@@ -502,7 +564,7 @@ def update_db_schema(current_version, target_version):
     current_app.logger.info(f"Updating schema from {current_version} to {target_version}")
     
     # Import migration modules
-    from db_migrations import v0_13_to_0_15, v0_15_to_0_16, v0_16_to_0_17, v0_17_to_0_18, v0_18_to_0_19, v0_19_to_0_20, v0_20_to_0_21
+    from db_migrations import v0_13_to_0_15, v0_15_to_0_16, v0_16_to_0_17, v0_17_to_0_18, v0_18_to_0_19, v0_19_to_0_20, v0_20_to_0_21, v0_21_to_0_22
     
     # Define available migrations
     migrations = {
@@ -512,7 +574,8 @@ def update_db_schema(current_version, target_version):
         "0.17": {"target": "0.18", "upgrade": v0_17_to_0_18.upgrade},
         "0.18": {"target": "0.19", "upgrade": v0_18_to_0_19.upgrade},
         "0.19": {"target": "0.20", "upgrade": v0_19_to_0_20.upgrade},
-        "0.20": {"target": "0.21", "upgrade": v0_20_to_0_21.upgrade}
+        "0.20": {"target": "0.21", "upgrade": v0_20_to_0_21.upgrade},
+        "0.21": {"target": "0.22", "upgrade": v0_21_to_0_22.upgrade}
     }
     
     effective_current_version = current_version
