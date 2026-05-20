@@ -15,7 +15,8 @@
             <li class="{{ 'current' if request.path == url_for('summary_month') else '' }}"><a href="{{ url_for('summary_month') }}">Monthly Summary</a></li>
             <li class="{{ 'current' if request.path == url_for('summary_year') else '' }}"><a href="{{ url_for('summary_year') }}">Yearly Summary</a></li>
             <li class="{{ 'current' if request.blueprint == 'ranking' else '' }}"><a href="{{ url_for('ranking.index') }}">Ranking</a></li> <!-- Updated Ranking Link -->
-            <li class="{{ 'current' if request.blueprint == 'rolling_avg' else '' }}"><a href="{{ url_for('rolling_avg.index') }}">Rolling Avg</a></li> <!-- Rolling Average Link -->
+            <li class="{{ 'current' if request.blueprint == 'rolling_avg' else '' }}"><a href="{{ url_for('rolling_avg.index') }}">Rolling Avg Pace</a></li> <!-- Rolling Average Link -->
+            <li class="{{ 'current' if request.blueprint == 'rolling_dist' else '' }}"><a href="{{ url_for('rolling_dist.index') }}">Rolling Avg Dist</a></li> <!-- Rolling Dist Link -->
             <li class="{{ 'current' if request.path == url_for('settings') else '' }}"><a href="{{ url_for('settings') }}">Settings</a></li>
 
 

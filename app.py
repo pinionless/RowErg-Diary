@@ -8,7 +8,7 @@ from models import db
 # - View and Utility Imports
 #---------------------------------------------------------
 # Import application views
-from views import home, submit_json_workout, workouts, details, summary_day, summary_week, summary_month, summary_year, workouts_by_date, submit_manual_workout, workouts_by_week, workouts_by_month, workouts_by_year, settings, ranking, rolling_avg
+from views import home, submit_json_workout, workouts, details, summary_day, summary_week, summary_month, summary_year, workouts_by_date, submit_manual_workout, workouts_by_week, workouts_by_month, workouts_by_year, settings, ranking, rolling_avg, rolling_dist
 # Import utility functions and context processors
 from utils import nl2br_filter, sidebar_stats_processor, utility_processor, format_seconds_to_hms, format_split_short, format_duration_ms, format_total_seconds_human_readable # Added utility_processor
 from database_setup import create_db_components, update_db_schema # Import database setup functions
@@ -17,8 +17,8 @@ from sqlalchemy.exc import ProgrammingError # To catch errors like "table not fo
 # --------------------------------------------------------
 # - Application Version
 #---------------------------------------------------------
-__version__ = "0.19" # Current application version
-TARGET_DB_SCHEMA_VERSION = "0.21" # Target schema version for this change
+__version__ = "0.22" # Current application version
+TARGET_DB_SCHEMA_VERSION = "0.22" # Target schema version for this change
 
 # --------------------------------------------------------
 # - Application Factory Function
@@ -117,6 +117,7 @@ def create_app(config_object=None):
         settings.register_routes(app)       # Registers routes for settings page
         ranking.register_routes(app)        # Registers routes for ranking page
         rolling_avg.register_routes(app)    # Registers routes for rolling average page
+        rolling_dist.register_routes(app)    # Registers routes for rolling distance page
 
     return app
 
